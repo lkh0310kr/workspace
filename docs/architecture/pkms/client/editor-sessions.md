@@ -8,7 +8,7 @@
 
 ID=`pkms:${workspaceId}`, itemId=file.id. 기본 operations는 비어 있고 names=true, contents=false, replace=false, multiSelect/dragMove=true, codeLanguages는 빈 Set, collaborativeDocuments=true다. 주입된 capabilities와 operations가 실제 지원 범위를 결정한다.
 
-listChildren은 parentId로 getFile을 조회하고 folder가 아니면 []를 반환한다. listDirectory의 path를 shared item으로 변환한다. subscribeTree는 부모 path를 loaded folder ID로 바꾸며 없으면 UTF-8 path의 base64url `local-...` ID를 만든다. names 검색은 **로드된 파일만** 대상으로 한다. 전체 저장소 검색을 보장하지 않는다. contents target은 []다. openDocument는 다른 provider/folder/삭제 파일을 거부하고 openSession에 위임한다. open 완료 후 abort됐으면 session을 close한다.
+listChildren은 parentId로 getFile을 조회하고 folder가 아니면 []를 반환한다. listDirectory의 path를 shared item으로 변환한다. subscribeTree는 부모 path를 loaded folder ID로 바꾸며 없으면 [localItemIdForPath](../../../../packages/pkms-client/src/domain/localItemId.ts)의 UTF-8 경로 base64url `local-...` ID를 만든다. 이 deterministic ID는 입력 경로를 정규화하지 않으며, rename/move 및 realtime conflict snapshot도 같은 helper를 사용한다. names 검색은 **로드된 파일만** 대상으로 한다. 전체 저장소 검색을 보장하지 않는다. contents target은 []다. openDocument는 다른 provider/folder/삭제 파일을 거부하고 openSession에 위임한다. open 완료 후 abort됐으면 session을 close한다.
 
 ## PKMS 로컬 session
 

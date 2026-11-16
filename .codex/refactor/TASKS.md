@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 25개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 26개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -30,11 +30,12 @@
 | T-019 | R-008 | workspace tree cache의 parentPath 계산을 domain helper로 단일화하고 cache behavior 보존 | `packages/pkms-client/src/client/workspaceTreeCache.ts`, 관련 contract test | R-008 경로 의미·consumer 계약 조사 | 낮음~중간 | focused cache tests, typecheck, lint/format | validated |
 | T-020 | R-001b | `useWorkspaceTabHotkeys`가 `WorkspaceTabRail` facade 대신 canonical `workspaceNavigation`을 직접 참조하도록 layer dependency를 정리 | `apps/workspace-app/src/renderer/src/hooks/useWorkspaceTabHotkeys.ts`, 신규 hook contract test | 기존 index shortcut spec과 handler wiring 확인 | 낮음 | index→현재 tab ID·범위 밖 index 무시·effect cleanup focused tests, app typecheck, root check | validated |
 | T-021 | R-001b | agent activity summary cache가 time-based freshness 경계를 넘으면 동일 입력 참조에서도 다시 계산하도록 만료 시각을 추적 | `apps/workspace-app/src/renderer/src/lib/workspace-agent-activity-summary.ts`, 신규 selector contract test, AGENT spec | freshness helper 및 AGENT-03/05 집계 규칙 확인 | 낮음~중간 | 동일 refs + fake time 경계, mirrored title evidence, restored/structured 예외, typecheck | validated |
+| T-022 | R-008 | PKMS client의 path 기반 local item ID 인코딩을 domain helper 하나로 통일하고 기존 결정적 UTF-8 base64url 형식을 보존 | `packages/pkms-client/src/domain/localItemId.ts`, PkmsClientApp, editor provider/realtime 소비자 및 helper test | 세 소비 경로의 ID equality·ASCII/Unicode 기준선 확인 | 낮음~중간 | ASCII·Unicode·base64url 문자·padding·경로 비정규화 회귀, PKMS web typecheck, root check | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 25개; 검증 완료 25, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 26개; 검증 완료 26, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -82,5 +83,6 @@
 - T-020 채택: `useWorkspaceTabHotkeys.ts`는 tab switching을 `WorkspaceTabRail`에서 재수출한 함수로 호출한다. 실제 구현은 `workspaceNavigation.ts`의 `switchToWorkspaceTab`이며 component는 동일 함수의 alias만 재수출한다. hook이 canonical owner를 직접 import하도록 바꾸고 index lookup·out-of-range·listener cleanup을 최소 테스트로 고정한다. 기존 component re-export와 IPC/단축키 동작은 유지한다.
 - T-020 완료: hook이 `WorkspaceTabRail` 대신 `workspaceNavigation.switchToWorkspaceTab`을 직접 사용한다. 기존 component export/IPC 계약은 유지하고 전용 테스트로 1-based index, missing tab, tabs 변경 시 listener 교체 및 unmount cleanup을 고정했다. 기존 경로 기준 테스트 2개 통과 후 변경 적용, 변경 후에도 2개 통과; `npm run typecheck`, root `npm run check`, 앱 로컬 ESLint/Prettier 통과. 커밋 `8b186ac0`.
 - T-021 완료: selector cache에 time-based `validUntil`을 기록해 freshness 경계를 지난 동일 입력을 재집계한다. `agentStatusEvidenceObservedAt`을 재사용해 mirrored evidence 우선순위를 유지하고, title-derived 및 일반 explicit만 만료 대상으로 삼아 restored/structured-host 규칙을 보존했다. fake-time 동일 refs·mirrored title·restored/structured 예외 테스트 3개, app typecheck 통과. selector 재호출 시 결과를 갱신하며 시간 경과만으로 React UI를 깨우는 timer는 AGENT spec의 계약이 아니므로 추가하지 않는다.
+- T-022 완료: PkmsClientApp·realtime conflict snapshot·editor provider의 중복 UTF-8/base64url local ID 구현을 domain helper로 합쳤다. ASCII·한글·`+`/`/` 대체·padding 제거·입력 경로 비정규화 4개 assertion을 새 테스트로 고정했다. 패키지 focused 5개 테스트, PKMS web typecheck, root `npm run check` 통과. 앱 ESLint는 package 경로를 base path 밖으로 무시했고, Prettier 검사에서는 `pkmsEditorProvider.ts`의 변경과 무관한 기존 2개 줄 형식만 실패해 유지했다.
 - R-001b pane/viewer 후보: `CadViewerContent.tsx`는 `paneActive` 변화에 따라 webview가 재생성될 수 있어 pane switch 후 CAD state 보존 acceptance가 필요하다. `EpubReaderContent.tsx`는 새 경로 로드 전에 이전 error가 reset되지 않는 흐름이 보여 path-change regression이 후보다. `FileViewerContent.tsx`는 이전 Blob URL revoke와 state 교체 사이 렌더 race 가능성이 있으나 실제 영향은 낮은 확신이라 먼저 재현해야 한다. 실제 WebGL/CAD/EPUB runtime 확인 없이 수정하지 않는다.
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
