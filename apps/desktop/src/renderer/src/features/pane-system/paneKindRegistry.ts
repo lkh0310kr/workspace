@@ -1,6 +1,6 @@
 import type { Model } from 'flexlayout-react'
 import type { ComponentType, ReactNode, RefObject } from 'react'
-import type { ContextMenuItem } from '../../components/ContextMenu'
+import type { ContextMenuItem } from '@renderer/adapters/ui'
 import type { PaneTabItem, TabKind } from './layout/paneTypes'
 
 // The pane-kind plugin registry — collapses what used to be a hardcoded

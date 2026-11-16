@@ -1,6 +1,6 @@
 import { Popover as SharedPopover } from '@workspace/ui'
 import type { PopoverProps } from '@workspace/ui'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 
 export { shouldDismissPopoverPointerDown } from '@workspace/ui'
 export type { AnchorRect } from '@workspace/ui'

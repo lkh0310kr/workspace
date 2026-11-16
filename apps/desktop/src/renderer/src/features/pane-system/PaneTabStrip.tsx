@@ -8,7 +8,7 @@ import {
   type MouseEvent
 } from 'react'
 import type { TabNode } from 'flexlayout-react'
-import { ContextMenu } from '../../components/ContextMenu'
+import { ContextMenu } from '@renderer/adapters/ui'
 import { PanePicker } from './PanePicker'
 import { PaneTabItem, TabKind } from './layout/paneTypes'
 import {
@@ -22,7 +22,7 @@ import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../../interactio
 import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 import { startPaneDrag, finishPaneDrag } from './layout/layoutRef'
 import { layoutLog } from './layout/layoutDebugLog'
-import { WorkbenchIcon, type WorkbenchIconName } from '../../components/WorkbenchIcon'
+import { WorkbenchIcon, type WorkbenchIconName } from '@renderer/adapters/ui'
 import { EditorTabChip } from '@workspace/editor'
 
 // The globalized version of ui/EditorTabBar.tsx (which used to be

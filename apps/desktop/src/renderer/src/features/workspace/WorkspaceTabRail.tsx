@@ -18,11 +18,11 @@ import {
 import { onShortcutModifierPressed, onShortcutModifierReleased } from './runtime/workspaceShortcuts'
 import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
 import { switchToHome, switchToWorkspaceTab } from './navigationApi'
-import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
+import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
 import { computeWorkspaceTabActivityStatus } from './useWorkspaceTabActivityStatus'
 import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
-import { WorkbenchIcon } from '../../components/WorkbenchIcon'
+import { WorkbenchIcon } from '@renderer/adapters/ui'
 
 interface Props {
   tabs: TabInfo[]

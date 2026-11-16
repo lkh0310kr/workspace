@@ -1,0 +1,6 @@
+export { ContextMenu } from './ContextMenu'
+export type { ContextMenuItem } from './ContextMenu'
+export { Popover, shouldDismissPopoverPointerDown } from './Popover'
+export type { AnchorRect } from './Popover'
+export { WorkbenchIcon } from './WorkbenchIcon'
+export type { WorkbenchIconName } from './WorkbenchIcon'

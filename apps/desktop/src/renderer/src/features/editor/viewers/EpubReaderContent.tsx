@@ -8,7 +8,7 @@ import {
   type EbookBookState,
   type EbookTheme
 } from '../../../../../shared/ebookState'
-import { Popover, type AnchorRect } from '../../../components/Popover'
+import { Popover, type AnchorRect } from '@renderer/adapters/ui'
 import { getCurrentResolvedTheme, subscribeThemeChange, type ResolvedTheme } from '../../../theme'
 import { ebookTurnFromKey, ebookTurnFromPageClick, isTypingTarget } from './epub/epubKeys'
 import { ebookReaderCss, formatEbookTitle, resolveEbookTheme } from './epub/epubTheme'

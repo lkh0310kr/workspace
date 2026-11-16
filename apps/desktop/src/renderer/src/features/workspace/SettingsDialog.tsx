@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Popover } from '../../components/Popover'
+import { Popover } from '@renderer/adapters/ui'
 import { setTabRootPath } from './runtime/workspaceApi'
 import { openDirectoryDialog } from './runtime/workspaceRootPicker'
 

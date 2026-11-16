@@ -1,6 +1,6 @@
 import { ContextMenu as SharedContextMenu } from '@workspace/ui/ContextMenu'
 import type { ContextMenuHost, ContextMenuProps } from '@workspace/ui/ContextMenu'
-import { interactionCoordinator } from '../interaction/InteractionCoordinator'
+import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 import { isWorkbenchIconName, WorkbenchIcon } from './WorkbenchIcon'
 
 const desktopContextMenuHost: ContextMenuHost = {

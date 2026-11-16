@@ -14,8 +14,8 @@ import { interactionCoordinator } from '../../interaction/InteractionCoordinator
 import { returnRendererFocusBeforeSurfaceHidden } from '../../interaction/embeddedSurfaceFocus'
 import { finishPaneDrag } from '../pane-system/layout/layoutRef'
 import { classifyAssetType } from '../../../../shared/asset'
-import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
-import type { AnchorRect } from '../../components/Popover'
+import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
+import type { AnchorRect } from '@renderer/adapters/ui'
 import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 import {
   editorTreeAncestorDirPaths,

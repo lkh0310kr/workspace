@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Popover } from '../../components/Popover'
+import { Popover } from '@renderer/adapters/ui'
 import { ThemePreference } from '../../theme'
 import { getStoredAutoSave, setStoredAutoSave } from '@renderer/features/editor/api'
 import {
