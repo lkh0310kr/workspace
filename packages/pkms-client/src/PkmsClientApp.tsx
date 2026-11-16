@@ -80,6 +80,7 @@ import type {
   Workspace
 } from './domain/types'
 import { toBase64, createOperationId } from './domain/encoding'
+import { localItemIdForPath } from './domain/localItemId'
 import { entryName, flattenTree, mergeFileRecords, parentPath } from './domain/fileTree'
 import { fileLocationPath, parseFileLocation } from './domain/fileLocation'
 import { matchesExcludePattern } from './domain/excludePattern'
@@ -138,13 +139,6 @@ export function meta() {
 function pkmsDocumentKey(workspaceId: string, fileId: string): string {
   return editorDocumentKey({ providerId: `pkms:${workspaceId}`, itemId: fileId })
 }
-function localItemIdForPath(path: string): string {
-  const bytes = new TextEncoder().encode(path)
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return `local-${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')}`
-}
-
 interface PkmsTreeOperations {
   createFile: (parentPath: string, name: string) => Promise<FileRecord | undefined>
   createFolder: (parentPath: string, name: string) => Promise<FileRecord | undefined>

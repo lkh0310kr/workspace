@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import * as Y from 'yjs'
 import type { FileRecord, Peer, RealtimeMessage } from '../../domain/types'
 import { fromBase64 } from '../../domain/encoding'
+import { localItemIdForPath } from '../../domain/localItemId'
 import { editorDocumentKey } from '@workspace/editor'
 
 interface DocumentEntry {
@@ -126,11 +127,4 @@ export function useRealtimeMessages({
       workspaceId
     ]
   )
-}
-
-function localItemIdForPath(path: string): string {
-  const bytes = new TextEncoder().encode(path)
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return `local-${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')}`
 }

@@ -12,6 +12,7 @@ import { EditorProviderError, withEditorProviderErrors } from '@workspace/editor
 import { fuzzyEditorSearch } from '@workspace/editor'
 import type { FileRecord } from '../../domain/types'
 import { entryName } from '../../domain/fileTree'
+import { localItemIdForPath } from '../../domain/localItemId'
 
 export interface PkmsEditorProviderOptions {
   workspaceId: string
@@ -78,13 +79,6 @@ function treeItem(workspaceId: string, file: FileRecord): EditorTreeItem {
 function abortIfNeeded(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException('The operation was aborted', 'AbortError')
 }
-function localItemId(path: string): string {
-  const bytes = new TextEncoder().encode(path)
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return `local-${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')}`
-}
-
 /** PKMS adapter: the shared Editor sees stable file IDs, never API/Yjs details. */
 export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): EditorProvider {
   const { workspaceId } = options
@@ -208,7 +202,7 @@ export function createPkmsEditorProvider(options: PkmsEditorProviderOptions): Ed
           const folder = options
             .listLoadedFiles()
             .find((file) => file.kind === 'folder' && file.path === path)
-          return folder?.id ?? localItemId(path)
+          return folder?.id ?? localItemIdForPath(path)
         })
         listener([...new Set(parentIds)])
       })
