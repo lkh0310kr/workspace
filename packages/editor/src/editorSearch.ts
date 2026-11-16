@@ -65,7 +65,7 @@ function withQuery(
   })
 }
 
-class VscodeSearchPanel implements Panel {
+class EditorFindReplacePanel implements Panel {
   dom: HTMLElement
   top = true
 
@@ -90,7 +90,7 @@ class VscodeSearchPanel implements Panel {
 
     const query = getSearchQuery(view.state)
 
-    this.toggleReplaceBtn = button('▸', 'Toggle Replace', 'cm-vs-toggle-replace', () => {
+    this.toggleReplaceBtn = button('▸', 'Toggle Replace', 'cm-editor-search-toggle-replace', () => {
       this.replaceOpen = !this.replaceOpen
       this.syncReplaceVisibility()
       if (this.replaceOpen) this.replaceField.focus()
@@ -117,18 +117,18 @@ class VscodeSearchPanel implements Panel {
     this.regexBtn = toggle('.*', 'Use Regular Expression (Alt+R)', () => this.flip('regexp'))
 
     this.countEl = document.createElement('span')
-    this.countEl.className = 'cm-vs-count'
+    this.countEl.className = 'cm-editor-search-count'
 
-    this.prevBtn = button('↑', 'Previous Match (Shift+Enter)', 'cm-vs-nav', () =>
+    this.prevBtn = button('↑', 'Previous Match (Shift+Enter)', 'cm-editor-search-nav', () =>
       findPrevious(this.view)
     )
-    this.nextBtn = button('↓', 'Next Match (Enter)', 'cm-vs-nav', () => findNext(this.view))
-    const closeBtn = button('×', 'Close (Escape)', 'cm-vs-close', () => closeSearchPanel(this.view))
+    this.nextBtn = button('↓', 'Next Match (Enter)', 'cm-editor-search-nav', () => findNext(this.view))
+    const closeBtn = button('×', 'Close (Escape)', 'cm-editor-search-close', () => closeSearchPanel(this.view))
 
     const findRow = document.createElement('div')
-    findRow.className = 'cm-vs-row'
+    findRow.className = 'cm-editor-search-row'
     const fieldWrap = document.createElement('div')
-    fieldWrap.className = 'cm-vs-field-wrap'
+    fieldWrap.className = 'cm-editor-search-field-wrap'
     fieldWrap.appendChild(this.searchField)
     fieldWrap.appendChild(this.caseBtn)
     fieldWrap.appendChild(this.wordBtn)
@@ -153,24 +153,24 @@ class VscodeSearchPanel implements Panel {
         closeSearchPanel(this.view)
       }
     })
-    const replaceOneBtn = button('Replace', 'Replace', 'cm-vs-text-button', () =>
+    const replaceOneBtn = button('Replace', 'Replace', 'cm-editor-search-text-button', () =>
       replaceNext(this.view)
     )
-    const replaceAllBtn = button('Replace All', 'Replace All', 'cm-vs-text-button', () =>
+    const replaceAllBtn = button('Replace All', 'Replace All', 'cm-editor-search-text-button', () =>
       replaceAll(this.view)
     )
 
     this.replaceRow = document.createElement('div')
-    this.replaceRow.className = 'cm-vs-row cm-vs-replace-row'
+    this.replaceRow.className = 'cm-editor-search-row cm-editor-search-replace-row'
     const replaceSpacer = document.createElement('span')
-    replaceSpacer.className = 'cm-vs-spacer'
+    replaceSpacer.className = 'cm-editor-search-spacer'
     this.replaceRow.appendChild(replaceSpacer)
     this.replaceRow.appendChild(this.replaceField)
     this.replaceRow.appendChild(replaceOneBtn)
     this.replaceRow.appendChild(replaceAllBtn)
 
     this.dom = document.createElement('div')
-    this.dom.className = 'cm-search cm-vs-search'
+    this.dom.className = 'cm-search cm-editor-search'
     this.dom.appendChild(findRow)
     this.dom.appendChild(this.replaceRow)
 
@@ -205,16 +205,16 @@ class VscodeSearchPanel implements Panel {
     const query = getSearchQuery(this.view.state)
     if (!query.search) {
       this.countEl.textContent = ''
-      this.countEl.classList.remove('cm-vs-count-empty')
+      this.countEl.classList.remove('cm-editor-search-count-empty')
       return
     }
     const { total, current, capped } = computeMatchInfo(this.view.state)
     if (total === 0) {
       this.countEl.textContent = 'No results'
-      this.countEl.classList.add('cm-vs-count-empty')
+      this.countEl.classList.add('cm-editor-search-count-empty')
       return
     }
-    this.countEl.classList.remove('cm-vs-count-empty')
+    this.countEl.classList.remove('cm-editor-search-count-empty')
     const totalLabel = capped ? `${total}+` : String(total)
     this.countEl.textContent = current > 0 ? `${current} of ${totalLabel}` : totalLabel
   }
@@ -261,7 +261,7 @@ function button(
 ): HTMLButtonElement {
   const el = document.createElement('button')
   el.type = 'button'
-  el.className = `cm-vs-btn ${className}`
+  el.className = `cm-editor-search-btn ${className}`
   el.title = title
   el.textContent = label
   // mousedown, not click — a click first fires blur on the focused input,
@@ -273,7 +273,7 @@ function button(
 }
 
 function toggle(label: string, title: string, onClick: () => void): HTMLButtonElement {
-  return button(label, title, 'cm-vs-toggle', onClick)
+  return button(label, title, 'cm-editor-search-toggle', onClick)
 }
 
 // @codemirror/search's own Mod-f binding always opens the panel — pressing
@@ -289,7 +289,7 @@ const toggleSearchKeymap = keymap.of([
 
 /** In-document Find/Replace shared by Markdown and code editor surfaces. */
 export const editorSearch = [
-  search({ top: true, createPanel: (view) => new VscodeSearchPanel(view) }),
+  search({ top: true, createPanel: (view) => new EditorFindReplacePanel(view) }),
   toggleSearchKeymap
 ]
 

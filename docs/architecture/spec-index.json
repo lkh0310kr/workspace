@@ -189,11 +189,11 @@
         },
         {
           "path": "packages/editor/src/editorSearch.css",
-          "sha256": "1d130bde1600a90e911b1e4a13c47923d93611f8038e748d5c89b384ef23e968"
+          "sha256": "f891164bc2020861d9752e0dd6001faf9ddb303ba828846628a1fe259f670d12"
         },
         {
           "path": "packages/editor/src/editorSearch.ts",
-          "sha256": "840977d0a4d2d9aba03f8db86c872a83651d7b2fc528d3d1fa8c063b48e22044"
+          "sha256": "147f1b7e353e5c5e44a8cb510baadb07e65e1e9cf1eef666b24e77718b960f88"
         },
         {
           "path": "packages/editor/src/EditorSearchButton.tsx",
@@ -365,7 +365,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "6f50201b3aa8bff0c4769f870b7379dcc3fdb81917f5e226289180287a142ade"
+          "sha256": "6152f16f45fc8ffb10e39f6b9fc11b590f822666fb30a1697a97dd696ed3bd01"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",

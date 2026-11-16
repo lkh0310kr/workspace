@@ -559,16 +559,16 @@ test('all host surfaces share document Find behavior', async ({ page }) => {
     const findInput = page.getByPlaceholder('Find')
     await expect(findInput).toBeFocused()
     await findInput.fill('Live Drive verification')
-    await expect(page.locator('.cm-vs-count')).toHaveText('1')
+    await expect(page.locator('.cm-editor-search-count')).toHaveText('1')
     await findInput.press('Escape')
-    await expect(page.locator('.cm-vs-search')).toHaveCount(0)
+    await expect(page.locator('.cm-editor-search')).toHaveCount(0)
 
     await editor.focus()
     await editor.press('Control+f')
-    await expect(page.locator('.cm-vs-search')).toBeVisible()
+    await expect(page.locator('.cm-editor-search')).toBeVisible()
     await editor.focus()
     await editor.press('Control+f')
-    await expect(page.locator('.cm-vs-search')).toHaveCount(0)
+    await expect(page.locator('.cm-editor-search')).toHaveCount(0)
   }
 })
 
