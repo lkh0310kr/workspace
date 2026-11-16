@@ -10,7 +10,7 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 | main agentHooks / terminal output observers | PTY/title 기반 감지와 spawn/종료 관측                                             |
 | `@workspace/terminal/agent/*`                | pane identity·상태 타입·title parsing·evidence 시각·freshness·outcome/rollup 순수 규칙 |
 | renderer terminal bridge                    | main event/title evidence를 live terminal pane에 연결                             |
-| agentStatusStore                            | paneKey별 live entry·retained done·live terminal ID·epoch                         |
+| `@workspace/terminal/src/state/agentStatusStore` | paneKey별 live entry·retained done·live terminal ID·epoch                         |
 | `features/workspace/status`                 | workspace tab summary·상태 projection                                             |
 | agent status IPC adapter                     | Desktop hook server·preload·renderer bridge payload                              |
 
@@ -18,7 +18,7 @@ App scope의 J-09다. 터미널 안 agent의 실제 실행과 UI에 관측된 wo
 
 ## 시간과 상태
 
-[store](../../../../apps/desktop/src/renderer/src/features/terminal/state/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
+[store](../../../../packages/terminal/src/state/agentStatusStore.ts)는 set 시 updatedAt을 갱신하되 payload state가 같으면 기존 stateStartedAt을 유지할 수 있다. prompt는 trim/기존값, agentType은 새값 또는 이전값이다. done retain은 실제 done entry가 있어야 한다. 단순 store 갱신 시간과 권위 있는 evidence 관찰 시각은 다르다.
 
 [freshness](../../../../packages/terminal/src/agent/agent-status-freshness.ts)의 기본 stale 상수는 30분이다. authority 시각은 evidenceObservedAt 또는 updatedAt, mirrored evidence는 별도 시각을 우선할 수 있다. title-derived는 age 한도를 적용한다. explicit 상태는 restoredUnconfirmed면 거부하고 structuredHostOwned는 age와 다른 경로로 fresh가 될 수 있다. 모든 상태를 updatedAt 한 필드로 TTL 처리하지 않는다.
 

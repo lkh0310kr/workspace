@@ -6,7 +6,7 @@ import {
   agentPaneKey,
   getFreshHookAgentStatus,
   useAgentStatusStore
-} from '@renderer/features/terminal/state/agentStatusStore'
+} from '@workspace/terminal'
 
 function mapTitleStatusToPayload(
   titleStatus: AgentStatus,

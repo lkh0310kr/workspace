@@ -10,6 +10,12 @@ export {
 export type { ResolvedTheme } from './terminalThemes'
 export { focusTerminalTextarea } from './focusTerminalTextarea'
 export { TerminalPane } from './TerminalPane'
+export {
+  agentPaneKey,
+  getFreshHookAgentStatus,
+  useAgentStatusStore
+} from './state/agentStatusStore'
+export { useRuntimeTerminalTitlesStore } from './state/runtimeTerminalTitlesStore'
 export { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
 export { copyTerminalSelection } from './terminal-selection-copy'
 export { AgentIcon, AGENT_CATALOG, getAgentLabel } from './agent/ui/agent-catalog'

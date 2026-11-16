@@ -5,5 +5,5 @@ export {
   agentPaneKey,
   getFreshHookAgentStatus,
   useAgentStatusStore
-} from './state/agentStatusStore'
-export { useRuntimeTerminalTitlesStore } from './state/runtimeTerminalTitlesStore'
+} from '@workspace/terminal'
+export { useRuntimeTerminalTitlesStore } from '@workspace/terminal'

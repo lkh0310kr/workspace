@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "zustand": "^5.0.15"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./pane-manager/*": "./src/pane-manager/*.ts",

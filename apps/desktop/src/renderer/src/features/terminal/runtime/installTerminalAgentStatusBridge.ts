@@ -1,5 +1,4 @@
-import { useAgentStatusStore } from '@renderer/features/terminal/state/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '@renderer/features/terminal/state/runtimeTerminalTitlesStore'
+import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
 import { getTerminalAgentPaneBinding } from './terminalAgentPaneRegistry'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
 import { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'

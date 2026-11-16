@@ -938,11 +938,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/index.ts",
-          "sha256": "6dd53308caeae81cc32c77d5720b4c5743f1052d0a9c100bda142f15054549d2"
+          "sha256": "4345a239da63b6021dec80f3acf01f93e53d3629afc46cd048487976086216e9"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "c9fa6a1fd12bc3d7c304651059c4ba66ebae60397332ef24f90905acaf7d088a"
+          "sha256": "ade471440c7573188d7e2297270b2ccf31b56b54f0ee90610b77eb1977f1b906"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyDataMultiplexer.ts",
@@ -957,16 +957,8 @@
           "sha256": "2809f5da6149b08d29f6ab771069f3b7fbcc057d477ab31bfa8d77cce1c4796f"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/terminal/state/runtimeTerminalTitlesStore.ts",
-          "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/collectTerminalPaneTabs.ts",
           "sha256": "050b966e889a7f793e6e63bf6a91e2e4b98395fa578562528c9306307c699800"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/terminal/state/agentStatusStore.ts",
-          "sha256": "2a8936ce106a4b67440cb75b4ea300a9d111c63a4bd014c16881cfc5e49e2fc6"
         }
       ]
     },
@@ -1341,7 +1333,7 @@
       "scope": "package",
       "owner": "packages/terminal",
       "specStatus": "drafted",
-      "coverage": "Terminal pane view and host contract, renderer engine (pane manager, fit/scroll/WebGL/output scheduler), theme/style, search UI, terminal domain and agent/title policies, input queue, and selection copy. Desktop retains PTY IPC/process ownership and supplies app adapters.",
+      "coverage": "Terminal pane view and host contract, renderer engine (pane manager, fit/scroll/WebGL/output scheduler), theme/style, search UI, terminal domain and agent/title policies, input queue, and selection copy. Desktop retains PTY IPC/process ownership and supplies app adapters. Agent status and runtime title renderer stores.",
       "documents": [
         "packages/terminal/README.md",
         "docs/architecture/workspace/terminal/README.md"
@@ -1349,7 +1341,7 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "0d1d5267d35daf1b226c4580762c17fe35a6452f477950f2cde02c479f555f51"
+          "sha256": "6b5194f3d9c4ab5495e5c16c9014173d8f8056e44dc82877f9a65851f60c24cd"
         },
         {
           "path": "packages/terminal/src/TerminalPane.tsx",
@@ -1369,7 +1361,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "eaf4eb311f02283e75f054ad15f000d427fe6588cb0e23c9ac65268378da661d"
+          "sha256": "9e0946949760a18e52c0d886ee8c7abdb980561727f5d3dbe022a438b44dc978"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",
@@ -1962,6 +1954,14 @@
         {
           "path": "packages/terminal/src/agent/synthetic-agent-permission-title.ts",
           "sha256": "65fce80baa14d3db40980033e5e2b3341c91fab7ff3d80b5f0f6552567b8b7ff"
+        },
+        {
+          "path": "packages/terminal/src/state/agentStatusStore.ts",
+          "sha256": "f339cc3aee52f5f20a475d322154f7ceceddb22591d568fb8c522040436adbce"
+        },
+        {
+          "path": "packages/terminal/src/state/runtimeTerminalTitlesStore.ts",
+          "sha256": "2d7776b31b3c202d73fdd010df6ad82233f347823d84cb7d0e3e209c5ede7f0a"
         }
       ]
     },

@@ -1,7 +1,6 @@
 import type { Model } from 'flexlayout-react'
 import { collectTerminalPaneTabs } from '@renderer/features/terminal/runtime/collectTerminalPaneTabs'
-import { useAgentStatusStore } from '@renderer/features/terminal/state/agentStatusStore'
-import { useRuntimeTerminalTitlesStore } from '@renderer/features/terminal/state/runtimeTerminalTitlesStore'
+import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from './terminalAgentPaneRegistry'
 import { buildAgentStatusPaneKey } from '@workspace/terminal/agent/agent-status-pane-key'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
