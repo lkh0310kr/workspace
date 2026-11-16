@@ -22,7 +22,7 @@ const packageJsonPath = path.join(root, 'packages/editor/package.json')
 const packageIndex = await readFile(packageIndexPath, 'utf8')
 const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
 const sharedTreeViewPath = path.join(root, 'packages/editor/src/EditorTreeView.tsx')
-const sharedTreeStylesPath = path.join(root, 'packages/editor/src/tree.css')
+const sharedTreeStylesPath = path.join(root, 'packages/editor/src/treeView.module.css')
 const sharedTreePanePath = path.join(root, 'packages/editor/src/EditorTreePane.tsx')
 const sharedEditorThemesPath = path.join(root, 'packages/editor/src/themes.ts')
 const sharedEditorMarkdownPath = path.join(root, 'packages/editor/src/EditorMarkdownEditor.tsx')
@@ -31,12 +31,12 @@ const sharedTreeStyles = await readFile(sharedTreeStylesPath, 'utf8')
 const sharedTreePane = await readFile(sharedTreePanePath, 'utf8')
 const sharedEditorThemes = await readFile(sharedEditorThemesPath, 'utf8')
 
-if (!/className=\{\['editor-tree-view',[\s\S]{0,120}className\]/.test(sharedTreeView)) {
-  failures.push('EditorTreeView must apply the shared editor-tree-view root class.')
+if (!/className=\{\[styles\.view,[\s\S]{0,160}className\]/.test(sharedTreeView)) {
+  failures.push('EditorTreeView must apply its CSS Module root class and host class.')
 }
-if (!/rootDropTarget\s*&&\s*'is-root-drop-target'/.test(sharedTreeView)) {
+if (!/rootDropTarget\s*&&\s*styles\.rootDropTarget/.test(sharedTreeView)) {
   failures.push(
-    'EditorTreeView must expose the root drop target state through its shared root class.'
+    'EditorTreeView must expose root drop target state through its CSS Module.'
   )
 }
 if (
@@ -55,31 +55,20 @@ if (
 ) {
   failures.push('EditorTreeView must route blank-area drops to the workspace root.')
 }
-if (
-  !/\.editor-tree-view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(
-    sharedTreeStyles
-  )
-) {
-  failures.push('packages/editor/src/tree.css must own common tree root geometry.')
+if (!/\.view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(sharedTreeStyles)) {
+  failures.push('packages/editor/src/treeView.module.css must own common tree root geometry.')
 }
-if (
-  !/\.editor-tree-item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(
-    sharedTreeStyles
-  )
-) {
-  failures.push('packages/editor/src/tree.css must own shared tree row geometry.')
+if (!/\.item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(sharedTreeStyles)) {
+  failures.push('packages/editor/src/treeView.module.css must own shared tree row geometry.')
 }
-if (!/\.editor-tree-item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
-  failures.push('packages/editor/src/tree.css must own shared tree row line height.')
+if (!/\.item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
+  failures.push('packages/editor/src/treeView.module.css must own shared tree row line height.')
 }
-if (
-  !/\.editor-tree-create-actions button\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(
-    sharedTreeStyles
-  )
-) {
-  failures.push(
-    'packages/editor/src/tree.css must normalize shared tree creation controls without adding box decoration.'
-  )
+if (!/\.createAction\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(sharedTreeStyles)) {
+  failures.push('The shared tree action module must keep creation controls unboxed.')
+}
+if (!/data-editor-tree-row/.test(await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')) || !/data-editor-tree-content/.test(sharedTreePane)) {
+  failures.push('Shared tree elements must expose stable data attributes for host styling and tests.')
 }
 if (
   !/\.cm-md-fold-control'\s*:\s*\{[^}]*width:\s*'16px'[^}]*height:\s*'21px'[^}]*padding:\s*'0'[^}]*border:\s*'0'[^}]*borderRadius:\s*'0'/s.test(
@@ -111,7 +100,7 @@ const driveStyles = await readFile(driveStylesPath, 'utf8')
 const normalizedDriveStyles = driveStyles.replace(/\s+/g, ' ')
 if (
   !normalizedDriveStyles.includes(
-    '.pkms-google-drive-root button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action)'
+    '.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control)'
   )
 ) {
   failures.push(
@@ -120,7 +109,7 @@ if (
 }
 if (
   !normalizedDriveStyles.includes(
-    '.pkms-google-drive-root button:not(.editor-tree-create-action):not(.pkms-google-drive-sync-state):disabled'
+    '.pkms-google-drive-root :where(button:not([data-editor-tree-create-action]):not(.pkms-google-drive-sync-state):disabled)'
   )
 ) {
   failures.push(
@@ -128,9 +117,7 @@ if (
   )
 }
 if (
-  !/\.pkms-google-drive-root\s+button:not\(\.editor-tree-item\):not\(\.cm-md-fold-control\):not\(\.editor-tree-create-action\):not\(\.editor-action-button\):not\(\.pkms-google-drive-sync-state\)/.test(
-    normalizedDriveStyles
-  ) ||
+  !/\.pkms-google-drive-root\s+:where\(button:not\(\[data-editor-tree-row\]\):not\(\[data-editor-tree-create-action\]\):not\(\.cm-md-fold-control\):not\(\.editor-action-button\):not\(\.pkms-google-drive-sync-state\)\)/.test(normalizedDriveStyles) ||
   !/\.pkms-google-drive-root\s+button\.pkms-google-drive-sync-state\s*\{\s*all:\s*unset;\s*display:\s*inline-flex;\s*min-height:\s*0;[^}]*padding:\s*0;\s*border:\s*0;\s*border-radius:\s*0;/.test(
     normalizedDriveStyles
   )
@@ -176,7 +163,7 @@ if (
 for (const slot of ['header', 'footer']) {
   if (!new RegExp(`\\b${slot}\\?: ReactNode`).test(sharedTreePane))
     failures.push(`EditorTreePane must keep the host-owned ${slot} slot.`)
-  if (!sharedTreePane.includes(`editor-tree-pane-${slot}`))
+  if (!sharedTreePane.includes(`data-editor-tree-${slot}=""`))
     failures.push(`EditorTreePane must render the shared ${slot} slot wrapper.`)
 }
 for (const component of ['EditorTreeView', 'EditorTreeRow', 'EditorTreeVirtualList']) {

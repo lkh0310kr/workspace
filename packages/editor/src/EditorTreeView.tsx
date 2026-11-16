@@ -10,6 +10,7 @@ import type { EditorItemKind } from './provider'
 import type { EditorTreeProjection } from './treeModel'
 import { EditorTreeRow } from './EditorTreeRow'
 import { EditorTreeVirtualList } from './EditorTreeVirtualList'
+import styles from './treeView.module.css'
 
 void React
 
@@ -156,7 +157,8 @@ export function EditorTreeView({
   return (
     <div
       ref={rootRef as RefObject<HTMLDivElement | null>}
-      className={['editor-tree-view', rootDropTarget && 'is-root-drop-target', className]
+      data-editor-tree-view=""
+      className={[styles.view, rootDropTarget && styles.rootDropTarget, className]
         .filter(Boolean)
         .join(' ')}
       tabIndex={tabIndex}

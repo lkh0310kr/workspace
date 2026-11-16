@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import editorTreeStyles from '@workspace/editor/tree.css?inline'
+import editorTreeViewStyles from '@workspace/editor/treeView.module.css?inline'
 import editorHostStyles from '@workspace/editor/editorHost.css?inline'
 import editorMarkdownStyles from '@workspace/editor/markdown.css?inline'
 import editorMarkdownDocumentStyles from '@workspace/editor/markdownDocument.css?inline'
@@ -74,6 +75,7 @@ export function PkmsPane({
     const shadow = host.attachShadow({ mode: 'open' })
     const style = document.createElement('style')
     style.textContent = `${editorTreeStyles.replaceAll(':root', ':host').replace(/(^|,)\s*body(?=\s*[, {])/gm, '$1:host')}
+${editorTreeViewStyles.replaceAll(':root', ':host')}
 ${editorHostStyles}
 ${editorMarkdownStyles}
 ${editorMarkdownDocumentStyles}

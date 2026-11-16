@@ -1,3 +1,4 @@
+import styles from './treeView.module.css'
 import type { EditorItemKind } from './provider'
 
 export interface EditorTreeRowClassInput {
@@ -19,21 +20,17 @@ export function editorTreeRowClassName({
   multiSelected,
   cut,
   isIgnored,
-  dropTarget,
-  expanded,
-  kind
+  dropTarget
 }: EditorTreeRowClassInput): string {
   return [
-    'editor-tree-item',
+    styles.item,
     className,
-    active && 'is-active',
-    selected && 'is-selected',
-    multiSelected && 'is-multi-selected',
-    cut && 'is-cut',
-    isIgnored && 'is-git-ignored',
-    dropTarget && 'is-drop-target',
-    expanded && 'is-expanded',
-    `editor-tree-item--${kind}`
+    active && styles.active,
+    selected && styles.selected,
+    multiSelected && styles.multiSelected,
+    cut && styles.cut,
+    isIgnored && styles.isGitIgnored,
+    dropTarget && styles.dropTarget
   ]
     .filter(Boolean)
     .join(' ')

@@ -1,5 +1,6 @@
 import React, { type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { EditorTreeView, type EditorTreeViewProps } from './EditorTreeView'
+import styles from './treeView.module.css'
 
 void React
 
@@ -25,16 +26,24 @@ export function EditorTreeFrame({
 }: EditorTreeFrameProps) {
   return (
     <div
-      className={['editor-tree-pane', className].filter(Boolean).join(' ')}
+      className={[styles.pane, className].filter(Boolean).join(' ')}
       aria-label={ariaLabel}
       role="group"
       style={style}
     >
-      {header != null && <div className="editor-tree-pane-header">{header}</div>}
-      <div ref={contentRef} className="editor-tree-pane-content">
+      {header != null && (
+        <div data-editor-tree-header="" className={styles.paneHeader}>
+          {header}
+        </div>
+      )}
+      <div ref={contentRef} data-editor-tree-content="" className={styles.paneContent}>
         {children}
       </div>
-      {footer != null && <div className="editor-tree-pane-footer">{footer}</div>}
+      {footer != null && (
+        <div data-editor-tree-footer="" className={styles.paneFooter}>
+          {footer}
+        </div>
+      )}
     </div>
   )
 }

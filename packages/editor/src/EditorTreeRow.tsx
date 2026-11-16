@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 import type { EditorItemKind } from './provider'
 import { editorTreeRowClassName } from './treeRowModel'
+import styles from './treeView.module.css'
 
 void React
 
@@ -114,6 +115,9 @@ export function EditorTreeRow({
     return (
       <div
         role="treeitem"
+        data-editor-tree-row=""
+        data-git-ignored={isIgnored ? '' : undefined}
+        data-selected={selected || multiSelected ? '' : undefined}
         data-tree-path={path}
         data-editor-item-id={id}
         aria-level={depth + 1}
@@ -127,7 +131,7 @@ export function EditorTreeRow({
           autoFocus
           type="text"
           aria-label={inlineEdit.ariaLabel}
-          className="editor-tree-inline-edit"
+          className={styles.inlineEdit}
           value={inlineEdit.value}
           onChange={(event) => inlineEdit.onChange(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -152,6 +156,9 @@ export function EditorTreeRow({
     <button
       type="button"
       role="treeitem"
+      data-editor-tree-row=""
+      data-git-ignored={isIgnored ? '' : undefined}
+      data-selected={selected || multiSelected ? '' : undefined}
       data-tree-path={path}
       data-editor-item-id={id}
       aria-selected={selected || multiSelected}
@@ -176,18 +183,18 @@ export function EditorTreeRow({
         Array.from({ length: depth }, (_, level) => (
           <span
             key={level}
-            className="editor-tree-guide"
+            className={styles.guide}
             style={{ insetInlineStart: level * 14 + 14 }}
           />
         ))}
       <span
-        className={`editor-tree-disclosure${expanded ? ' is-expanded' : ''}`}
+        className={`${styles.disclosure}${expanded ? ` ${styles.disclosureExpanded}` : ''}`}
         aria-hidden="true"
       >
-        {loading ? <span className="editor-tree-loading" /> : expandable ? disclosure : null}
+        {loading ? <span className={styles.loading} /> : expandable ? disclosure : null}
       </span>
-      <span className="editor-tree-name">{name}</span>
-      {trailingStatus && <span className="editor-tree-trailing-status">{trailingStatus}</span>}
+      <span className={styles.name}>{name}</span>
+      {trailingStatus && <span className={styles.trailingStatus}>{trailingStatus}</span>}
     </button>
   )
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import styles from './treeView.module.css'
 
 export interface EditorTreeCreateActionsProps {
   canCreateFile: boolean
@@ -41,11 +42,12 @@ export function EditorTreeCreateActions({
   )
 
   return (
-    <div className="editor-tree-create-actions">
+    <div className={styles.createActions} data-editor-tree-create-actions="">
       {canCreateFile && (
         <button
           type="button"
-          className="editor-tree-create-action"
+          className={styles.createAction}
+          data-editor-tree-create-action=""
           aria-label="New Markdown file"
           title="New Markdown file"
           disabled={disabled}
@@ -57,7 +59,8 @@ export function EditorTreeCreateActions({
       {canCreateDirectory && (
         <button
           type="button"
-          className="editor-tree-create-action"
+          className={styles.createAction}
+          data-editor-tree-create-action=""
           aria-label="New folder"
           title="New folder"
           disabled={disabled}

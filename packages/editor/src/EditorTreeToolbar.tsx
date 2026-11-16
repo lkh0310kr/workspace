@@ -1,4 +1,5 @@
 import React, { type ReactNode } from 'react'
+import styles from './treeView.module.css'
 
 void React
 
@@ -21,15 +22,16 @@ export function EditorTreeToolbar({
   actionsClassName
 }: EditorTreeToolbarProps) {
   return (
-    <div className={['editor-tree-toolbar', className].filter(Boolean).join(' ')}>
-      <div className={['editor-tree-toolbar-heading', headingClassName].filter(Boolean).join(' ')}>
-        <span className="editor-tree-toolbar-title">{title}</span>
+    <div
+      data-editor-tree-toolbar=""
+      className={[styles.toolbar, className].filter(Boolean).join(' ')}
+    >
+      <div className={[styles.toolbarHeading, headingClassName].filter(Boolean).join(' ')}>
+        <span className={styles.toolbarTitle}>{title}</span>
         {status}
       </div>
       {actions != null && (
-        <div
-          className={['editor-tree-toolbar-actions', actionsClassName].filter(Boolean).join(' ')}
-        >
+        <div className={[styles.toolbarActions, actionsClassName].filter(Boolean).join(' ')}>
           {actions}
         </div>
       )}

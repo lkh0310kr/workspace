@@ -23,8 +23,8 @@ for (const host of hosts) {
               : 'Files'
       })
     ).toBeVisible()
-    if (host !== 'desktop-editor') await page.locator('.editor-tree-item').first().click()
-    await expect(page.locator('.editor-tree-item')).toHaveCount(3)
+    if (host !== 'desktop-editor') await page.locator('[data-editor-tree-row]').first().click()
+    await expect(page.locator('[data-editor-tree-row]')).toHaveCount(3)
     await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
     if (host !== 'desktop-editor')
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
@@ -71,7 +71,7 @@ for (const host of hosts) {
         'aria-selected',
         'true'
       )
-      await page.locator('.editor-tree-item').nth(1).click()
+      await page.locator('[data-editor-tree-row]').nth(1).click()
     }
     if (host === 'web-pkms-editor') {
       await expect(page.getByRole('navigation', { name: 'File location' })).toContainText(
@@ -86,9 +86,9 @@ for (const host of hosts) {
       await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
     }
     await page.keyboard.press('Escape')
-    await expect(page.locator('.editor-tree-item').first()).toHaveCSS('height', '27px')
+    await expect(page.locator('[data-editor-tree-row]').first()).toHaveCSS('height', '27px')
 
-    const hoverRow = page.locator('.editor-tree-item').nth(2)
+    const hoverRow = page.locator('[data-editor-tree-row]').nth(2)
     const bounds = await hoverRow.boundingBox()
     if (!bounds) throw new Error(`Missing folder row for ${host}`)
     await page.mouse.move(bounds.x + 4, bounds.y + bounds.height / 2)
@@ -292,18 +292,18 @@ test('all host surfaces align common tree rows and readable document columns', a
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
     if (host !== 'desktop-editor') {
-      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
-      await page.locator('.editor-tree-item').first().click()
+      await expect(page.locator('[data-editor-tree-row]').first()).toBeVisible()
+      await page.locator('[data-editor-tree-row]').first().click()
     }
-    await expect(page.locator('.editor-tree-item')).toHaveCount(3)
+    await expect(page.locator('[data-editor-tree-row]')).toHaveCount(3)
     await expect(page.getByRole('treeitem', { name: /Readme/ })).toBeVisible()
     if (host !== 'desktop-editor')
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
-    await page.locator('.editor-tree-item').nth(2).hover()
+    await page.locator('[data-editor-tree-row]').nth(2).hover()
     const rowStyle = async (index: number) =>
       page
-        .locator('.editor-tree-item')
+        .locator('[data-editor-tree-row]')
         .nth(index)
         .evaluate((element) => {
           const value = getComputedStyle(element)
@@ -435,7 +435,7 @@ test('heading hover arrows share markup and visual baselines across editor hosts
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
     if (host !== 'desktop-editor') {
-      await page.locator('.editor-tree-item').first().click()
+      await page.locator('[data-editor-tree-row]').first().click()
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
     await expect(page.getByText('Live Drive verification', { exact: true })).toBeVisible()
@@ -468,8 +468,8 @@ test('all host surfaces share document Find behavior', async ({ page }) => {
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
     if (host !== 'desktop-editor') {
-      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
-      await page.locator('.editor-tree-item').first().click()
+      await expect(page.locator('[data-editor-tree-row]').first()).toBeVisible()
+      await page.locator('[data-editor-tree-row]').first().click()
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
 
@@ -553,8 +553,8 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
     await clearSavedEditorViews(page)
     await page.goto(`/?host=${host}&scenario=view-state`)
     if (host !== 'desktop-editor') {
-      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
-      await page.locator('.editor-tree-item').first().click()
+      await expect(page.locator('[data-editor-tree-row]').first()).toBeVisible()
+      await page.locator('[data-editor-tree-row]').first().click()
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
 
@@ -605,8 +605,8 @@ test('all host tree toolbars create folders and Markdown notes', async ({ page }
   for (const host of hosts) {
     await page.goto(`/?host=${host}`)
     if (host !== 'desktop-editor') {
-      await expect(page.locator('.editor-tree-item').first()).toBeVisible()
-      await page.locator('.editor-tree-item').first().click()
+      await expect(page.locator('[data-editor-tree-row]').first()).toBeVisible()
+      await page.locator('[data-editor-tree-row]').first().click()
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
 
@@ -669,7 +669,7 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   await page.setViewportSize({ width: 1440, height: 600 })
   await page.goto('/?host=desktop-pkms-editor&scenario=tree-overflow')
   const tree = page.getByRole('tree', { name: 'PKMS Google Drive files' })
-  const viewport = page.locator('.pkms-google-drive-tree-scroll > .editor-tree-pane-content')
+  const viewport = page.locator('.pkms-google-drive-tree-scroll > [data-editor-tree-content]')
   const header = page.locator('.pkms-google-drive-file-toolbar')
   const footer = page.locator('.pkms-google-drive-tree-footer')
   await expect(footer).toHaveCount(0)

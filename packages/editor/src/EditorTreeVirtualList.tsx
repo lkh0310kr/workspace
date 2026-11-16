@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react'
 import type { EditorTreeProjection } from './treeModel'
+import styles from './treeView.module.css'
 
 export interface EditorTreeVirtualListProps<T> {
   projection: EditorTreeProjection<T>
@@ -23,14 +24,14 @@ export function EditorTreeVirtualList<T>({
 }: EditorTreeVirtualListProps<T>) {
   return (
     <div
-      className={['editor-tree-virtual-list', className].filter(Boolean).join(' ')}
+      className={[styles.virtualList, className].filter(Boolean).join(' ')}
       role="group"
       style={{ minHeight: projection.totalHeight }}
     >
       {projection.paddingTop > 0 && (
         <div
           aria-hidden="true"
-          className="tree-virtual-spacer"
+          className={styles.virtualSpacer}
           style={{ height: projection.paddingTop }}
         />
       )}
@@ -42,7 +43,7 @@ export function EditorTreeVirtualList<T>({
       {projection.paddingBottom > 0 && (
         <div
           aria-hidden="true"
-          className="tree-virtual-spacer"
+          className={styles.virtualSpacer}
           style={{ height: projection.paddingBottom }}
         />
       )}

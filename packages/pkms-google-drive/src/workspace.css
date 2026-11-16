@@ -14,8 +14,7 @@
     sans-serif;
 }
 
-.pkms-google-drive-root
-  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action):not(.editor-action-button):not(.pkms-google-drive-sync-state) {
+.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control):not(.editor-action-button):not(.pkms-google-drive-sync-state)) {
   appearance: none;
   min-height: 32px;
   padding: 6px 10px;
@@ -27,14 +26,11 @@
   cursor: pointer;
 }
 
-.pkms-google-drive-root
-  button:not(.editor-tree-item):not(.cm-md-fold-control):not(.editor-tree-create-action):hover:not(
-    :disabled
-  ) {
+.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control):hover:not(:disabled)) {
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
-.pkms-google-drive-root button:not(.editor-tree-create-action):not(.pkms-google-drive-sync-state):disabled {
+.pkms-google-drive-root :where(button:not([data-editor-tree-create-action]):not(.pkms-google-drive-sync-state):disabled) {
   cursor: default;
   opacity: 0.55;
 }

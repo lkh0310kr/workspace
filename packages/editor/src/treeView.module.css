@@ -1,0 +1,277 @@
+:global(:root) {
+  --editor-tree-row-height: 27px;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  flex: 0 0 var(--editor-tree-row-height, 27px);
+  height: var(--editor-tree-row-height, 27px);
+  min-height: var(--editor-tree-row-height, 27px);
+  padding-block: 3px;
+  padding-inline-end: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  color: var(--editor-tree-text, var(--text, var(--muted)));
+  background: transparent;
+  text-align: start;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.pane {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.paneHeader,
+.paneFooter {
+  flex: 0 0 auto;
+}
+
+.paneContent {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.view {
+  display: flex;
+  min-height: 100%;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding-block: 4px;
+}
+
+.rootDropTarget::after {
+  content: 'Move to workspace root';
+  display: block;
+  flex: 0 0 auto;
+  margin: 4px 8px;
+  padding: 7px 8px;
+  border-top: 1px solid var(--focusBorder, currentColor);
+  color: var(--editor-tree-muted, var(--text-faint, var(--muted)));
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.toolbarHeading,
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.toolbarHeading {
+  flex: 1 1 auto;
+  gap: 8px;
+}
+
+.toolbarTitle {
+  min-width: 0;
+}
+
+.toolbarActions {
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.createActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.createAction {
+  all: unset;
+  display: inline-grid;
+  box-sizing: border-box;
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
+  place-items: center;
+  color: var(--editor-tree-action, var(--muted, currentColor));
+  background: transparent;
+  cursor: pointer;
+}
+
+.createAction:hover:not(:disabled) {
+  color: var(--text, currentColor);
+  background: var(--bg-hover, var(--hover, transparent));
+}
+
+.createAction:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.createAction svg {
+  width: 16px;
+  height: 16px;
+}
+
+.item:hover {
+  background: var(--editor-tree-hover, var(--bg-hover, var(--hover)));
+  color: var(--text, var(--muted));
+}
+
+.active {
+  background: var(--editor-tree-active, var(--bg-active, var(--selected)));
+}
+
+.selected,
+.multiSelected {
+  background: var(--editor-tree-selected, var(--bg-hover, var(--selected)));
+}
+
+.selected.active {
+  background: var(--editor-tree-active, var(--bg-active, var(--selected)));
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.cut {
+  opacity: 0.55;
+}
+
+.dropTarget {
+  outline: 1px solid var(--editor-tree-drop, var(--border-strong, var(--accent)));
+  outline-offset: -1px;
+  background: var(--editor-tree-hover, var(--bg-hover, var(--hover)));
+}
+
+.item:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.guide {
+  position: absolute;
+  inset-block: 0;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.disclosure {
+  display: inline-flex;
+  flex: 0 0 12px;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 16px;
+  color: var(--editor-tree-muted, var(--text-faint, var(--muted)));
+}
+
+.disclosureExpanded > :first-child {
+  transform: rotate(90deg);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inlineEdit {
+  min-width: 0;
+  width: 100%;
+  height: 21px;
+  padding: 0 3px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  outline: 0;
+  color: var(--text);
+  background: var(--bg-base, var(--bg));
+  font: inherit;
+  font-size: 13px;
+}
+
+.inlineEdit:focus-visible {
+  outline: 1px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+}
+
+.isGitIgnored .name {
+  color: var(--editor-tree-ignored, var(--text-faint, var(--muted)));
+}
+
+.trailingStatus {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-inline-start: auto;
+  color: var(--editor-tree-muted, var(--text-faint, var(--muted)));
+}
+
+.pending {
+  color: var(--status-warning, var(--warning, #a16207));
+}
+.synced {
+  color: var(--status-success, #2e8b57);
+}
+.excluded {
+  color: var(--editor-tree-muted, var(--text-faint, var(--muted)));
+}
+.syncing {
+  color: var(--accent);
+}
+.attention {
+  color: var(--status-danger, var(--danger, #b42318));
+}
+
+.loading {
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loadingSpin 0.7s linear infinite;
+}
+
+@keyframes loadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.virtualList {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-direction: column;
+}
+
+.virtualSpacer {
+  width: 100%;
+  flex: 0 0 auto;
+  pointer-events: none;
+}

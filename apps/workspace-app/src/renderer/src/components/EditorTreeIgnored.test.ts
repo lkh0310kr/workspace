@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { editorTreeRowClassName } from '@workspace/editor'
+import styles from '../../../../../../packages/editor/src/treeView.module.css'
 
 describe('EditorTreeRow Git ignore state', () => {
   it('adds a dedicated class to ignored rows without changing row semantics', () => {
-    const className = editorTreeRowClassName({ kind: 'code', isIgnored: true, selected: true })
+    const classNames = editorTreeRowClassName({ kind: 'code', isIgnored: true, selected: true })
+    const classes = classNames.split(' ')
 
-    expect(className.split(' ')).toContain('is-git-ignored')
-    expect(className.split(' ')).toContain('is-selected')
+    expect(classes).toContain(styles.isGitIgnored)
+    expect(classes).toContain(styles.selected)
   })
 
   it('leaves regular rows without the ignored class', () => {
-    const className = editorTreeRowClassName({ kind: 'code' })
+    const classNames = editorTreeRowClassName({ kind: 'code' })
 
-    expect(className.split(' ')).not.toContain('is-git-ignored')
+    expect(classNames.split(' ')).not.toContain(styles.isGitIgnored)
   })
 })
