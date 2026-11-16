@@ -1,7 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { randomUUID, createHash } from 'node:crypto'
 import { promises as fs, watch, type FSWatcher } from 'node:fs'
-import { tmpdir } from 'node:os'
 import path from 'node:path'
 import * as Y from 'yjs'
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
@@ -24,6 +23,7 @@ import {
   remoteChangedSinceBaseline,
   resetRootScopedState
 } from './syncPolicy'
+import { acquireFolderSyncLock, releaseFolderSyncLock, type FolderSyncLock } from './folderSyncLock'
 
 type BridgeFile = {
   id: string
@@ -122,80 +122,10 @@ const dirtyLocalPaths = new Map<string, Set<string>>()
 let persisted: Persisted | null = null
 const itemStateSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
-type FolderSyncLock = { path: string; token: string }
-
 function notifyLocalTreeChanged(workspaceId: string, relativePath: string | null): void {
   for (const window of BrowserWindow.getAllWindows()) {
     if (!window.isDestroyed())
       window.webContents.send('pkms:local-tree:changed', { workspaceId, path: relativePath })
-  }
-}
-
-function folderSyncLockPath(root: string): string {
-  const key = createHash('sha256').update(path.resolve(root)).digest('hex')
-  return path.join(tmpdir(), 'workspace-pkms-sync-locks', `${key}.lock`)
-}
-function processIsRunning(pid: number): boolean {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM'
-  }
-}
-async function acquireFolderSyncLock(root: string, workspaceId: string): Promise<FolderSyncLock> {
-  const lockPath = folderSyncLockPath(root)
-  await fs.mkdir(path.dirname(lockPath), { recursive: true, mode: 0o700 })
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const token = randomUUID()
-    try {
-      const handle = await fs.open(lockPath, 'wx', 0o600)
-      try {
-        await handle.writeFile(
-          JSON.stringify({ pid: process.pid, workspaceId, token, startedAt: Date.now() })
-        )
-        await handle.sync()
-      } catch (writeError) {
-        await fs.unlink(lockPath).catch(() => {})
-        throw writeError
-      } finally {
-        await handle.close()
-      }
-      return { path: lockPath, token }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
-      let owner: { pid?: number; token?: string } | null = null
-      try {
-        owner = JSON.parse(await fs.readFile(lockPath, 'utf8')) as { pid?: number; token?: string }
-      } catch {
-        /* A process may have exited while creating the lock. */
-      }
-      if (owner && processIsRunning(owner.pid ?? 0)) throw new Error('editing_folder_in_use')
-      if (!owner) {
-        try {
-          const stat = await fs.stat(lockPath)
-          if (Date.now() - stat.mtimeMs < 120_000) throw new Error('editing_folder_in_use')
-        } catch (statError) {
-          if ((statError as NodeJS.ErrnoException).code === 'ENOENT') continue
-          throw statError
-        }
-      }
-      try {
-        await fs.unlink(lockPath)
-      } catch (unlinkError) {
-        if ((unlinkError as NodeJS.ErrnoException).code !== 'ENOENT') throw unlinkError
-      }
-    }
-  }
-  throw new Error('editing_folder_in_use')
-}
-async function releaseFolderSyncLock(lock: FolderSyncLock): Promise<void> {
-  try {
-    const owner = JSON.parse(await fs.readFile(lock.path, 'utf8')) as { token?: string }
-    if (owner.token === lock.token) await fs.unlink(lock.path)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
 }
 
@@ -921,7 +851,7 @@ async function localAssetInventory(
         const fingerprint = localAssetFingerprint(stat)
         let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
         let gitBlobSha =
-          cached[relative]?.fingerprint === fingerprint ? cached[relative].gitBlobSha ?? '' : ''
+          cached[relative]?.fingerprint === fingerprint ? (cached[relative].gitBlobSha ?? '') : ''
         if (!digest || !gitBlobSha) {
           const bytes = await fs.readFile(absolute)
           digest ||= hash(bytes)
@@ -959,7 +889,7 @@ async function localAssetInventory(
           const fingerprint = localAssetFingerprint(stat)
           let digest = cached[relative]?.fingerprint === fingerprint ? cached[relative].hash : ''
           let gitBlobSha =
-            cached[relative]?.fingerprint === fingerprint ? cached[relative].gitBlobSha ?? '' : ''
+            cached[relative]?.fingerprint === fingerprint ? (cached[relative].gitBlobSha ?? '') : ''
           if (!digest || !gitBlobSha) {
             const bytes = await fs.readFile(target)
             digest ||= hash(bytes)
@@ -2054,7 +1984,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
         )
       })
       const unchangedAssetPathSet = new Set(unchangedAssetPaths)
-      const assetsToReconcile = assetPaths.filter((relative) => !unchangedAssetPathSet.has(relative))
+      const assetsToReconcile = assetPaths.filter(
+        (relative) => !unchangedAssetPathSet.has(relative)
+      )
       const paths = [...new Set(changedPaths)].filter(
         (relative) =>
           relative.toLowerCase().endsWith('.md') &&
@@ -2079,7 +2011,9 @@ async function syncOnce(workspaceId: string): Promise<void> {
         )
       })
       const unchangedMarkdownPathSet = new Set(unchangedMarkdownPaths)
-      const markdownPathsToReconcile = paths.filter((relative) => !unchangedMarkdownPathSet.has(relative))
+      const markdownPathsToReconcile = paths.filter(
+        (relative) => !unchangedMarkdownPathSet.has(relative)
+      )
       setItemStates(workspaceId, [...markdownPathsToReconcile, ...assetsToReconcile], 'pending')
       setItemStates(workspaceId, [...unchangedMarkdownPaths, ...unchangedAssetPaths], 'synced')
       let completed = 0
@@ -2377,7 +2311,12 @@ async function syncOnce(workspaceId: string): Promise<void> {
           const remoteChanged =
             remote.id !== baseline.fileId ||
             (remoteContent !== null && remoteContent.revision !== baseline.revision)
-          if (localChanged && remoteChanged && remoteText !== undefined && localHash === hash(remoteText)) {
+          if (
+            localChanged &&
+            remoteChanged &&
+            remoteText !== undefined &&
+            localHash === hash(remoteText)
+          ) {
             const acceptedRevision = remoteContent?.revision ?? remote.revision
             baselines[relative] = {
               fileId: remote.id,
