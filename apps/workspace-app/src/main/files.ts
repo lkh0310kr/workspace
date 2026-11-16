@@ -87,7 +87,7 @@ export function resolveUnderRoot(root: string, rel: string): string {
 export async function listDir(root: string, rel: string): Promise<DirEntry[]> {
   const dirPath = resolveUnderRoot(root, rel)
   const realRoot = fs.existsSync(root) ? fs.realpathSync(root) : root
-  const names = fs.readdirSync(dirPath, { withFileTypes: true })
+  const names = await fs.promises.readdir(dirPath, { withFileTypes: true })
   const entries: Omit<DirEntry, 'isIgnored'>[] = []
   for (const entry of names) {
     const entryPath = path.join(dirPath, entry.name)

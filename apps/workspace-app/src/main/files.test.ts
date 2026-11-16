@@ -81,6 +81,32 @@ describe('readFileBinaryPreview', () => {
 })
 
 describe('listDir Git ignore decorations', () => {
+  it('keeps the main event loop responsive while directory entries are pending', async () => {
+    const root = makeTempRoot({ 'note.md': Buffer.from('content') })
+    const entry = { name: 'note.md', isDirectory: () => false } as fs.Dirent
+    let finishRead: ((entries: fs.Dirent[]) => void) | undefined
+    const readdir = vi.spyOn(fs.promises, 'readdir').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRead = (entries) => resolve(entries as never)
+        })
+    )
+
+    try {
+      const listingPromise = listDir(root, '')
+      expect(readdir).toHaveBeenCalledOnce()
+
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      finishRead?.([entry])
+
+      await expect(listingPromise).resolves.toEqual([
+        { name: 'note.md', path: 'note.md', isDir: false, isIgnored: false }
+      ])
+    } finally {
+      readdir.mockRestore()
+    }
+  })
+
   it('marks ignored paths but respects negation and tracked files', async () => {
     const root = makeTempRoot({
       '.gitignore': Buffer.from('*.log\nignored-dir/\n!keep.log\n'),
