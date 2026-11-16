@@ -1,7 +1,7 @@
 import { Actions, DockLocation, Model, TabNode, TabSetNode } from 'flexlayout-react'
 import { layoutLog, layoutLogMutation, summarizeLayoutModel } from './layoutDebugLog'
 import { PaneGroupConfig, PaneTabItem, TabKind } from './paneTypes'
-import { getPaneKind, paneKindLabel } from '../paneKindRegistry'
+import { getPaneKind, paneKindLabel } from '../registry/paneKindRegistry'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
 import { findTabIdForModel } from './workspaceLayoutModels'
 import { resolveSplitPaneMutationStrategy } from './layoutSplitPolicy'

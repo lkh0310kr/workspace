@@ -10,18 +10,18 @@ import {
 import type { TabNode } from 'flexlayout-react'
 import { ContextMenu } from '@renderer/adapters/ui'
 import { PanePicker } from './PanePicker'
-import { PaneTabItem, TabKind } from './layout/paneTypes'
+import { PaneTabItem, TabKind } from '../layout/paneTypes'
 import {
   paneKindIcon,
   paneKindPickerOptions,
   getPaneKind,
   paneTabLabel
-} from './paneKindRegistry'
-import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from './layout/tabDrag'
-import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from './interaction/dragSession'
-import { onWorkspaceDismissPortals } from '../../interaction/workspacePortalDismiss'
-import { startPaneDrag, finishPaneDrag } from './layout/layoutRef'
-import { layoutLog } from './layout/layoutDebugLog'
+} from '../registry/paneKindRegistry'
+import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from '../layout/tabDrag'
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../interaction/dragSession'
+import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
+import { startPaneDrag, finishPaneDrag } from '../layout/layoutRef'
+import { layoutLog } from '../layout/layoutDebugLog'
 import { WorkbenchIcon, type WorkbenchIconName } from '@renderer/adapters/ui'
 import { EditorTabChip } from '@workspace/editor'
 

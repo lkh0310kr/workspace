@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
 import { PaneFrame } from './PaneFrame'
-import { PaneTabStrip } from './PaneTabStrip'
+import { PaneTabStrip } from '../tabs/PaneTabStrip'
 import {
   addTabToGroup,
   changeTabKindInGroup,
@@ -9,24 +9,24 @@ import {
   moveTabToGroup,
   setActiveTabInGroup,
   updateTabInGroup
-} from './layout/layoutActions'
+} from '../layout/layoutActions'
 import {
   activatePaneTab,
   readPaneGroupConfig,
   resolveActivePaneTabId
-} from './layout/layoutSession'
-import type { TabDragPayload } from './layout/tabDrag'
-import { PaneTabItem, TabKind } from './layout/paneTypes'
-import { allPaneKinds, getPaneKind, type PaneRenderContext } from './paneKindRegistry'
+} from '../layout/layoutSession'
+import type { TabDragPayload } from '../layout/tabDrag'
+import { PaneTabItem, TabKind } from '../layout/paneTypes'
+import { allPaneKinds, getPaneKind, type PaneRenderContext } from '../registry/paneKindRegistry'
 import {
   useLayoutRevision,
   usePaneTabSelectionRevision
-} from './useLayoutRevision'
+} from '../host/useLayoutRevision'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
-import { countLayoutTabSets } from './layout/layoutModelParse'
-import { focusPaneGroupTabSet } from './layout/layoutRef'
-import { layoutLog } from './layout/layoutDebugLog'
-import { paneChipContentShown, paneChipContentStyle } from './interaction/embedPolicy'
+import { countLayoutTabSets } from '../layout/layoutModelParse'
+import { focusPaneGroupTabSet } from '../layout/layoutRef'
+import { layoutLog } from '../layout/layoutDebugLog'
+import { paneChipContentShown, paneChipContentStyle } from '../interaction/embedPolicy'
 import { usePaneVisibility } from './usePaneVisibility'
 import { paneGroupBodyAnchorName } from './paneGroupBodyAnchor'
 import { paneGroupHostClassNames, resolvePaneGroupTabSetId } from './paneGroupFocus'

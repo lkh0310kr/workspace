@@ -24,7 +24,7 @@ vi.mock('./layoutDebugLog', () => ({
 // pane content component — TerminalPane's xterm CSS import, CodeMirror,
 // etc.) just for layoutActions.ts's tabGroupNodeJson, which only needs a
 // display label.
-vi.mock('../paneKindRegistry', () => ({
+vi.mock('../registry/paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { executeTabChipWindowDrop } from './layout/layoutChipWindowDrop'
-import { endTabDrag, getTabDrag } from './layout/tabDrag'
+import { executeTabChipWindowDrop } from '../layout/layoutChipWindowDrop'
+import { endTabDrag, getTabDrag } from '../layout/tabDrag'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
 
 export function useTabChipWindowDrop(activeTabId: number): void {

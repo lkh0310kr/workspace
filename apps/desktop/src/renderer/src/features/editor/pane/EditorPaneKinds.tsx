@@ -1,6 +1,6 @@
 import '../editor.css'
 import { EditorContent } from './EditorContent'
-import type { PaneKindDefinition, PaneRenderContext } from '../../pane-system/paneKindRegistry'
+import type { PaneKindDefinition, PaneRenderContext } from '../../pane-system/registry/paneKindRegistry'
 import { EditorPaneSidebarSlot } from '../sidebar/EditorPaneSidebarSlot'
 import {
   confirmEditorPaneItemClose,

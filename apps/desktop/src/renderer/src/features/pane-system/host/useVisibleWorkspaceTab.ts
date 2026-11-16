@@ -1,4 +1,4 @@
-import { useWorkspaceScope } from '../workspace/useWorkspaceScope'
+import { useWorkspaceScope } from '../../workspace/useWorkspaceScope'
 
 /** Workspace tab whose layout host should be visible and interactive. */
 export function useVisibleWorkspaceTab(): number {

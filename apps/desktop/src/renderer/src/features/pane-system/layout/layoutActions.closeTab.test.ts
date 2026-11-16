@@ -18,7 +18,7 @@ vi.mock('./layoutDebugLog', () => ({
 
 const terminalItem = { id: 'terminal-1', kind: 'terminal' as const, terminalId: 42 }
 
-vi.mock('../paneKindRegistry', () => ({
+vi.mock('../registry/paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

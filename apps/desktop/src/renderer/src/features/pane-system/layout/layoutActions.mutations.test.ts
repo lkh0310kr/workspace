@@ -29,7 +29,7 @@ vi.mock('./layoutDebugLog', () => ({
 
 let nextItemId = 0
 
-vi.mock('../paneKindRegistry', () => ({
+vi.mock('../registry/paneKindRegistry', () => ({
   getPaneKind: (kind: string) => ({
     kind,
     label: kind,

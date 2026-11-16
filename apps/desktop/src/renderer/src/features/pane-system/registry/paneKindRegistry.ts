@@ -1,7 +1,7 @@
 import type { Model } from 'flexlayout-react'
 import type { ComponentType, ReactNode, RefObject } from 'react'
 import type { ContextMenuItem } from '@renderer/adapters/ui'
-import type { PaneTabItem, TabKind } from './layout/paneTypes'
+import type { PaneTabItem, TabKind } from '../layout/paneTypes'
 
 // The pane-kind plugin registry — collapses what used to be a hardcoded
 // `item.kind === "x"` switch repeated across PaneGroup.tsx (render),

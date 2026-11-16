@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { registerBuiltinPaneKinds } from './features/pane-system/builtinPaneKinds'
+import { registerBuiltinPaneKinds } from './features/pane-system/registry/builtinPaneKinds'
 import { bootstrapPtyDataMultiplexer } from './adapters/terminal'
 
 function logRendererBootstrap(event: string, data?: Record<string, unknown>): void {

@@ -1,5 +1,5 @@
 import { FileViewerContent } from '../viewers/FileViewerContent'
-import type { PaneKindDefinition } from '../../pane-system/paneKindRegistry'
+import type { PaneKindDefinition } from '../../pane-system/registry/paneKindRegistry'
 import { EditorPaneSidebarSlot } from '../sidebar/EditorPaneSidebarSlot'
 import {
   confirmEditorPaneItemClose,

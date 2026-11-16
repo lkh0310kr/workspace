@@ -1,7 +1,7 @@
 import { Popover, type AnchorRect } from '@renderer/adapters/ui'
 import '@workspace/ui/context-menu.css'
-import { TabKind, type PaneTabItem } from './layout/paneTypes'
-import { paneKindPickerOptions } from './paneKindRegistry'
+import { TabKind, type PaneTabItem } from '../layout/paneTypes'
+import { paneKindPickerOptions } from '../registry/paneKindRegistry'
 import { WorkbenchIcon, type WorkbenchIconName } from '@renderer/adapters/ui'
 
 interface Props {
