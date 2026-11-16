@@ -20,6 +20,7 @@ import {
   type GoogleDriveWorkspaceEntry
 } from '@pkms/google-drive'
 import driveStyles from '@pkms/google-drive/workspace.module.css'
+import { flushDocumentBeforeWorkspaceSync } from './flushDocumentBeforeWorkspaceSync'
 
 const WORKSPACE_MARKER = 'pkms-google-drive-v1'
 const ROOT_STORAGE_KEY = 'pkms-google-drive-root'
@@ -399,13 +400,12 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
             assetMaterializer.apply(fileId, mimeType, bytes, operation)
         })
         const nextRuntime = { rootId: root.id, repository, documents, sync: engine }
-        await engine.sync()
+        await flushDocumentBeforeWorkspaceSync(session, () => engine.sync())
         localStorage.setItem(ROOT_STORAGE_KEY, root.id)
         setRuntime(nextRuntime)
         setRoots([])
         setDirectory('')
         setActiveFile(null)
-        await session?.close()
         setSession(null)
         setStatus(`Connected to ${root.name}`)
         const nextEntries = await repository.listDirectory('')
