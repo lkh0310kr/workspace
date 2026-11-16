@@ -14,7 +14,7 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 | usage 선택         | Main config usageMeters.enabled, 기본 claude/cursor; normalizer가 허용 ID와 고정 순서로 정리  |
 | Editor tree layout | pane별 open/width/mode, root별 tree 확장/scroll                                               |
 
-[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도 책임이다.
+[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도 책임이다. 설정 팝오버는 app-shell이 섹션을 조립하고 Editor의 auto-save UI는 [EditorSettingsSection](../../../../apps/desktop/src/renderer/src/features/editor/settings/EditorSettingsSection.tsx), 사용량 표시 선택 UI는 [UsageMeterSettingsSection](../../../../apps/desktop/src/renderer/src/features/agent-usage/settings/UsageMeterSettingsSection.tsx)이 각각 소유한다.
 
 Workspace 탭의 root 폴더 선택은 [workspaceRootPicker](../../../../apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts)가 native dialog IPC에 연결한다.
 

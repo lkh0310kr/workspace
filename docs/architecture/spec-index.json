@@ -494,6 +494,10 @@
           "sha256": "0e9b3425baa215880a321df5640b9ac6b419305e2e9b79f6c8aae03e0c8ecccc"
         },
         {
+          "path": "apps/desktop/src/renderer/src/features/editor/settings/EditorSettingsSection.tsx",
+          "sha256": "2ffcddbb704a2aebcf4fe25f1dffa4cc474104c39964f3f630f2cb214285f89d"
+        },
+        {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
           "sha256": "6faa7c134a9749196a9b8643e88fb4af04abba5d76d506ea0461be0a6d274bb5"
         },
@@ -1194,8 +1198,16 @@
           "sha256": "7b48433d422135739841f0f1d9c76fef9cff79a9fe57ca80f24cf2f201395d75"
         },
         {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/AppSettingsDialog.tsx",
+          "sha256": "5cd863369b1bdb824bc870fa3a2621a5cc8650a5a29d10cd0a0fa9644dbaaea0"
+        },
+        {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",
           "sha256": "f396f311ddc82e7a7538bc9cb9f1b494675ddbdf49c67e2071cb62b28e411dcd"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/agent-usage/settings/UsageMeterSettingsSection.tsx",
+          "sha256": "4777d221e0edaa0017983f020f6e89a5243f0ec14b6f30031842de5855346f5f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/usageApi.ts",
