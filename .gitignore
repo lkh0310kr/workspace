@@ -42,3 +42,9 @@ apps/workspace/.tools/
 # Per-tab layout export written by the Electron app during dev.
 apps/workspace/.workspace/
 apps/desktop/test-results/
+
+# Generated outputs carried along with archived PKMS projects.
+archive/pkms/apps/pkms-ios/Frameworks/
+archive/pkms/apps/pkms-web/.react-router/
+archive/pkms/apps/pkms-web/.wrangler/
+archive/pkms/apps/pkms-web/build/
