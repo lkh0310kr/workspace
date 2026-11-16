@@ -1,6 +1,6 @@
 # 저장소 전체 리팩터링 작업 큐
 
-작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 28개다.
+작업 수는 실제로 채택한 리팩터링 작업과 조사 작업을 구분한다. 조사 커버리지의 분모는 사용자가 지정한 범위 내 9개 영역이다. 리팩터링 진행률의 분모는 검토 후 채택한 작업 29개다.
 
 | 작업 ID | 영역 | 변경 목표 | 전용 수정 경로 | 선행 작업 | 위험도 | 검증 | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -33,11 +33,12 @@
 | T-022 | R-008 | PKMS client의 path 기반 local item ID 인코딩을 domain helper 하나로 통일하고 기존 결정적 UTF-8 base64url 형식을 보존 | `packages/pkms-client/src/domain/localItemId.ts`, PkmsClientApp, editor provider/realtime 소비자 및 helper test | 세 소비 경로의 ID equality·ASCII/Unicode 기준선 확인 | 낮음~중간 | ASCII·Unicode·base64url 문자·padding·경로 비정규화 회귀, PKMS web typecheck, root check | validated |
 | T-023 | R-001b | Home 두 위젯의 interval·수동·변경 후 refresh를 직렬화하고 stale 응답 및 unmount 반영을 차단 | `useLatestRefresh.ts`, SystemInformationWidget, ServiceStatusWidget, DashboardView lifecycle test | HOME-UI-05 지연 응답/화면 이탈 계약 확인 | 중간 | coalescing·최신 결과·unmount timer·응답·await 의미 통합 검증, typecheck, root check | validated |
 | T-024 | R-001b | EPUB open 오류를 source identity에 묶어 다른 경로 재사용 때 reader host 재생성과 이전 오류 차단을 보장 | `EpubReaderContent.tsx`, path-change lifecycle test, viewer spec | error branch의 hostRef 제거 동작 및 FileViewer의 key 없는 재사용 확인 | 낮음~중간 | reject→같은 instance 새 path 성공, 이전 지연 reject 무시, typecheck·root check | validated |
+| T-025 | R-003 | `%`·`_`가 들어간 path를 SQL subtree wildcard로 해석하지 않도록 literal path helper로 통일 | `apps/pkms-server/supabase/migrations/20261116190000_literal_path_subtree_matching.sql`, SQL regression test | `pkms_path_is_valid`가 `%`·`_`를 허용하고 최종 functions가 LIKE prefix를 사용하는 반례 재현 | 높음 | local DB reset + six SQL scripts (delete guard/scope, move, create conflict, asset conflict), server typecheck, root check | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 28개; 검증 완료 28, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 29개; 검증 완료 29, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -71,11 +72,11 @@
 
 - R-001b `workspaceStore.persistLayout`의 모듈 단일 debounce timer는 workspace 간 저장 요청을 취소할 수 있다는 기존 제한이 문서화돼 있다. 동작 계약 변경이므로 이번 보존 중심 배치에서는 수정하지 않았다.
 - R-003 `SupabaseVault.ts`의 GitHub flush/recovery와 `mcp.ts`의 OAuth/JSON-RPC 분리는 명확한 책임 경계이나 전용 계약 테스트가 없다. flush lease·recovery, OAuth state/PKCE·code consume·revoke 테스트가 먼저 필요하다.
-- R-003 정적 검토에서 `%`/`_`를 허용하는 `pkms_path_is_valid`와 폴더 경로를 escape하지 않고 `LIKE f.path || '/%'`에 넣는 subtree query 사이의 정합성 위험이 발견됐다. 특히 `20261114160000_scoped_folder_delete_guard.sql`의 descendant 검사·삭제 조회에 해당한다. DB 재현이나 데이터 영향 확인은 아직 하지 않았으므로 이번 리팩터링에서 바꾸지 않고 별도 검증 후보로 기록한다.
+- R-003에서 확인한 `%`/`_` path wildcard 오분류는 T-025에서 literal slash-boundary helper로 수정했다. 예: `a_b`의 subtree가 `axb/child`를 매칭하던 false positive를 기존 SQL test에 추가해 수정 전 실패와 수정 후 통과를 로컬 Postgres에서 확인했다. 최종 operation/conflict/asset function 정의의 prefix query를 모두 교체했다.
 - R-004 `pkms-google-drive.tsx`의 Drive session/orchestration은 책임이 넓지만 route 자체 acceptance가 없다. save/close/flush/root-switch/open 경쟁 계약을 고정할 테스트 seam을 확인하기 전에는 분리하지 않는다.
 - R-005 `serviceIntegrations.ts`의 provider lifecycle 분리는 유효한 후보지만 인증·D1·OAuth·provider fallback을 포괄하는 테스트가 없어 고위험이다. migration/RPC 및 인증 동작을 구조 변경에 섞지 않는다.
 - R-007 package exports/deep import 불일치는 앱 bundler alias에 의해 작동 중이다. 세 CSS/helper subpath를 public API로 승격할 의도가 불명확해 resolver 경계 확인 전에는 선언을 바꾸지 않는다.
-- R-008 `workspaceTreeCache.ts`의 `parentPath` 계산은 `domain/fileTree.ts` helper와 동일해 테스트로 cache 삭제/보존 의미를 고정한 뒤 T-019에서 공유했다. `localItemIdForPath` 중복은 비ASCII 경로 및 ID 안정성 계약을 먼저 고정할 후보로 남겼다.
+- R-008 `workspaceTreeCache.ts`의 `parentPath` 계산은 `domain/fileTree.ts` helper와 동일해 테스트로 cache 삭제/보존 의미를 고정한 뒤 T-019에서 공유했다. `localItemIdForPath` 세 구현은 비ASCII 경로 및 ID 안정성을 고정한 뒤 T-022에서 domain helper로 통일했다.
 - R-010 `workspaceRepository.ts`, `operationLog.ts`, `assetConflictMaterializer.ts`의 SHA-256 hex 계산을 private `sha256Hex` helper로 모았다. 입력 bytes 복사와 lowercase digest 형식을 보존했고 기존 28개 관련 테스트로 검증했다(T-018).
 - R-001c/d 추가 조사: preload `contentApi`/`systemApi` 일부 구현의 `unknown` 반환형과 `index.d.ts`의 구체 DTO 사이 drift 가능성은 확인했으나, 공개 renderer IPC contract와 Main 호출부를 더 대조해야 하므로 보류한다. `terminal-session-buffers`의 timeout은 5초 후 빈 결과로 진행하지만 IPC listener 자체는 제거되지 않고 request ID/sender correlation도 없다. 현재 단일 `before-quit` 요청 후 종료하는 경로라 실제 노출은 미확인; 경합 재현과 lifecycle 테스트 없이 바꾸지 않는다.
 - R-001a Main은 추적 경로 172개를 정적으로 검토했다. 테스트는 실행하지 않았다. OBJ `mtllib` 경로를 읽는 `packageResolver.ts`에 workspace-root 탈출 및 symlink 경계가 확인되지 않은 위험을 발견했다. 실제 production callsite에서 사용하는 경로라 별도 경계 테스트와 입력 의미 검증 전에는 동작을 수정하지 않는다.
@@ -88,5 +89,6 @@
 - T-022 완료: PkmsClientApp·realtime conflict snapshot·editor provider의 중복 UTF-8/base64url local ID 구현을 domain helper로 합쳤다. ASCII·한글·`+`/`/` 대체·padding 제거·입력 경로 비정규화 4개 assertion을 새 테스트로 고정했다. 패키지 focused 5개 테스트, PKMS web typecheck, root `npm run check` 통과. 앱 ESLint는 package 경로를 base path 밖으로 무시했고, Prettier 검사에서는 `pkmsEditorProvider.ts`의 변경과 무관한 기존 2개 줄 형식만 실패해 유지했다.
 - T-023 완료: HOME-UI-05에 맞춰 두 위젯의 refresh를 `useLatestRefresh`로 직렬화했다. 진행 중 여러 호출은 하나의 후속 요청으로 합치며 이전 결과는 반영하지 않는다. unmount가 queued refresh/응답을 무효화하고 위젯 interval을 정리한다. deferred API 응답·interval/manual coalescing·최신 결과·unmount를 통합 테스트하고, hook의 awaited completion도 테스트했다. focused 2 tests, app typecheck, root check 통과. 기존 ServiceStatusWidget ESLint의 명시 반환형/React compiler memoization 오류는 refresh 변경과 무관한 기존 위치에 남아 있다.
 - T-024 완료: EPUB open error를 `{tabId, filePath, absolutePath, message}`로 저장하고 현재 source에 해당하는 오류만 표시한다. 새 source에는 기존 error branch가 reader host를 제거하지 않으므로 같은 component instance가 다시 로드한다. effect cleanup의 cancelled guard가 이전 async open failure의 stale 적용을 막는다. reject→새 path 성공과 늦은 이전 reject 2 tests, app typecheck 통과.
+- T-025 완료: SQL `LIKE path||'/%'` prefix matching을 slash-boundary literal helper로 교체하고 object key prefix도 literal string prefix로 확인한다. migration 적용 후 `_` false conflict, `%` sibling delete, wildcard-shaped move/create/asset cases를 포함한 6개 local Postgres SQL scripts가 모두 통과했다. 수정 전 underscore false-positive를 재현했고, `npm run pkms:server:typecheck` 및 root `npm run check`도 통과했다. local database test는 `docker exec -i supabase_db_pkms-client psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/<file>.sql`로 실행했다.
 - R-001b pane/viewer 후보: `EpubReaderContent.tsx`의 error branch가 hostRef를 제거해 실패한 책 다음 path 로드를 막는 결함은 T-024에서 source-bound error·stale async 결과 테스트로 수정했다. `CadViewerContent.tsx`는 `paneActive` 변화 때 webview를 재생성하지만 pane state 보존 계약은 없어 보류한다. `FileViewerContent.tsx`의 Blob URL revoke와 state 교체 사이 렌더 race는 영향이 확인되지 않아 재현 전 보류한다. 실제 WebGL/CAD/EPUB runtime acceptance는 별도 한계다.
 - R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
