@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { appendAppLog, appendNdjsonLog, getLogFilePath } from '../debugLogSink'
+import { appendAppLog, appendNdjsonLog, getLogFilePath } from '../diagnostics/logging/debugLogSink'
 
 export function getModel3dLogPath(): string {
   return getLogFilePath('model3d.ndjson')

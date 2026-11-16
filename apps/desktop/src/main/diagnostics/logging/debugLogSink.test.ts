@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./workspace/persistence', () => ({
+vi.mock('../../workspace/persistence', () => ({
   appSupportDir: () => join(process.env.WORKSPACE_TEST_LOG_DIR ?? '/tmp/workspace-test-logs')
 }))
 

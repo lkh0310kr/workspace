@@ -1,6 +1,6 @@
 import { app, protocol } from 'electron'
 import { PRIVILEGED_SCHEMES } from './protocolSchemeTable'
-import { getBootstrapAppSupportDir } from '../../startupLog'
+import { getBootstrapAppSupportDir } from '../../diagnostics/logging/startupLog'
 
 // Keep every Electron-owned store (including Chromium data and PTY host
 // identity) in the same dev/packaged profile as appSupportDir().

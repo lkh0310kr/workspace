@@ -1,6 +1,6 @@
 import './platform/protocol/protocolSchemes'
 import './platform/ime/imeEnv'
-import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './startupLog'
+import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './diagnostics/logging/startupLog'
 import { ensureLinuxImeDaemon } from './platform/ime/imeEnv'
 import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './platform/shortcuts/relayAppShortcuts'
 
@@ -145,7 +145,7 @@ function handleMacTerminalOptionShortcut(
   return true
 }
 
-import { appendAppLog, getLogsDir, installMainConsoleFileLogging } from './debugLogSink'
+import { appendAppLog, getLogsDir, installMainConsoleFileLogging } from './diagnostics/logging/debugLogSink'
 
 function logWindowLifecycle(
   event: string,

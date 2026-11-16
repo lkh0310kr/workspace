@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "c70f16f4fbb496103dd211c99a6c071d8c3af7d4db5f1feacece41fcd9666504"
+          "sha256": "6ed685d15e0a14439cca3f3865277a477f4071c52e84c60d4a815ade909aa2c9"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "c70f16f4fbb496103dd211c99a6c071d8c3af7d4db5f1feacece41fcd9666504"
+          "sha256": "6ed685d15e0a14439cca3f3865277a477f4071c52e84c60d4a815ade909aa2c9"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -737,7 +737,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace/persistence.ts",
-          "sha256": "b9df04a440d23958e28fb61519438a4caa30fbc01fc4ec0090e1942b13d8b9f8"
+          "sha256": "501944a2fbb470d46ed16a3b1d5369399c6801c353002bba3ac45269f7e723d1"
         },
         {
           "path": "apps/desktop/src/main/agent/usage/usageMeterConfig.ts",

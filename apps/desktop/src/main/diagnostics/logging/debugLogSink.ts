@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { appSupportDir } from './workspace/persistence'
+import { appSupportDir } from '../../workspace/persistence'
 import { getBootstrapLogsDir } from './startupLog'
 import { appendRotatingLogLine } from './logFileWriter'
 
