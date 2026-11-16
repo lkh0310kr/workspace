@@ -22,6 +22,7 @@ import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPa
 import { BrowserNavButton } from './BrowserNavButton'
 import { BrowserDownloadsBar, type BrowserDownloadItem } from './BrowserDownloadsBar'
 import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
+import './browser.css'
 import { useBrowserChromeFocus } from './useBrowserChromeFocus'
 import { useBrowserGuestActivationFocus } from './useBrowserGuestActivationFocus'
 import { useWebviewGuestFocus } from './useWebviewGuestFocus'

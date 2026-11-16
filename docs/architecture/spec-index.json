@@ -835,7 +835,7 @@
         },
         {
           "path": "packages/home/src/index.ts",
-          "sha256": "011f384730c7356a41e3d9b8d700d096b9a9ff458eb33a0b4d31a0de96e4ee76"
+          "sha256": "4091fae4087c4e798a0a6c632a9922c6bc4691343f83490681f93ad5bff61fec"
         },
         {
           "path": "packages/home/src/systemSummary.ts",
@@ -1032,7 +1032,7 @@
         },
         {
           "path": "packages/browser/src/BrowserContent.tsx",
-          "sha256": "adb56ab4f235f8758bbff7df7757a418a364b3f2a0601a0d81f1889d472446d6"
+          "sha256": "0831899255a7bf1cd343276693f914c6fa806508beda3d861b1f459a383cd545"
         },
         {
           "path": "packages/browser/src/BrowserDownloadsBar.tsx",

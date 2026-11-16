@@ -3,7 +3,6 @@ import {
   getOptimisticWorkspaceTabId,
   subscribeOptimisticWorkspaceTab
 } from './optimisticWorkspaceTab'
-import { isHomeViewActive, subscribeHomeView } from './workspaceHomeView'
 import { useInteractionCoordinatorActiveTab } from './useInteractionCoordinatorActiveTab'
 import {
   getWorkspaceScope,
@@ -11,6 +10,7 @@ import {
   type WorkspaceScope
 } from './workspaceScope'
 import { useWorkspaceStore } from '../store/workspaceStore'
+import { isHomeViewActive, subscribeHomeView } from '@workspace/home'
 
 /** Reactive workspace tab visibility snapshot for React components. */
 export function useWorkspaceScope(): WorkspaceScope {

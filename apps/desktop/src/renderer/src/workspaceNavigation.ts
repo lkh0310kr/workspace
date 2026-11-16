@@ -3,7 +3,7 @@ import {
   beginOptimisticWorkspaceTabSwitch,
   endOptimisticWorkspaceTabSwitch
 } from './interaction/optimisticWorkspaceTab'
-import { setHomeViewActive } from './interaction/workspaceHomeView'
+import { setHomeViewActive } from '@workspace/home'
 import { syncInteractionCoordinatorWorkspaceTab } from './interaction/syncInteractionCoordinatorWorkspaceTab'
 import { getWorkspaceScope } from './interaction/workspaceScope'
 import { selectTab } from './electron'
