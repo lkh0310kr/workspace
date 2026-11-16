@@ -1,0 +1,6 @@
+export { prepareTerminalColdRestoreSnapshot } from './terminal-cold-restore'
+export { extractOnlyTerminalQueryReplies, isTerminalQueryReply } from './terminal-query-reply'
+export { TerminalQueryReplyEchoFilter } from './terminal-query-reply-echo'
+export { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from './terminal-scrollback-policy'
+export { serializeWithAbsoluteCursor } from './terminal-serialize-absolute-cursor'
+export { type TerminalSessionBuffersFile, trimTerminalSessionBufferToByteLimit } from './terminal-session-buffers'

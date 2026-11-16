@@ -3,10 +3,10 @@ import {
   clearSharedOptionKeyTracker,
   getSharedOptionKeyTracker
 } from '@workspace/terminal'
-import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager/terminal-ime-candidate-anchor'
+import { releaseTerminalImeTextareaAnchor } from '@workspace/terminal/pane-manager'
 import { sendCapturedTerminalInput, copyTerminalSelection } from '@workspace/terminal'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
-import { readTerminalClipboardSelection } from '@workspace/terminal/terminal/terminal-clipboard-selection-text'
+import { readTerminalClipboardSelection } from '@workspace/terminal/terminal'
 import { shouldBypassXtermClipboardKeyboardEvent } from '@workspace/terminal'
 import { notifyTerminalKeyboardPasteHandled } from './installTerminalPasteHandler'
 import { resolveTerminalShortcutAction, type TerminalShortcutAction } from '@workspace/terminal'
@@ -52,7 +52,7 @@ export function installTerminalKeyHandler(args: {
   terminalId: number
   writeClipboardText: (text: string) => void | Promise<void>
   getTerminalAgent?: () =>
-    import('@workspace/terminal/agent/tui-agent').TuiAgent | null | undefined
+    import('@workspace/terminal/agent').TuiAgent | null | undefined
   isFocused?: () => boolean
 }): () => void {
   const { terminal, transport, terminalId, writeClipboardText } = args

@@ -1,4 +1,4 @@
-import { createPtyDataMultiplexer } from '@workspace/terminal/transport/ptyDataMultiplexer'
+import { createPtyDataMultiplexer } from '@workspace/terminal/transport'
 import { reprTerminalBytes, termLog } from './terminalDebugLog'
 
 const multiplexer = createPtyDataMultiplexer(

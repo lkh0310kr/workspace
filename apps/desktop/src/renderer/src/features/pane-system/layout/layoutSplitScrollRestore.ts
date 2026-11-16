@@ -1,15 +1,15 @@
 import type { Action, Model } from 'flexlayout-react'
 import { Actions, TabNode } from 'flexlayout-react'
 import type { PaneGroupConfig } from './paneTypes'
-import { captureScrollState } from '@workspace/terminal/pane-manager/pane-scroll'
-import { scheduleSplitScrollRestore } from '@workspace/terminal/pane-manager/pane-split-scroll'
-import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
-import { disposeWebgl } from '@workspace/terminal/pane-manager/pane-webgl-renderer'
-import { reattachWebglIfNeeded } from '@workspace/terminal/pane-manager/pane-webgl-reattach'
+import { captureScrollState } from '@workspace/terminal/pane-manager'
+import { scheduleSplitScrollRestore } from '@workspace/terminal/pane-manager'
+import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager'
+import { disposeWebgl } from '@workspace/terminal/pane-manager'
+import { reattachWebglIfNeeded } from '@workspace/terminal/pane-manager'
 import type {
   ManagedPaneInternal,
   ScrollState
-} from '@workspace/terminal/pane-manager/pane-manager-types'
+} from '@workspace/terminal/pane-manager'
 
 type PendingSplitCapture = { scrollState: ScrollState; hadWebgl: boolean }
 

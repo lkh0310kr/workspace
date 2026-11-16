@@ -1,6 +1,6 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
 import { agentPaneKey, useAgentStatusStore } from '@workspace/terminal'
-import { registerTerminalAgentPane } from '@workspace/terminal/agent/terminal-agent-pane-registry'
+import { registerTerminalAgentPane } from '@workspace/terminal/agent'
 import { writeClipboardText } from '../../features/app-shell/nativeClipboard'
 import { connectPanePty } from './runtime/connectPanePty'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
@@ -10,7 +10,7 @@ import {
   XTERM_THEMES,
   focusTerminalTextarea
 } from '@workspace/terminal'
-import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent/terminal-title-agent-type'
+import { resolveExplicitTerminalTitleAgentType } from '@workspace/terminal/agent'
 import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
 import { registerTerminalKeyboardTarget } from './runtime/terminalKeyboardSurface'
 import { installTerminalKeyHandler } from './runtime/installTerminalKeyHandler'

@@ -4,7 +4,7 @@ import {
   pasteTerminalText,
   resolveTerminalMultilinePasteOptions
 } from '@workspace/terminal'
-import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
+import type { TuiAgent } from '@workspace/terminal/agent'
 import {
   readClipboardText,
   saveClipboardImageAsTempFile

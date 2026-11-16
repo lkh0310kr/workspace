@@ -1,5 +1,5 @@
-import type { AgentStatusEntry } from '@workspace/terminal/agent/agent-status-types'
-import { agentVerdictDisplayMark } from '@workspace/terminal/agent/agent-main-agent-verdict'
+import type { AgentStatusEntry } from '@workspace/terminal/agent'
+import { agentVerdictDisplayMark } from '@workspace/terminal/agent'
 
 export type AgentPaneActivityFlags = {
   hasPermission: boolean

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentStatusEntry } from '@workspace/terminal/agent/agent-status-types'
-import { AGENT_STATUS_STALE_AFTER_MS } from '@workspace/terminal/agent/agent-status-freshness'
+import type { AgentStatusEntry } from '@workspace/terminal/agent'
+import { AGENT_STATUS_STALE_AFTER_MS } from '@workspace/terminal/agent'
 import {
   selectWorkspaceAgentActivitySummary,
   type WorkspaceAgentActivityInput

@@ -1,7 +1,7 @@
 import http from 'node:http'
 import type { WebContents } from 'electron'
-import type { AgentStatusIpcPayload } from '@workspace/terminal/agent/agent-status-ipc'
-import { parseAgentStatusPaneIdentity } from '@workspace/terminal/agent/agent-status-pane-key'
+import type { AgentStatusIpcPayload } from '@workspace/terminal/agent'
+import { parseAgentStatusPaneIdentity } from '@workspace/terminal/agent'
 
 const terminalIdToPaneKey = new Map<number, string>()
 

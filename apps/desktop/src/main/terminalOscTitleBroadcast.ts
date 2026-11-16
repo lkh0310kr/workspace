@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import { extractAllOscTitles, normalizeTerminalTitle } from '@workspace/terminal/agent/agent-detection'
+import { extractAllOscTitles, normalizeTerminalTitle } from '@workspace/terminal/agent'
 
 let getTargetWebContents: (() => WebContents | null) | null = null
 const lastNormalizedTitleByTerminalId = new Map<number, string>()

@@ -2,15 +2,15 @@ import type { IDisposable } from '@xterm/xterm'
 import type {
   ManagedPane,
   ManagedPaneInternal
-} from '@workspace/terminal/pane-manager/pane-manager-types'
-import { setPaneFitListener } from '@workspace/terminal/pane-manager/pane-fit-resize-observer'
-import { refitPaneTerminal } from '@workspace/terminal/pane-manager/pane-terminal-refit'
-import { writeTerminalOutput } from '@workspace/terminal/pane-manager/pane-terminal-output-scheduler'
+} from '@workspace/terminal/pane-manager'
+import { setPaneFitListener } from '@workspace/terminal/pane-manager'
+import { refitPaneTerminal } from '@workspace/terminal/pane-manager'
+import { writeTerminalOutput } from '@workspace/terminal/pane-manager'
 import { writeClipboardText } from '../../../features/app-shell/nativeClipboard'
 import { ptyResize } from './terminalIpc'
 import { createElectronPtyTransport, type PtyTransport } from './ptyTransport'
-import { createPtyOutputTitleObserver } from '@workspace/terminal/agent/pty-output-title-observer'
-import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
+import { createPtyOutputTitleObserver } from '@workspace/terminal/agent'
+import type { TuiAgent } from '@workspace/terminal/agent'
 import {
   applyTitleDerivedAgentStatus,
   applyTitleIdleTransition,

@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
-import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
+import type { TuiAgent } from '@workspace/terminal/agent'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
 
 let suppressNextNativePaste = false

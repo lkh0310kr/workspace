@@ -9,7 +9,7 @@ import { onPastePlainTextShortcut } from '../editor/runtime/editorShortcuts'
 import { onTerminalPasteShortcut } from '../../adapters/terminal/runtime/terminalIpc'
 import { onBrowserReloadShortcut } from '../../adapters/browser/runtime/browserIpc'
 import { pastePlainTextInFocusedEditor } from '@renderer/features/editor/api'
-import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager/pane-terminal-registry'
+import { getRegisteredTerminalPane } from '@workspace/terminal/pane-manager'
 import {
   captureTerminalSessionBuffers,
   notifyTerminalKeyboardPasteHandled,

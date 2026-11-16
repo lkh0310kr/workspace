@@ -1,7 +1,7 @@
 import {
   extractOnlyTerminalQueryReplies,
   isTerminalQueryReply
-} from '@workspace/terminal/shared/terminal-query-reply'
+} from '@workspace/terminal/shared'
 
 export function forwardXtermInputToPty(
   data: string,

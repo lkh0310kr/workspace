@@ -1,7 +1,7 @@
-import type { AgentStatus } from '@workspace/terminal/agent/agent-title-core'
-import { detectAgentStatusFromTitle } from '@workspace/terminal/agent/agent-title-status'
-import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
-import type { AgentStatusPayload } from '@workspace/terminal/agent/agent-status-types'
+import type { AgentStatus } from '@workspace/terminal/agent'
+import { detectAgentStatusFromTitle } from '@workspace/terminal/agent'
+import type { TuiAgent } from '@workspace/terminal/agent'
+import type { AgentStatusPayload } from '@workspace/terminal/agent'
 import {
   agentPaneKey,
   getFreshHookAgentStatus,

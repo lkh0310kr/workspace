@@ -713,7 +713,7 @@
         },
         {
           "path": "apps/desktop/src/main/ipc/terminalSessionBuffers.ts",
-          "sha256": "a2c50287f94023b7d2156fcb64f5a4fb02ff732d376d44656e23af311d7429f3"
+          "sha256": "9b143cc8a494745c9afd05a33d8a4afdc210e8552c2481fe7cbec2a590713b97"
         },
         {
           "path": "apps/desktop/src/main/ipc/workspaceSearch.ts",
@@ -725,7 +725,7 @@
         },
         {
           "path": "apps/desktop/src/main/persistence.ts",
-          "sha256": "d4593fee5d8158c28f3dd3dc4c146dbbf06c8c87ce33298914371ea2206819e0"
+          "sha256": "9ecfc654d3cb3361b31220b28017752684c0560680f5594853bfad950a6ad398"
         },
         {
           "path": "apps/desktop/src/main/usageMeterConfig.ts",
@@ -733,7 +733,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace.ts",
-          "sha256": "3b3568b45fc3055f7235b795429f46ccdedf86ea02c8bb035128ad5705280e95"
+          "sha256": "4e421b371038abe2ca83997780b042d6d8761329fdf42031bf4a034a2d5ee923"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "05e2a8b333dd1ad9e71130f1f73b75c26d2a40a2d274e387bc43d1101fabbf5f"
+          "sha256": "e3cb2894020b7b9e329feb13e3be4b538630dda2fb8dcdec99a6d2d880b6ad2c"
         },
         {
           "path": "apps/desktop/src/preload/index.ts",
@@ -785,7 +785,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
-          "sha256": "09ba932bc43d655c3ef5125b73e9ff7a4658b07f2ff91f5a641acd3839a641e7"
+          "sha256": "d3545ad3227ca8ed520ebf9dc8bc62836a313ed759e824d761552e97111fd60e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/interactionDebugLog.ts",
@@ -881,7 +881,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutSplitScrollRestore.ts",
-          "sha256": "ac3524386dc9edb26781fd3c2d7e15dab70ed548b426b2a0de8f4fb9556d97d3"
+          "sha256": "ec491168cd62ac4817a06e28e6cec23d3288d995ebbaace088ac9e17f0689089"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutTabDrop.test.ts",
@@ -893,7 +893,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/paneTypes.ts",
-          "sha256": "c3137ef0cdeb3eafe5fd8df8638e4feecede9cfdb59084c9f5d86180ac123a2b"
+          "sha256": "bffe175dd00a3f3491fc381dfafc755c8a71edf31790de30ac776fb54abdf236"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/tabDrag.ts",
@@ -1022,7 +1022,7 @@
         },
         {
           "path": "apps/desktop/src/main/ptySession.ts",
-          "sha256": "21af7a17e25c40b6b83cdd9a2832ad1cd20bf72e2dc68f8bb2fb5bdd5ba79d22"
+          "sha256": "44b3f0a8656bf78ab30a52f8bed7dc4c27393b2f2f2a73e444dd5ef82698d81e"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/paneKind.tsx",
@@ -1030,15 +1030,15 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/terminalPaneHost.ts",
-          "sha256": "b7199e1a5a8e440ea2b522e4c15841348d4138c115d081f6163ca2b019a767ce"
+          "sha256": "8d8b5c6e6c50f28ed1953f8061899b340840f3ad46062b2ca89e4a13ad458466"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/ptyDataMultiplexer.ts",
-          "sha256": "0d3729518bb9560d7e23bd64a15e370302ae39bd7004997ce92e83a89efbd442"
+          "sha256": "bd5e071bdd444e27a7a34034849d576f65993320ec21b0da953ddd10e492f43c"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/ptyTransport.ts",
-          "sha256": "6ec2d83ba54a10a632c1a0f662ba6237c8dc96cf3fc1c0ada17bb6030410437f"
+          "sha256": "ac282db6a1fee739da5b841e9f866d1ca64b825c9036c6bd19312ed77792d80a"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/terminal/runtime/collectTerminalPaneTabs.ts",
@@ -1147,7 +1147,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",
-          "sha256": "03ac387e4dfa5087daf743748005f8a3fce544081b834c84874d2c3f07f771d4"
+          "sha256": "a04b8924da3d94a3e7f68befbf3f5d936992ba4e2bead3f4846391fbb8559575"
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookStartup.test.ts",
@@ -1159,7 +1159,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "05e2a8b333dd1ad9e71130f1f73b75c26d2a40a2d274e387bc43d1101fabbf5f"
+          "sha256": "e3cb2894020b7b9e329feb13e3be4b538630dda2fb8dcdec99a6d2d880b6ad2c"
         },
         {
           "path": "apps/desktop/src/preload/systemApi.ts",
@@ -1215,7 +1215,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/agent-pane-activity-flags.ts",
-          "sha256": "c9bde377f093a4bc40a49c13471aacd85ea9af29838a0b1682a5c3fe56ef32a8"
+          "sha256": "99e5ecbd154f0ca5e27d0cb618d4d570390bac7c350502127d6231cb6f6b106f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/collect-workspace-tab-pane-snapshots.ts",
@@ -1223,7 +1223,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/pane-agent-evidence.ts",
-          "sha256": "2d564802f3afb7dc65386755e76763199e2ccd1b122f3587768af74527dea64a"
+          "sha256": "246f5e5dc452dea1f65f1c403678a117be8634294c9772172668354c4b6d169b"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-activity-state.ts",
@@ -1231,15 +1231,15 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-agent-activity-summary.test.ts",
-          "sha256": "a40256e38bafeea2bab86c73651007b4ddc54c3846ede4fa062c88486aadb630"
+          "sha256": "5c6dd96294c64ccd3e8c245925dd18fb03737cb6a55262de84b681fb35a3b7ae"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-agent-activity-summary.ts",
-          "sha256": "5023cd997148bff32384b861a45f41a91493af5e160506b2a2bea167758dba1c"
+          "sha256": "9b525d84b3b4b4f553aaed5c31ae4e36c50a0f79e5677ce160569904981630f3"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/status/workspace-tab-status.ts",
-          "sha256": "d4b4cb262cbd8a1e8bab558f4e41cd7d1f08712e909ec4ad33587a5a5992677e"
+          "sha256": "c55331b8af04d5068cffe8863ee13dbde5856b75c7e20d6340ff5324b41d82a6"
         },
         {
           "path": "apps/desktop/src/renderer/src/theme.ts",
@@ -1461,7 +1461,7 @@
       "sources": [
         {
           "path": "packages/terminal/package.json",
-          "sha256": "fece21813d3b2626f92fc8fc45a5fd12b50b0b5a1b74f567c0ff3ed019d09be9"
+          "sha256": "2e068328342579f5ba162bd3f15ae7359304f013ab092f2195c073eb58cf1b59"
         },
         {
           "path": "packages/terminal/src/agent/agent-detection.ts",
@@ -1518,6 +1518,10 @@
         {
           "path": "packages/terminal/src/agent/apply-hook-agent-status.ts",
           "sha256": "c26b004c9504ce562a6d8cecfbc8a8a5b0d602a45071038cbb770ba03586119f"
+        },
+        {
+          "path": "packages/terminal/src/agent/index.ts",
+          "sha256": "c2e2f895481c3573c7ae9c280052e438354b79cce8afe34d4ce66b08952ffd97"
         },
         {
           "path": "packages/terminal/src/agent/main-agent-status.ts",
@@ -1602,6 +1606,10 @@
         {
           "path": "packages/terminal/src/pane-manager/build-terminal-pane-options.ts",
           "sha256": "8c811eb21a0bcc0578940ef32343c8c4ad817298b583955b3ee162dc1f648b76"
+        },
+        {
+          "path": "packages/terminal/src/pane-manager/index.ts",
+          "sha256": "3359f3d7b900dcf10d47ae9ec6368192ee36394b520f761f4dd87e868755bb89"
         },
         {
           "path": "packages/terminal/src/pane-manager/mobile-fit-overrides.ts",
@@ -1980,6 +1988,10 @@
           "sha256": "ac91afecc7f5e44b43b60162f41708b9551a45e01a9d17b13397244c29bb0ec3"
         },
         {
+          "path": "packages/terminal/src/shared/index.ts",
+          "sha256": "e6305a76fa5664026c1f6f165ce9f6c29491e7fc3f9a3e2781bf3d27589d689f"
+        },
+        {
           "path": "packages/terminal/src/shared/terminal-cold-restore.test.ts",
           "sha256": "dda050286c9af354a39212679f47c5e7abcd30d3d4e819fe9d936be80b727179"
         },
@@ -2096,6 +2108,10 @@
           "sha256": "5dd69fe6d9465d11d884ee414a8ac65ae6a2588802d23df40231843c3607ef54"
         },
         {
+          "path": "packages/terminal/src/terminal/index.ts",
+          "sha256": "56a8856ee916095fd94ed4cb6c1df2da21c5bc4d89c7e8d32454f122d35fcddf"
+        },
+        {
           "path": "packages/terminal/src/terminal/terminal-clipboard-selection-text.ts",
           "sha256": "d5465e1c9f6012f3e19f219981b3ccf5cf91cf485c3a5ac893a95e26d2cbcb42"
         },
@@ -2130,6 +2146,10 @@
         {
           "path": "packages/terminal/src/terminalThemes.ts",
           "sha256": "0e6cbbf328d6dcd26d48d411f3b975bd6fc10e13206c64b8450951fbf8814321"
+        },
+        {
+          "path": "packages/terminal/src/transport/index.ts",
+          "sha256": "1cba318a13e968054ece3a86bb56a3c55d53cc1ad7e09c83ea2b0e4fb3b351a6"
         },
         {
           "path": "packages/terminal/src/transport/ptyDataMultiplexer.ts",

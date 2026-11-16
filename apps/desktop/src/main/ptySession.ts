@@ -1,10 +1,10 @@
 import type { WebContents } from 'electron'
 import { StringDecoder } from 'node:string_decoder'
 import { Pty } from './pty'
-import { trimTerminalSessionBufferToByteLimit } from '@workspace/terminal/shared/terminal-session-buffers'
+import { trimTerminalSessionBufferToByteLimit } from '@workspace/terminal/shared'
 import { appendTerminalLog, reprTerminalBytesMain } from './terminalDebugLog'
-import { extractOnlyTerminalQueryReplies } from '@workspace/terminal/shared/terminal-query-reply'
-import { TerminalQueryReplyEchoFilter } from '@workspace/terminal/shared/terminal-query-reply-echo'
+import { extractOnlyTerminalQueryReplies } from '@workspace/terminal/shared'
+import { TerminalQueryReplyEchoFilter } from '@workspace/terminal/shared'
 
 const REPLAY_MAX_CHARS = 5000 * 120
 const OUTPUT_PAUSE_HIGH_WATER_BYTES = 512 * 1024

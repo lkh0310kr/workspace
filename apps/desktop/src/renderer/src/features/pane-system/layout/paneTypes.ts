@@ -10,8 +10,8 @@
 // a list of heterogeneous PaneTabItems plus which one is active — instead
 // of a single component+config pair.
 
-import type { AgentStatus } from '@workspace/terminal/agent/agent-title-core'
-import type { TuiAgent } from '@workspace/terminal/agent/tui-agent'
+import type { AgentStatus } from '@workspace/terminal/agent'
+import type { TuiAgent } from '@workspace/terminal/agent'
 
 export type TabKind = 'terminal' | 'browser' | 'code' | 'markdown' | 'viewer'
 
