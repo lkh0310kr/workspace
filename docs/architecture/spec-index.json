@@ -818,7 +818,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "f6a18575ce8657266c07120e84a5e7d3368f3dae1c7448bd57ab032c8832e3e4"
+          "sha256": "ed89bec429e5c91b0feb3c14fe8ec7087a369e6fdd49a260e6f9f5531058be9e"
         },
         {
           "path": "apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts",
@@ -1145,7 +1145,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "9988c5efa9a9530a04dd7869b0036d2efb05e2ddb70fa847529bda9b1a033d5e"
+          "sha256": "dd9d2c860c69b50babd0dbbb80a9857b7fce8c983616ab069f4fe387c5947429"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",

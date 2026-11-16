@@ -1,32 +1,11 @@
-import type { TuiAgent } from '@workspace/terminal/types/tuiAgent'
+import type { TerminalPaneHost } from '@workspace/terminal'
 import { agentPaneKey, useAgentStatusStore } from '../../store/agentStatusStore'
 import { registerTerminalAgentPane } from '../../terminal/terminalAgentPaneRegistry'
 import { writeClipboardText } from '../../electron'
 import { connectPanePty } from '../../terminal/connectPanePty'
-import type { ManagedPane } from '@workspace/terminal/pane-manager/pane-manager-types'
-import type { PtyTransport } from '../../terminal/ptyTransport'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 
-export interface TerminalPaneHost {
-  registerPortal: (id: string, onDismiss: () => void) => () => void
-  getPlatformInfo: () => ReturnType<typeof window.api.platformInfo.get>
-  setFocusedTerminal: (terminalId: number | null) => void
-  registerAgentPane: (
-    terminalId: number,
-    workspaceTabId: number,
-    paneTabId: string,
-    terminalAgent?: TuiAgent
-  ) => void
-  unregisterAgentPane: (terminalId: number) => void
-  registerLiveTerminal: (terminalId: number) => void
-  writeClipboardText: (text: string) => void
-  ensureAgentWorking: (workspaceTabId: number, paneTabId: string, terminalAgent?: TuiAgent) => void
-  connectPty: (
-    pane: ManagedPane,
-    terminalId: number,
-    options: Parameters<typeof connectPanePty>[2]
-  ) => { transport: PtyTransport; dispose: () => void }
-}
+export type { TerminalPaneHost } from '@workspace/terminal'
 
 /** Desktop adapter for the process, agent and clipboard capabilities used by
  * the terminal pane view. The pane can receive an in-memory test host. */
