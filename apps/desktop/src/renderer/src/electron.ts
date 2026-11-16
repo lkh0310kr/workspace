@@ -26,11 +26,6 @@ export {
   onWorkspaceUpdated
 } from './features/workspace/runtime/workspaceApi'
 
-// File System module — see fileSystem.ts (Phase 1 foundation split; this
-// re-export keeps every existing `from "../electron"` import site
-// working unchanged).
-export * from './fileSystem'
-
 export interface PtyOutput {
   id: number
   seq: number

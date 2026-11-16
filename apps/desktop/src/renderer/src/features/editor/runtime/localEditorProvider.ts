@@ -12,6 +12,7 @@ import {
   createDir,
   deletePath,
   listDir,
+  listAllFiles,
   onFileChanged,
   onSearchDone,
   onSearchResult,
@@ -21,7 +22,7 @@ import {
   writeFile,
   writeFileIfUnchanged,
   type SearchFileResult
-} from '../../../electron'
+} from './localFileSystem'
 import { LocalDocumentSession } from './localDocumentSession'
 
 type QuickOpenWorkerResponse = { requestId: number; paths: string[] }
@@ -100,7 +101,7 @@ async function searchQuickOpenPaths(
   const filePathRevision = filePathRevisions.get(scope) ?? 0
   let pathsPromise = filePathsCache.get(scope)
   if (!pathsPromise) {
-    pathsPromise = window.api.fs.listAllFiles(tabId, rootPath)
+    pathsPromise = listAllFiles(tabId, rootPath)
     filePathsCache.set(scope, pathsPromise)
     void pathsPromise.catch(() => {
       if (filePathsCache.get(scope) === pathsPromise) filePathsCache.delete(scope)
@@ -341,7 +342,7 @@ function buildLocalEditorProvider(tabId: number, rootPath: string): LocalEditorP
       if (options.target === 'names') {
         const paths = options.fuzzy
           ? await searchQuickOpenPaths(tabId, rootPath, query, options.limit ?? 100, signal)
-          : (await window.api.fs.listAllFiles(tabId, rootPath)).filter(
+          : (await listAllFiles(tabId, rootPath)).filter(
               (path) => findMatch(path.split('/').at(-1) ?? '', query, options) >= 0
             )
         abortIfNeeded(signal)

@@ -8,7 +8,8 @@ import {
   type DragEvent,
   type RefObject
 } from 'react'
-import { DirEntry, revealItemInDir } from '../../fileSystem'
+import { revealItemInDir } from '../app-shell/nativeShell'
+import type { DirEntry } from './runtime/localFileSystem'
 import { interactionCoordinator } from '../../interaction/InteractionCoordinator'
 import { returnRendererFocusBeforeSurfaceHidden } from '../../interaction/embeddedSurfaceFocus'
 import { finishPaneDrag } from '../pane-system/layout/layoutRef'

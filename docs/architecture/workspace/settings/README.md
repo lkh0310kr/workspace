@@ -16,6 +16,8 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 
 [theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도 책임이다.
 
+Workspace 탭의 root 폴더 선택은 [workspaceRootPicker](../../../../apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts)가 native dialog IPC에 연결한다.
+
 ## Usage 수집과 UI
 
 [usage settings](../../../../apps/desktop/src/shared/usage-meter-settings.ts)의 ID는 claude/cursor/codex/gemini/opencode다. 이 enum은 각 provider의 live data adapter가 모두 구현됐다는 의미가 아니다. 실제 Main API는 [usage.ts](../../../../apps/desktop/src/main/usage.ts)의 Claude/Cursor/Codex 수집 경로와 systemCapabilities handler, UI는 [AgentUsageStatusBar](../../../../apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx)를 따른다.

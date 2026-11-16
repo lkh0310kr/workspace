@@ -12,9 +12,9 @@ import {
 import {
   getMediaUrl,
   getMediaUrlAbsolute,
-  pickMediaFileDialog,
-  readFileBinaryPreview
+  pickMediaFileDialog
 } from '../../../electron'
+import { readFileBinaryPreview } from '../runtime/localFileSystem'
 import './viewers.css'
 import { classifyMediaExtension } from './mediaKind'
 import { cuesToVtt, parseSrt, shiftCues, type SubtitleCue } from './srtToVtt'

@@ -1,19 +1,4 @@
-// File System module (Phase 1 foundation — see docs/planning/roadmap.md and
-// docs/planning/context-modeling.md's Capability section). Every
-// pane already went through this one shim rather than reimplementing IPC
-// calls — what this file adds isn't new behavior, it's giving that
-// cluster a real name and location instead of living undifferentiated
-// inside electron.ts's 369-line grab-bag alongside PTY/workspace-tab/
-// media/EPUB/clipboard/shortcut/usage-stats code. Split
-// out with zero behavior change: electron.ts re-exports everything here,
-// so no existing `from "../electron"` import site needed to change —
-// new code can import from here directly for a narrower, more honest
-// dependency than "the whole app's IPC surface."
-//
-// Scope: workspace-relative file/directory read-write-watch-search, plus
-// the native directory-picker dialog (arguably its own thing, but always
-// used to answer "which directory" — the same question every other
-// function here answers about an already-open workspace root).
+/** Desktop IPC adapter for the local Editor provider's filesystem capability. */
 
 export interface DirEntry {
   name: string
@@ -100,9 +85,7 @@ export async function renamePath(
   return window.api.fs.renamePath(tabId, from, to, expectedRootPath)
 }
 
-// No legacy Tauri precedent for search — plain camelCase, not the
-// snake_case porting convention electron.ts otherwise follows for
-// anything that existed on the Tauri side.
+// No legacy Tauri precedent for search, so this API keeps plain camelCase.
 export interface SearchOptions {
   caseSensitive?: boolean
   regex?: boolean
@@ -145,24 +128,10 @@ export function onSearchDone(handler: (requestId: string, error?: string) => voi
   return window.api.fs.onSearchDone(handler)
 }
 
-export async function listAllFiles(tabId: number): Promise<string[]> {
-  return window.api.fs.listAllFiles(tabId)
+export async function listAllFiles(tabId: number, expectedRootPath?: string): Promise<string[]> {
+  return window.api.fs.listAllFiles(tabId, expectedRootPath)
 }
 
 export function onFileChanged(handler: (paths: string[]) => void): () => void {
   return window.api.fs.onChanged(handler)
-}
-
-export async function revealItemInDir(path: string): Promise<void> {
-  return window.api.shell.revealItemInDir(path)
-}
-
-// Tauri's @tauri-apps/plugin-dialog open({ directory: true }) equivalent —
-// a native directory picker, routed through the main process since
-// Electron's dialog module only exists there.
-export async function openDirectoryDialog(defaultPath?: string): Promise<string | null> {
-  const result = await window.api.dialog.openDirectory(defaultPath)
-  if (result.ok) return result.path
-  if (!result.canceled && result.error) throw new Error(result.error)
-  return null
 }
