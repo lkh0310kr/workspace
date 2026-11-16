@@ -15,6 +15,7 @@ import {
   type EditorReplaceOptions
 } from '@workspace/editor'
 import { acquireLocalEditorProvider } from '../editor/localEditorProvider'
+import { useFileContentSearch } from './useFileContentSearch'
 
 // VSCode-parity Find/Replace in Files, backed by the ripgrep IPC in
 // src/main/search.ts. Swapped into PaneGroup.tsx's .obsidian-explorer
@@ -25,8 +26,6 @@ interface Props {
   onJumpToResult: (path: string, kind: 'code' | 'markdown' | 'viewer', line: number) => void
   onClose: () => void
 }
-
-const DEBOUNCE_MS = 250
 
 function highlightLine(lineText: string, ranges: EditorSearchMatch['ranges']): ReactNode {
   if (ranges.length === 0) return lineText
@@ -41,25 +40,12 @@ function highlightLine(lineText: string, ranges: EditorSearchMatch['ranges']): R
   return parts
 }
 
-function mergeSearchResults(
-  current: EditorSearchResult[],
-  updates: EditorSearchResult[]
-): EditorSearchResult[] {
-  const next = [...current]
-  const indexById = new Map(next.map((entry, index) => [entry.item.itemId, index]))
-  for (const update of updates) {
-    const index = indexById.get(update.item.itemId)
-    if (index === undefined) {
-      indexById.set(update.item.itemId, next.length)
-      next.push(update)
-    } else {
-      next[index] = update
-    }
-  }
-  return next
-}
-
-export function SearchPanel({ tabId, focusRequest, onJumpToResult, onClose }: Props) {
+export function SearchPanel({
+  tabId,
+  focusRequest,
+  onJumpToResult,
+  onClose
+}: Props): React.JSX.Element {
   const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
   const provider: EditorProvider = providerLease.provider
   const supportsContentSearch = editorSupportsSearch(provider, 'contents')
@@ -69,106 +55,30 @@ export function SearchPanel({ tabId, focusRequest, onJumpToResult, onClose }: Pr
   const [caseSensitive, setCaseSensitive] = useState(false)
   const [regex, setRegex] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
-  const [results, setResults] = useState<EditorSearchResult[]>([])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [searching, setSearching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [replaceSummary, setReplaceSummary] = useState<string | null>(null)
-  const searchAbortRef = useRef<AbortController | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queryInputRef = useRef<HTMLInputElement>(null)
-  const streamFrameRef = useRef<number | null>(null)
-  const streamedResultsRef = useRef(new Map<string, EditorSearchResult>())
 
   const opts = useMemo<EditorReplaceOptions>(
     () => ({ caseSensitive, regex, wholeWord }),
     [caseSensitive, regex, wholeWord]
   )
 
+  const clearReplaceSummary = useCallback(() => setReplaceSummary(null), [])
+  const { results, searching, error, setError, runSearch } = useFileContentSearch({
+    provider,
+    supportsContentSearch,
+    query,
+    searchOptions: opts,
+    onSearchStart: clearReplaceSummary
+  })
+
   useLayoutEffect(() => {
     queryInputRef.current?.focus({ preventScroll: true })
   }, [focusRequest])
 
-  useLayoutEffect(() => {
-    searchAbortRef.current?.abort()
-    searchAbortRef.current = null
-    if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
-    streamFrameRef.current = null
-    streamedResultsRef.current.clear()
-    setResults([])
-    setError(null)
-    setSearching(Boolean(query))
-  }, [query, caseSensitive, regex, wholeWord])
-
-  const runSearch = useCallback(
-    (q: string, searchOpts: EditorReplaceOptions) => {
-      searchAbortRef.current?.abort()
-      if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
-      streamFrameRef.current = null
-      streamedResultsRef.current.clear()
-      setResults([])
-      setError(null)
-      setReplaceSummary(null)
-      if (!supportsContentSearch) {
-        setSearching(false)
-        setError('Content search is not supported by this provider.')
-        return
-      }
-      if (!q) {
-        setSearching(false)
-        return
-      }
-      const controller = new AbortController()
-      searchAbortRef.current = controller
-      setSearching(true)
-      void provider
-        .search(q, { ...searchOpts, target: 'contents' }, controller.signal, (result) => {
-          if (searchAbortRef.current !== controller) return
-          streamedResultsRef.current.set(result.item.itemId, result)
-          if (streamFrameRef.current !== null) return
-          streamFrameRef.current = requestAnimationFrame(() => {
-            streamFrameRef.current = null
-            const updates = [...streamedResultsRef.current.values()]
-            streamedResultsRef.current.clear()
-            setResults((current) => mergeSearchResults(current, updates))
-          })
-        })
-        .then((next) => {
-          if (searchAbortRef.current !== controller) return
-          if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
-          streamFrameRef.current = null
-          streamedResultsRef.current.clear()
-          setResults(next)
-          setSearching(false)
-        })
-        .catch((cause) => {
-          if (searchAbortRef.current !== controller) return
-          if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
-          streamFrameRef.current = null
-          if (!controller.signal.aborted)
-            setError(cause instanceof Error ? cause.message : String(cause))
-          const updates = [...streamedResultsRef.current.values()]
-          streamedResultsRef.current.clear()
-          if (updates.length) setResults((current) => mergeSearchResults(current, updates))
-          setSearching(false)
-        })
-    },
-    [provider, supportsContentSearch]
-  )
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => runSearch(query, opts), DEBOUNCE_MS)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, caseSensitive, regex, wholeWord])
-
   useEffect(() => {
     return () => {
-      searchAbortRef.current?.abort()
-      if (streamFrameRef.current !== null) cancelAnimationFrame(streamFrameRef.current)
       providerLease.release()
     }
   }, [providerLease])
@@ -195,7 +105,7 @@ export function SearchPanel({ tabId, focusRequest, onJumpToResult, onClose }: Pr
         return false
       }
     },
-    [provider, query, opts, replaceQuery]
+    [provider, query, opts, replaceQuery, setError]
   )
 
   const replaceAll = useCallback(async () => {

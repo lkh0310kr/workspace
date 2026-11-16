@@ -37,18 +37,32 @@ type ReplaceFunction = (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
 
-const { provider, release } = vi.hoisted(() => ({
-  provider: {
-    id: 'test-provider',
+const { provider, otherProvider, release } = vi.hoisted(() => {
+  const createProvider = (
+    id: string
+  ): {
+    id: string
+    capabilities: { searchNames: boolean; searchContents: boolean; replaceContents: boolean }
+    search: ReturnType<typeof vi.fn<SearchFunction>>
+    replaceContents: ReturnType<typeof vi.fn<ReplaceFunction>>
+  } => ({
+    id,
     capabilities: { searchNames: true, searchContents: true, replaceContents: true },
     search: vi.fn<SearchFunction>(),
     replaceContents: vi.fn<ReplaceFunction>()
-  },
-  release: vi.fn()
-}))
+  })
+  return {
+    provider: createProvider('test-provider'),
+    otherProvider: createProvider('other-provider'),
+    release: vi.fn()
+  }
+})
 
 vi.mock('../editor/localEditorProvider', () => ({
-  acquireLocalEditorProvider: () => ({ provider, release })
+  acquireLocalEditorProvider: (tabId: number) => ({
+    provider: tabId === 1 ? provider : otherProvider,
+    release
+  })
 }))
 
 import { SearchPanel } from './SearchPanel'
@@ -160,7 +174,11 @@ describe('SearchPanel input focus', () => {
       setInputValue(input, 'first')
     })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(250)
+      await vi.advanceTimersByTimeAsync(249)
+    })
+    expect(provider.search).not.toHaveBeenCalled()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
     })
     expect(provider.search).toHaveBeenCalledTimes(1)
     const firstSignal = provider.search.mock.calls[0][2]
@@ -185,6 +203,37 @@ describe('SearchPanel input focus', () => {
     })
     expect(host.textContent).toContain('Second.md')
     expect(host.textContent).not.toContain('First.md')
+  })
+
+  it('does not rerun an unchanged query when the provider identity changes', async () => {
+    vi.useFakeTimers()
+    provider.search.mockResolvedValue([])
+    otherProvider.search.mockResolvedValue([])
+
+    const host = document.createElement('div')
+    container = host
+    document.body.append(host)
+    root = createRoot(host)
+    const renderPanel = (tabId: number): ReactElement =>
+      createElement(SearchPanel, {
+        tabId,
+        focusRequest: 0,
+        onJumpToResult: vi.fn(),
+        onClose: vi.fn()
+      })
+    await act(async () => root?.render(renderPanel(1)))
+    const input = host.querySelector<HTMLInputElement>('.search-panel-input')!
+    await act(async () => {
+      setInputValue(input, 'needle')
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    expect(provider.search).toHaveBeenCalledTimes(1)
+
+    await act(async () => root?.render(renderPanel(2)))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    expect(otherProvider.search).not.toHaveBeenCalled()
   })
 
   it('batches streamed updates by file and lets the final response replace them', async () => {
@@ -246,6 +295,59 @@ describe('SearchPanel input focus', () => {
     expect(host.textContent).toContain('final preview')
     expect(host.textContent).not.toContain('Streamed.md')
     expect(host.querySelector('.search-panel-status')?.textContent).toContain('1 result in 1 file')
+  })
+
+  it('aborts active work and cancels a queued stream frame when unmounted', async () => {
+    vi.useFakeTimers()
+    const search = deferred<SearchResult[]>()
+    let emitResult: ((entry: SearchResult) => void) | undefined
+    provider.search.mockImplementation((_query, _options, _signal, onResult) => {
+      emitResult = onResult
+      return search.promise
+    })
+
+    let nextFrameId = 0
+    const frameCallbacks = new Map<number, FrameRequestCallback>()
+    const cancelFrame = vi.fn((id: number) => frameCallbacks.delete(id))
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      const id = ++nextFrameId
+      frameCallbacks.set(id, callback)
+      return id
+    })
+    vi.stubGlobal('cancelAnimationFrame', cancelFrame)
+
+    const host = document.createElement('div')
+    container = host
+    document.body.append(host)
+    root = createRoot(host)
+    await act(async () =>
+      root?.render(
+        createElement(SearchPanel, {
+          tabId: 1,
+          focusRequest: 0,
+          onJumpToResult: vi.fn(),
+          onClose: vi.fn()
+        })
+      )
+    )
+    const input = host.querySelector<HTMLInputElement>('.search-panel-input')!
+    await act(async () => {
+      setInputValue(input, 'needle')
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    const signal = provider.search.mock.calls[0][2]
+    await act(async () => {
+      emitResult?.(result('streamed-file', 'Streamed.md', 'pending frame', [{ start: 0, end: 7 }]))
+    })
+    expect(frameCallbacks.size).toBe(1)
+
+    await act(async () => root?.unmount())
+    root = null
+
+    expect(signal?.aborted).toBe(true)
+    expect(cancelFrame).toHaveBeenCalledOnce()
+    expect(frameCallbacks.size).toBe(0)
+    expect(release).toHaveBeenCalledOnce()
   })
 
   it('passes the current match count to replaceContents as its stale-result precondition', async () => {
