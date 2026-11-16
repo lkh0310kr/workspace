@@ -733,7 +733,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "ea5b5a92420c19b65cc82bb26cf46acda758b93cbcde0d6bda5e61e1d914c56b"
+          "sha256": "b4d0680b66114074fe4a8ca9c26f0dc5a44eaea0c7a18cd539f494d489bb977f"
         },
         {
           "path": "apps/desktop/src/preload/index.ts",
@@ -1087,7 +1087,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",
-          "sha256": "9d15ad160bdb916e94df8315da0d3aeaeca7589225e1abc035ed7a794d82fc91"
+          "sha256": "03ac387e4dfa5087daf743748005f8a3fce544081b834c84874d2c3f07f771d4"
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookStartup.test.ts",
@@ -1099,7 +1099,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "ea5b5a92420c19b65cc82bb26cf46acda758b93cbcde0d6bda5e61e1d914c56b"
+          "sha256": "b4d0680b66114074fe4a8ca9c26f0dc5a44eaea0c7a18cd539f494d489bb977f"
         },
         {
           "path": "apps/desktop/src/preload/systemApi.ts",
@@ -1946,6 +1946,18 @@
         {
           "path": "packages/terminal/src/agent/agent-detection.ts",
           "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
+        },
+        {
+          "path": "packages/terminal/src/agent/agent-status-ipc.ts",
+          "sha256": "05201dc8899ef531d6d4e85584f9cbe24501f6437ee3cbd968fad178f057f547"
+        },
+        {
+          "path": "packages/terminal/src/agent/apply-hook-agent-status.ts",
+          "sha256": "c26b004c9504ce562a6d8cecfbc8a8a5b0d602a45071038cbb770ba03586119f"
+        },
+        {
+          "path": "packages/terminal/src/agent/apply-hook-agent-status.test.ts",
+          "sha256": "ad0705b7d9bddca0e5979f2b37acee04c3d7a27a62330b784f4e2225aecdf750"
         },
         {
           "path": "packages/terminal/src/agent/pty-output-title-observer.ts",

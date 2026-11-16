@@ -1,4 +1,4 @@
-import type { AgentStatusState, AgentWorkingMode } from '@workspace/terminal/agent/agent-status-types'
+import type { AgentStatusState, AgentWorkingMode } from './agent-status-types'
 
 /** Payload forwarded main → renderer on `agentStatus:set` (Orca subset). */
 export type AgentStatusIpcPayload = {

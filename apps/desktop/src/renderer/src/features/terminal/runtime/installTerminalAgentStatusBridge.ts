@@ -1,7 +1,7 @@
 import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
 import { getTerminalAgentPaneBinding } from './terminalAgentPaneRegistry'
 import { applyTitleDerivedAgentStatus } from './title-derived-agent-status'
-import { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'
+import { applyHookAgentStatus, clearHookAgentStatus } from '@workspace/terminal/agent/apply-hook-agent-status'
 
 export function installTerminalAgentStatusBridge(): () => void {
   const disposers: (() => void)[] = []

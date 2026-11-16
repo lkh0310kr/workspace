@@ -169,10 +169,10 @@ export interface WorkspaceApi {
   }
   agentStatus: {
     onSet: (
-      cb: (data: import('../shared/agent-status-ipc').AgentStatusIpcPayload) => void
+      cb: (data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusIpcPayload) => void
     ) => () => void
     onClear: (
-      cb: (data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload) => void
+      cb: (data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusClearIpcPayload) => void
     ) => () => void
     registerTerminalPane: (terminalId: number, paneKey: string) => void
     unregisterTerminalPane: (terminalId: number) => void

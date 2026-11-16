@@ -30,6 +30,8 @@ Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit�
 
 ## 렌더링·입력·환경
 
+Agent status IPC payload 타입과 store 반영 정책은 Terminal package가 소유한다. Preload listener와 Electron channel 연결은 Desktop 경계에 둔다.
+
 PTY OSC title observer와 agent 상태 전이 추적은 Terminal package가 소유하며 Desktop이 workspace pane 상태 갱신 callback을 주입한다.
 
 [@workspace/terminal](../../../../packages/terminal/README.md)의 pane-manager는 xterm와 addons/fit/WebGL/selection/scroll을 소유한다. `visible`/`active` 전환은 rendering suspend/resume와 reveal-fit 정책을 사용한다. TerminalPane의 PTY connect/dispose effect는 이 표시 props에 의존하지 않는다. Workspace/pane 전환은 xterm을 숨기거나 보일 뿐 process를 끊지 않는다. pane unmount·root/identity 변경에서 renderer attachment를 정리하며, Main process 종료는 모든 layout에서 마지막 Terminal 참조가 제거되는 shell 정책을 따른다. 같은 grid의 reveal을 무조건 refit하면 pinned scroll이 변할 수 있으므로 stable fit과 viewport restoration helper를 따른다. replay/parse/fit이 정착하기 전 scroll을 최종 복구했다고 보지 않는다.

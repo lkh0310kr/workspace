@@ -35,21 +35,21 @@ export const terminalApi = {
   },
   agentStatus: {
     onSet: (
-      cb: (data: import('../shared/agent-status-ipc').AgentStatusIpcPayload) => void
+      cb: (data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusIpcPayload) => void
     ): (() => void) => {
       const listener = (
         _event: Electron.IpcRendererEvent,
-        data: import('../shared/agent-status-ipc').AgentStatusIpcPayload
+        data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusIpcPayload
       ): void => cb(data)
       ipcRenderer.on('agentStatus:set', listener)
       return () => ipcRenderer.removeListener('agentStatus:set', listener)
     },
     onClear: (
-      cb: (data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload) => void
+      cb: (data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusClearIpcPayload) => void
     ): (() => void) => {
       const listener = (
         _event: Electron.IpcRendererEvent,
-        data: import('../shared/agent-status-ipc').AgentStatusClearIpcPayload
+        data: import('@workspace/terminal/agent/agent-status-ipc').AgentStatusClearIpcPayload
       ): void => cb(data)
       ipcRenderer.on('agentStatus:clear', listener)
       return () => ipcRenderer.removeListener('agentStatus:clear', listener)
