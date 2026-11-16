@@ -56,6 +56,13 @@ interface Props {
   paneActive?: boolean
 }
 
+interface BlobPreview {
+  tabId: number
+  filePath: string
+  url: string
+  size: number
+}
+
 // Zoom behavior ported from VSCode's own image preview
 // (extensions/media-preview/media/imagePreview.js) rather than invented:
 // discrete zoom levels (not a fixed step), a multiplicative pinch factor
@@ -115,9 +122,9 @@ export function FileViewerContent({
   paneActive = true
 }: Props) {
   const imgRef = useRef<HTMLImageElement>(null)
-  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [blobPreview, setBlobPreview] = useState<BlobPreview | null>(null)
+  const [blobPreviewSource, setBlobPreviewSource] = useState({ tabId, filePath })
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
-  const [fileSize, setFileSize] = useState(0)
   const [error, setError] = useState(false)
   const [browsing, setBrowsing] = useState(false)
   // null = "fit" (VSCode's default scale-to-fit); a number is an explicit
@@ -128,10 +135,21 @@ export function FileViewerContent({
   const [subtitleOffset, setSubtitleOffset] = useState(0)
   const [subtitleVttUrl, setSubtitleVttUrl] = useState<string | null>(null)
 
+  // Reset this source-bound snapshot during render so a new path never paints
+  // the previous path's (already revoked) blob URL for one frame.
+  if (blobPreviewSource.tabId !== tabId || blobPreviewSource.filePath !== filePath) {
+    setBlobPreviewSource({ tabId, filePath })
+    setBlobPreview(null)
+  }
+
   // Images/PDF never come from the Browse-anywhere flow (no picker entry
   // for them) — only video/audio/ebook do, so absolutePath only ever
   // matters alongside those three kinds.
   const activePath = filePath ?? absolutePath
+  const currentBlobPreview =
+    blobPreview?.tabId === tabId && blobPreview.filePath === filePath ? blobPreview : null
+  const blobUrl = currentBlobPreview?.url ?? null
+  const fileSize = currentBlobPreview?.size ?? 0
   const kind = activePath ? classifyMediaExtension(activePath) : 'other'
   const isVideo = kind === 'video'
   const isAudio = kind === 'audio'
@@ -202,8 +220,7 @@ export function FileViewerContent({
         }
         const blob = base64ToBlob(preview.content, preview.mimeType)
         createdUrl = URL.createObjectURL(blob)
-        setBlobUrl(createdUrl)
-        setFileSize(blob.size)
+        setBlobPreview({ tabId, filePath, url: createdUrl, size: blob.size })
       })
       .catch(() => {
         if (!cancelled) setError(true)
