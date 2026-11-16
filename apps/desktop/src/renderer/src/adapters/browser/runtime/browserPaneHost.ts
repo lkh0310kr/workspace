@@ -17,7 +17,7 @@ import {
 import { onBrowserOpenNewTab } from './browserIpc'
 import { revealItemInDir } from '../../../features/app-shell/nativeShell'
 import { fetchWebviewNavHistory, goToWebviewHistoryIndex } from './browserNavHistory'
-import { onWorkspaceDismissPortals } from '../../../workspacePortalDismiss'
+import { onWorkspaceDismissPortals } from '../../../interaction/workspacePortalDismiss'
 import {
   ensureBrowserPageWebview,
   setBrowserPageWebviewInputLock

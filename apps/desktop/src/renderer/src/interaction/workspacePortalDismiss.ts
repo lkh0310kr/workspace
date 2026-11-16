@@ -1,4 +1,4 @@
-import { interactionCoordinator } from './interaction/InteractionCoordinator'
+import { interactionCoordinator } from './InteractionCoordinator'
 
 /** Workspace-tab switches keep every tab's pane tree mounted — portaled UI
  * must be torn down on switch. */

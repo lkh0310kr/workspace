@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/TreeView.tsx",
-          "sha256": "274315ef3d97de8182326bcc0b8265a31b0d8ce0212a68e3d74ac231f20453cd"
+          "sha256": "7ae3679c8e309da3462b6669f1fdecb5b567633e8cd6b36de44f715d2277c120"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx",
@@ -487,7 +487,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/TreeView.tsx",
-          "sha256": "274315ef3d97de8182326bcc0b8265a31b0d8ce0212a68e3d74ac231f20453cd"
+          "sha256": "7ae3679c8e309da3462b6669f1fdecb5b567633e8cd6b36de44f715d2277c120"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/usePaneGroupEditorSidebarState.ts",
@@ -610,7 +610,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserPaneHost.ts",
-          "sha256": "cbd44b8c56a603f404b4173d1e356ed8805626485a923385a3beb1665245c1ca"
+          "sha256": "8fd67b17abb58d360dc68f93c6b5e5d8ca63fe429f2b74528210bf81a81bd091"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserTabLifecycle.ts",
@@ -635,6 +635,10 @@
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
           "sha256": "3ee5d231dcfaf33ca4d8a32b00431a0d517efa53f523c10ec139aac5ed240aa9"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/interaction/workspacePortalDismiss.ts",
+          "sha256": "643d9fd3cd1eab909ef73edf530e2f4a625c8bfe5c179c94b56b41923dd564ee"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/activeBrowserWebview.ts",
@@ -957,7 +961,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceNavigation.ts",
-          "sha256": "552f65cfc9e3c6bb6f4aaa3ae07129846c5d085094629ec5c6bb827c6670bacc"
+          "sha256": "8e8fa766c7012074ee3ec29d29a997196740e4e02b3d4ca333561df2996d2698"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceScope.test.ts",
@@ -998,6 +1002,10 @@
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
           "sha256": "3ee5d231dcfaf33ca4d8a32b00431a0d517efa53f523c10ec139aac5ed240aa9"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/interaction/workspacePortalDismiss.ts",
+          "sha256": "643d9fd3cd1eab909ef73edf530e2f4a625c8bfe5c179c94b56b41923dd564ee"
         },
         {
           "path": "apps/desktop/vitest.config.ts",

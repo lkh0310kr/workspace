@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Actions, type Model, type TabNode, type TabSetNode } from 'flexlayout-react'
 import { closeActivePaneTab } from '../pane-system/layout/layoutActions'
-import { dismissWorkspacePortals } from '../../workspacePortalDismiss'
+import { dismissWorkspacePortals } from '../../interaction/workspacePortalDismiss'
 import { onClosePaneTabShortcut } from './shellShortcuts'
 import { dispatchLocalBrowserZoom } from '@workspace/browser'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
