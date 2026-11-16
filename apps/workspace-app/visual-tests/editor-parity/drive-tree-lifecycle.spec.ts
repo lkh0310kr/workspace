@@ -242,6 +242,52 @@ test('keeps the newest same-path refresh and ignores the older response', async 
   await expect(page.getByRole('treeitem', { name: 'Older refresh' })).toHaveCount(0)
 })
 
+test('discards an in-flight folder load when its ancestor is renamed away and back', async ({
+  page
+}) => {
+  await installDriveControls(page)
+  await page.goto('/?host=desktop-pkms-editor')
+  await page.evaluate(() => {
+    ;(window as TreeTestWindow).__driveTreeTest.gateDirectoryParentIds = [
+      'mock-verification-folder'
+    ]
+  })
+
+  const folder = page.getByRole('treeitem', { name: 'Verification' })
+  await folder.click()
+  await expect.poll(() => pendingDirectoryCount(page, 'mock-verification-folder')).toBe(1)
+
+  await folder.click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  const firstRename = page.getByRole('textbox', { name: 'Rename Verification' })
+  await firstRename.fill('Temporary Verification')
+  await firstRename.press('Enter')
+  const renamed = page.getByRole('treeitem', { name: 'Temporary Verification', exact: true })
+  await expect(renamed).toBeVisible()
+
+  await renamed.click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  const secondRename = page.getByRole('textbox', { name: 'Rename Temporary Verification' })
+  await secondRename.fill('Verification')
+  await secondRename.press('Enter')
+  await expect(folder).toBeVisible()
+
+  await page.evaluate(() => {
+    ;(window as TreeTestWindow).__driveTreeTest.directoryGates[0].resolve([
+      {
+        id: 'stale-renamed-branch-row',
+        name: 'Stale renamed branch.md',
+        path: 'Verification/Stale renamed branch.md',
+        parents: ['mock-verification-folder'],
+        kind: 'markdown',
+        mimeType: 'text/markdown'
+      }
+    ])
+  })
+  await expect(page.getByRole('treeitem', { name: 'Stale renamed branch' })).toHaveCount(0)
+  await expect(folder).toBeVisible()
+})
+
 test('resumes a folder expansion deferred while workspace sync is in progress', async ({
   page
 }) => {
