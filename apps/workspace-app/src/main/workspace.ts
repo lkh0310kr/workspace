@@ -36,13 +36,6 @@ export interface WorkspaceState {
   activeTabId: number
 }
 
-interface Tab {
-  id: number
-  title: string
-  layoutJson: string
-  rootPath: string
-}
-
 interface TerminalEntry {
   session: PtySession
 }
@@ -52,7 +45,7 @@ export class Workspace {
    * rootPath independently via setTabRootPath — this is only the
    * starting point for tabs created after that point. */
   defaultRootPath: string
-  private tabs: Tab[] = []
+  private tabs: TabInfo[] = []
   private activeTabId = 0
   private terminals = new Map<number, TerminalEntry>()
   private restoredTerminalBuffers = new Map<number, string>()
@@ -161,7 +154,7 @@ export class Workspace {
     const byId = new Map(this.tabs.map((t) => [t.id, t]))
     const reordered = orderedIds.map((id) => byId.get(id))
     if (reordered.some((t) => !t)) return
-    this.tabs = reordered as Tab[]
+    this.tabs = reordered as TabInfo[]
   }
 
   setTabLayout(tabId: number, layoutJson: string): void {
