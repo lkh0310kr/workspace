@@ -25,7 +25,7 @@
 
 ## Pane 입출력
 
-`panes/kinds/editorKind.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Editor file tree sidebar는 PaneGroup이 editor 옆에 배치하며 editor content가 소유하지 않는다.
+`features/editor/EditorPaneKinds.tsx`의 `markdown`과 `code`는 모두 `EditorContent`를 렌더링한다. 공통 입력은 workspace `tabId`, `rootPath`, 상대 `filePath | null`, `kind`, `zoom`, 선택적 `jumpToLine`이다. 출력은 `onOpenFile(path, kind)`, `onAssignPath(path)`, `onDirtyChange`, `onJumpConsumed`다. Editor file tree sidebar는 PaneGroup이 editor 옆에 배치하며 editor content가 소유하지 않는다.
 
 - 새 Editor picker는 `markdown`, `filePath: null`을 만든다. `code`는 기존 파일을 여는 내부 kind이며 picker 항목이 없다.
 - 파일 탭 라벨은 basename, 경로가 없으면 `New tab`이다. Markdown 본문 제목의 기본값 `Untitled`와 다르다.
@@ -49,4 +49,4 @@
 
 ## 근거
 
-[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/desktop/src/renderer/src/panes/kinds/editorKind.tsx), [Desktop host](../../../apps/desktop/src/renderer/src/features/editor/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.
+[공개 API](../../../packages/editor/src/index.ts), [pane 등록](../../../apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx), [Desktop host](../../../apps/desktop/src/renderer/src/features/editor/EditorContent.tsx), [dirty registry](../../../packages/editor/src/documentDirtyRegistry.ts). 규칙별 상세 근거와 검증 항목은 하위 스펙에 둔다.

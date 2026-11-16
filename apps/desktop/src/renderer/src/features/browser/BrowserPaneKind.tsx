@@ -3,10 +3,10 @@ import {
   BrowserContent,
   BrowserPaneOverlaySlot,
   browserTabUrlForNewTab,
-  desktopBrowserPaneHost,
   getBrowserTabLabel
-} from '../../features/browser'
-import type { PaneKindDefinition } from '../paneKindRegistry'
+} from '@workspace/browser'
+import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
+import { desktopBrowserPaneHost } from './runtime'
 
 export const browserPaneKind: PaneKindDefinition = {
   kind: 'browser',

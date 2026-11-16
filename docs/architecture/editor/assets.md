@@ -1,6 +1,6 @@
 # Asset viewer 연결 계약
 
-공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. Desktop의 실제 파일 viewer는 앱 소유이며 [FileViewerContent](../../../apps/desktop/src/renderer/src/panes/FileViewerContent.tsx), [viewerKind](../../../apps/desktop/src/renderer/src/panes/kinds/viewerKind.tsx)가 렌더링한다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
+공유 provider의 asset은 읽기 전용 `{previewUrl,mediaType}` snapshot이다. Desktop의 실제 파일 viewer는 앱 소유이며 [FileViewerContent](../../../apps/desktop/src/renderer/src/panes/FileViewerContent.tsx), [viewerKind](../../../apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx)가 렌더링한다. 이 문서는 편집기와의 연결 계약이며 EPUB·3D·CAD 내부 알고리즘 전체의 재생성 스펙은 아니다.
 
 ## 입력과 라우팅
 

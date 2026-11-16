@@ -1,5 +1,5 @@
-import { FileViewerContent } from '../FileViewerContent'
-import type { PaneKindDefinition } from '../paneKindRegistry'
+import { FileViewerContent } from '../../panes/FileViewerContent'
+import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
 
 export const viewerPaneKind: PaneKindDefinition = {
   kind: 'viewer',

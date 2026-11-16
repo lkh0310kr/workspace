@@ -4,8 +4,9 @@ import {
   normalizeTerminalTitle
 } from '@workspace/terminal/agent/agent-title-status'
 import { getAgentLabel } from '../../agent/agent-catalog'
-import { TerminalPane, desktopTerminalPaneHost } from '../../features/terminal'
-import type { PaneKindDefinition } from '../paneKindRegistry'
+import { TerminalPane } from '@workspace/terminal'
+import { desktopTerminalPaneHost } from './terminalPaneHost'
+import type { PaneKindDefinition } from '../../panes/paneKindRegistry'
 import type { PaneTabItem } from '../../layout/paneTypes'
 
 function terminalTabLabel(item: PaneTabItem): string {

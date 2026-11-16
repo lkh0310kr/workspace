@@ -63,7 +63,7 @@ export interface PaneGroupConfig {
 }
 
 // Per-kind behavior (label/icon/render/picker entries/factory) lives in
-// paneKindRegistry.ts + panes/kinds/*, not here — this file stays a pure
+// paneKindRegistry.ts + feature-owned pane-kind adapters, not here — this stays a pure
 // data model with no registry dependency (the registry itself imports
 // TabKind/PaneTabItem from here, so the reverse would be circular).
 // tabKindLabel/tabKindIcon/TAB_KIND_OPTIONS moved to

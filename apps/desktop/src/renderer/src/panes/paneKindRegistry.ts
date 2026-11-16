@@ -14,7 +14,7 @@ import type { PaneTabItem, TabKind } from '../layout/paneTypes'
 //      union deliberately, not an open string: it's the thing that keeps
 //      a corrupted/hand-edited persisted layout.json from resurrecting a
 //      tab of a kind nothing can render.
-//   2. One new file under panes/kinds/ exporting a PaneKindDefinition.
+//   2. One feature-owned pane-kind adapter exporting a PaneKindDefinition.
 //   3. One line in builtinPaneKinds.ts registering it.
 // No more touching PaneGroup.tsx/PaneTabStrip.tsx/layoutActions.ts.
 

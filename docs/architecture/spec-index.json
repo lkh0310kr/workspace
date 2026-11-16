@@ -106,16 +106,16 @@
           "sha256": "39e94e043ce718c7efde83ba7d5aaac8dcbfdb5bcf6b3837197f6603eab02bed"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/kinds/editorKind.tsx",
-          "sha256": "615cc009daf25287d0c10842e3ce7005bc05b92a6208f085a4b2cf0f36ebd908"
+          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
+          "sha256": "648da41c0bb4aed24d1a464057d25182c655439671445814a12c3c7206bb90f6"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/kinds/viewerKind.tsx",
-          "sha256": "24767981a433d420de6c8764a8bf78f892cbc588848283c93a2387f2355ba1c6"
+          "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
+          "sha256": "09d54006c3cb9e4622d8a1ee5017a875a12a35cd8b418566e4f17c47d007fc70"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/paneKindRegistry.ts",
-          "sha256": "df32f6d257f9b64011ab2398598d8af8c46a1025918713b7990a23b1e3af9a84"
+          "sha256": "c77e2c52867eb58138e74ad98e56f363f4e4cf638bf9f7cc6d674fc8e4ea0f9b"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
@@ -450,12 +450,12 @@
           "sha256": "2aeda245f780f66a3057dded775cb36cc878e65d0aeeb59f80c7770b7c797aa3"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/kinds/editorKind.tsx",
-          "sha256": "615cc009daf25287d0c10842e3ce7005bc05b92a6208f085a4b2cf0f36ebd908"
+          "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
+          "sha256": "648da41c0bb4aed24d1a464057d25182c655439671445814a12c3c7206bb90f6"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/kinds/viewerKind.tsx",
-          "sha256": "24767981a433d420de6c8764a8bf78f892cbc588848283c93a2387f2355ba1c6"
+          "path": "apps/desktop/src/renderer/src/features/editor/ViewerPaneKind.tsx",
+          "sha256": "09d54006c3cb9e4622d8a1ee5017a875a12a35cd8b418566e4f17c47d007fc70"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/mediaKind.ts",
@@ -613,8 +613,8 @@
           "sha256": "317d8227b97b8b5868424ba26fb9d13dab2ce24e6fbf0efaec807de08fd2b1ca"
         },
         {
-          "path": "apps/desktop/src/renderer/src/panes/kinds/browserKind.tsx",
-          "sha256": "3ebe7cd340902bc1db0bbb01a702c621821c29310f5d0dc1e1ff2a19e27e474b"
+          "path": "apps/desktop/src/renderer/src/features/browser/BrowserPaneKind.tsx",
+          "sha256": "486670770cae46727384d6db035dad74eaff0fbd9f88a8136b4c548583dfe48b"
         },
         {
           "path": "apps/desktop/src/shared/browserDownloadEvent.ts",
@@ -749,7 +749,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/layout/paneTypes.ts",
-          "sha256": "3dddbe699047654e2219a5c963e3bb0b0183994cf79f9ee626b4b47ba392d226"
+          "sha256": "c3137ef0cdeb3eafe5fd8df8638e4feecede9cfdb59084c9f5d86180ac123a2b"
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/PaneGroup.tsx",
@@ -807,6 +807,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/runtime/ptyTransport.ts",
           "sha256": "6ec2d83ba54a10a632c1a0f662ba6237c8dc96cf3fc1c0ada17bb6030410437f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPaneKind.tsx",
+          "sha256": "8b0169aa3c0acc47e6b386a63047eb3d54b36e81ce24a9c302a665033a1b5a95"
         }
       ]
     },
