@@ -209,7 +209,7 @@ export function EditorSearchPanel({
                   ? `${totalMatches} result${totalMatches === 1 ? '' : 's'} in ${results.length} file${results.length === 1 ? '' : 's'}`
                   : ''}
       </div>
-      <div className="search-panel-results">
+      <div className="search-panel-results scroll-region">
         {results.map((result) => (
           <div key={result.item.itemId} className="search-panel-file">
             <div

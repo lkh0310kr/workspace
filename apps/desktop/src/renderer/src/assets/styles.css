@@ -77,83 +77,28 @@
 }
 
 /* —— Shared scroll surfaces (one scrollbar treatment app-wide) —— */
-.scroll-region,
-.browser-nav-history-list,
-.browser-address-suggestions,
-.editor-file-tree,
-[data-editor-markdown-scroll],
-.md-editor,
-.md-pane-sidebar,
-.search-panel-results,
-.quick-open-results,
-.error-log-list,
-.interaction-debug-body,
-.pane-error-fallback {
+.scroll-region {
   min-height: 0;
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
-.scroll-region::-webkit-scrollbar,
-.browser-nav-history-list::-webkit-scrollbar,
-.browser-address-suggestions::-webkit-scrollbar,
-.editor-file-tree::-webkit-scrollbar,
-[data-editor-markdown-scroll]::-webkit-scrollbar,
-.md-editor::-webkit-scrollbar,
-.md-pane-sidebar::-webkit-scrollbar,
-.search-panel-results::-webkit-scrollbar,
-.quick-open-results::-webkit-scrollbar,
-.error-log-list::-webkit-scrollbar,
-.interaction-debug-body::-webkit-scrollbar,
-.pane-error-fallback::-webkit-scrollbar {
+.scroll-region::-webkit-scrollbar {
   width: var(--scroll-size);
   height: var(--scroll-size);
 }
 
-.scroll-region::-webkit-scrollbar-track,
-.browser-nav-history-list::-webkit-scrollbar-track,
-.browser-address-suggestions::-webkit-scrollbar-track,
-.editor-file-tree::-webkit-scrollbar-track,
-[data-editor-markdown-scroll]::-webkit-scrollbar-track,
-.md-editor::-webkit-scrollbar-track,
-.md-pane-sidebar::-webkit-scrollbar-track,
-.search-panel-results::-webkit-scrollbar-track,
-.quick-open-results::-webkit-scrollbar-track,
-.error-log-list::-webkit-scrollbar-track,
-.interaction-debug-body::-webkit-scrollbar-track,
-.pane-error-fallback::-webkit-scrollbar-track {
+.scroll-region::-webkit-scrollbar-track {
   background: var(--scroll-track);
 }
 
-.scroll-region::-webkit-scrollbar-thumb,
-.browser-nav-history-list::-webkit-scrollbar-thumb,
-.browser-address-suggestions::-webkit-scrollbar-thumb,
-.editor-file-tree::-webkit-scrollbar-thumb,
-[data-editor-markdown-scroll]::-webkit-scrollbar-thumb,
-.md-editor::-webkit-scrollbar-thumb,
-.md-pane-sidebar::-webkit-scrollbar-thumb,
-.search-panel-results::-webkit-scrollbar-thumb,
-.quick-open-results::-webkit-scrollbar-thumb,
-.error-log-list::-webkit-scrollbar-thumb,
-.interaction-debug-body::-webkit-scrollbar-thumb,
-.pane-error-fallback::-webkit-scrollbar-thumb {
+.scroll-region::-webkit-scrollbar-thumb {
   background: var(--scroll-thumb);
   border-radius: 4px;
 }
 
-.scroll-region::-webkit-scrollbar-thumb:hover,
-.browser-nav-history-list::-webkit-scrollbar-thumb:hover,
-.browser-address-suggestions::-webkit-scrollbar-thumb:hover,
-.editor-file-tree::-webkit-scrollbar-thumb:hover,
-[data-editor-markdown-scroll]::-webkit-scrollbar-thumb:hover,
-.md-editor::-webkit-scrollbar-thumb:hover,
-.md-pane-sidebar::-webkit-scrollbar-thumb:hover,
-.search-panel-results::-webkit-scrollbar-thumb:hover,
-.quick-open-results::-webkit-scrollbar-thumb:hover,
-.error-log-list::-webkit-scrollbar-thumb:hover,
-.interaction-debug-body::-webkit-scrollbar-thumb:hover,
-.pane-error-fallback::-webkit-scrollbar-thumb:hover {
+.scroll-region::-webkit-scrollbar-thumb:hover {
   background: var(--scroll-thumb-hover);
 }
 
@@ -1059,75 +1004,6 @@ input {
   pointer-events: none;
 }
 
-/* Quick Open (Cmd+P, QuickOpen.tsx) — centered, not anchor-rect-based like
-   .popover below (nothing to anchor to). */
-.quick-open-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100002;
-  display: flex;
-  justify-content: center;
-  padding-top: 15vh;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.quick-open-modal {
-  width: 560px;
-  max-width: calc(100% - 32px);
-  max-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-overlay);
-  overflow: hidden;
-}
-
-.quick-open-input {
-  flex-shrink: 0;
-  height: 40px;
-  padding: 0 14px;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  outline: none;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 14px;
-}
-
-.quick-open-results {
-  padding: 4px 0;
-}
-
-.quick-open-empty {
-  padding: 10px 14px;
-  color: var(--text-faint);
-  font-family: var(--font-ui);
-  font-size: 12px;
-}
-
-.quick-open-row {
-  display: block;
-  width: 100%;
-  padding: 5px 14px;
-  border: 0;
-  cursor: pointer;
-  color: var(--text);
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.quick-open-row.active {
-  background: var(--bg-active);
-}
-
 .settings-dialog {
   width: 360px;
   padding: 12px;
@@ -1258,224 +1134,16 @@ input {
   color: var(--text);
 }
 
-/* PaneErrorBoundary.tsx — inline fallback for one crashed pane, instead of
-   flexlayout's own generic full-pane "Error rendering component" (which
-   doesn't show the real message) or taking down the whole app. */
-.pane-error-fallback {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  height: 100%;
-  background: #1a0000;
-  color: #ff6b6b;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  white-space: pre-wrap;
-}
-
-.pane-error-fallback button {
-  align-self: flex-start;
-  padding: 4px 10px;
-  border: 1px solid #ff6b6b;
-  background: transparent;
-  color: #ff6b6b;
-  cursor: pointer;
-}
-
-/* ErrorLogPanel.tsx — bottom-right badge, only visible once something's
-   actually gone wrong. */
-.error-log-panel {
-  position: fixed;
-  right: 12px;
-  bottom: 32px;
-  z-index: 100001;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.error-log-badge {
-  padding: 4px 10px;
-  border: 1px solid #ff6b6b;
-  border-radius: 12px;
-  background: #2a0000;
-  color: #ff9b9b;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  cursor: pointer;
-}
-
-.error-log-list {
-  width: 420px;
-  max-height: 50vh;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  padding: 6px;
-}
-
-.error-log-entry {
-  padding: 6px;
-  border-bottom: 1px solid var(--border);
-}
-
-.error-log-entry-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--text-faint);
-  font-size: 10px;
-  font-family: var(--font-mono);
-}
-
-.error-log-entry-header button {
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-}
-
-.error-log-entry-header button:hover {
-  color: var(--text);
-}
-
-.error-log-entry-message {
-  color: #ff9b9b;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.error-log-entry-stack {
-  margin: 4px 0 0;
-  color: var(--text-faint);
-  font-size: 10px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.error-log-clear {
-  width: 100%;
-  margin-top: 4px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.error-log-clear:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.interaction-debug-panel {
-  position: fixed;
-  right: 12px;
-  bottom: 72px;
-  z-index: 100001;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.interaction-debug-badge {
-  padding: 4px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  cursor: pointer;
-}
-
-.interaction-debug-badge.stuck {
-  border-color: #ff9b4a;
-  background: #2a1800;
-  color: #ffcc80;
-}
-
-.interaction-debug-body {
-  width: 320px;
-  max-height: 40vh;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  padding: 8px;
-  font-size: 11px;
-}
-
-.interaction-debug-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-  color: var(--text-muted);
-}
-
-.interaction-debug-row strong {
-  color: var(--text);
-  font-family: var(--font-mono);
-}
-
-.interaction-debug-reason {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.interaction-debug-pre {
-  margin: 4px 0;
-  padding: 4px;
-  background: var(--bg-hover);
-  border-radius: 4px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.interaction-debug-clear {
-  width: 100%;
-  margin-top: 6px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.interaction-debug-clear:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
 /* —— Workspace polish: consistent rounding, focus, and short feedback —— */
 button,
 input,
 select,
 textarea,
-.popover,
-.quick-open-modal,
-.browser-address-input,
-.editor-sidebar {
+.popover {
   border-radius: var(--radius-sm);
 }
 
 .popover,
-.quick-open-modal,
 .settings-dialog,
 .app-settings-dialog {
   border-radius: var(--radius-lg);
@@ -1486,7 +1154,6 @@ textarea,
 .pane-tab-close,
 .pane-tab-add,
 .titlebar-sidebar-toggle,
-.quick-open-row,
 .settings-close,
 .ui-btn {
   border-radius: var(--radius-sm);
@@ -1517,26 +1184,11 @@ textarea,
   --chrome-h: 34px;
 }
 
-.quick-open-modal,
 .settings-dialog,
 .app-settings-dialog {
   border-color: var(--border-strong);
 }
 
-.quick-open-row {
-  margin: 1px 5px;
-  border-radius: var(--radius-sm);
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
-}
-
-.quick-open-row.active {
-  background: var(--bg-active);
-}
-
-.quick-open-input,
-.browser-address-input,
 .settings-field input,
 .settings-field select {
   border-radius: var(--radius-sm);

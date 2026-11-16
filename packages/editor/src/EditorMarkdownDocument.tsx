@@ -82,7 +82,7 @@ export function EditorMarkdownDocument({
       <editorViewScrollElement.Provider value={scrollRef}>
         <div
           ref={scrollRef}
-          className={styles['editor-markdown-scroll']}
+          className={`${styles['editor-markdown-scroll']} scroll-region`}
           data-editor-markdown-scroll=""
           onClick={handleBackgroundClick}
         >

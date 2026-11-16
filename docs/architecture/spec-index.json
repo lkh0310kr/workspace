@@ -59,11 +59,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
-          "sha256": "747e883cb639a2a6a914f27a150a3666fe5a7efc1d17c39eda4968a79a46c57e"
+          "sha256": "9c7c61a0dd95fd36e288a266149d25e3426f56ce86a95c293d82daaf873c8609"
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "6d6848eceb8f7ea6dc3edda8013f15dd5e9aabdaa5fdcf62c87aba0be6a391db"
+          "sha256": "3d90a8c418d319a84779bac1f194aa9520be48e27b7c04d2e0b005133be6724e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts",
@@ -87,7 +87,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
-          "sha256": "48a74c7de598fc638b40b5d6f4aba8e52ff174eb0ee85476db813f5111d79bae"
+          "sha256": "4eafb1ff978c17a575a844e3376bd95245a06c66a69312d2902756af83e96105"
         },
         {
           "path": "packages/editor/src/viewers/EditorFileViewer.tsx",
@@ -139,7 +139,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
-          "sha256": "55996aeb5d9f317a67756484ef0d69d7b13f2652665dc5ec29fb900b348a82a8"
+          "sha256": "f3908c918162a52f0242ae9d2678ef21196faa5755779ab64927430d02e9c533"
         },
         {
           "path": "packages/editor/src/EditorMarkdownEditor.tsx",
@@ -407,7 +407,7 @@
         },
         {
           "path": "packages/editor/src/search/EditorSearchPanel.tsx",
-          "sha256": "f3f50de13b9d2dc8fc5ed2b8762ae562810ce9b38609d446ba3b69e4b645448b"
+          "sha256": "1007436b7faf6def4fbe1924a1eb3a96eb81fc930d0ba90d5eda50044a1cac48"
         },
         {
           "path": "packages/editor/src/search/useEditorFileContentSearch.ts",
@@ -495,7 +495,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorContent.tsx",
-          "sha256": "48a74c7de598fc638b40b5d6f4aba8e52ff174eb0ee85476db813f5111d79bae"
+          "sha256": "4eafb1ff978c17a575a844e3376bd95245a06c66a69312d2902756af83e96105"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/pane/EditorPaneKinds.tsx",
@@ -1484,6 +1484,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/errorLog.ts",
           "sha256": "24a7abe436a5c719e19892f2950931a6c83f714d9554a17175fc6f7e0ce4cc41"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/diagnostics/diagnostics.css",
+          "sha256": "f454ea2691d7833b4e15a5f2a54cf56cc97e270825ac391771c34c063a0748f0"
         }
       ]
     },
@@ -1552,7 +1556,7 @@
         },
         {
           "path": "packages/browser/src/address-bar/BrowserAddressBar.tsx",
-          "sha256": "a88f073a9a6d305adc97a57ba03d08aa811200feecbf4ec87e97a44a241857ad"
+          "sha256": "645f7de2bacfb23ff5fb75e7dfbbe4d0e2503cee23f9e5a9631b1e15924535e9"
         },
         {
           "path": "packages/browser/src/address-bar/browserAddressBarSuggestions.test.ts",
@@ -1576,7 +1580,7 @@
         },
         {
           "path": "packages/browser/src/navigation/BrowserNavButton.tsx",
-          "sha256": "ed35e3d5cb88e3539977746fcdfdeb2897791c90539ace84cd9279c62a9fc5bf"
+          "sha256": "45b62721a50614638aae1b1bc80ea343776b8da9527f8bbf3c30dd84789f2259"
         },
         {
           "path": "packages/browser/src/navigation/browserNavigationState.test.ts",

@@ -142,7 +142,7 @@ export function BrowserNavButton({
           registerPortal={registerPortal}
           className="browser-nav-history-popover"
         >
-          <div className="browser-nav-history-list">
+          <div className="browser-nav-history-list scroll-region">
             {historyItems.map((entry, i) => {
               const index = historyIndices[i]
               return (

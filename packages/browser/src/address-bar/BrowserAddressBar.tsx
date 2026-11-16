@@ -216,7 +216,7 @@ export function BrowserAddressBar({
       {open && suggestions.length > 0 && rect
         ? createPortal(
             <div
-              className={`${styles.suggestions} browser-address-suggestions`}
+              className={`${styles.suggestions} browser-address-suggestions scroll-region`}
               style={{ left: rect.left, top: rect.top, width: rect.width }}
             >
               {suggestions.map((suggestion: AddressBarSuggestion, i: number) => (

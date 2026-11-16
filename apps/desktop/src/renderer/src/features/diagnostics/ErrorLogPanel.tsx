@@ -1,3 +1,4 @@
+import './diagnostics.css'
 import { useEffect, useState } from 'react'
 import {
   clearErrors,
@@ -22,7 +23,7 @@ export function ErrorLogPanel() {
   return (
     <div className="error-log-panel">
       {expanded && (
-        <div className="error-log-list">
+        <div className="error-log-list scroll-region">
           {entries
             .slice()
             .reverse()

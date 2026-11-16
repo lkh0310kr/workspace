@@ -135,7 +135,7 @@ export function EditorSidebar({
     <>
       <div className="editor-sidebar-host">
         <div
-          className="editor-file-tree"
+          className="editor-file-tree scroll-region"
           style={{
             width: treeWidth,
             display: showEditorSidebarPanel ? undefined : 'none'

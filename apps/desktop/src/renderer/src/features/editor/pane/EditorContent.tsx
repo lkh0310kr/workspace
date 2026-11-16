@@ -801,7 +801,7 @@ export function EditorContent({
               }}
             />
           ) : (
-            <div className="md-editor" style={editorFontStyle}>
+            <div className="md-editor scroll-region" style={editorFontStyle}>
               <EditorTextSurface
                 key={`${tabId}:${isMarkdown}`}
                 documentKey={documentCacheKey}

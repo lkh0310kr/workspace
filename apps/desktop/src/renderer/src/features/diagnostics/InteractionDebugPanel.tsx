@@ -1,3 +1,4 @@
+import './diagnostics.css'
 import { useEffect, useState } from 'react'
 import { isDevInstrumentation } from '../../adapters/diagnostics/devTools'
 import {
@@ -42,7 +43,7 @@ function InteractionDebugPanelInner() {
   return (
     <div className="interaction-debug-panel">
       {expanded && (
-        <div className="interaction-debug-body">
+        <div className="interaction-debug-body scroll-region">
           <div className="interaction-debug-row">
             <span>Overlay blocks</span>
             <strong>{snapshot.overlayBlockCount}</strong>

@@ -1,3 +1,4 @@
+import './diagnostics.css'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logError } from './errorLog'
 
@@ -35,7 +36,7 @@ export class PaneErrorBoundary extends Component<Props, State> {
     const { error } = this.state
     if (error) {
       return (
-        <div className="pane-error-fallback">
+        <div className="pane-error-fallback scroll-region">
           <div className="pane-error-fallback-title">
             {error.name}: {error.message}
           </div>
