@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { type TabNode } from 'flexlayout-react'
-import { PaneFrame } from '../components/PaneFrame'
-import { PaneTabStrip } from '../components/PaneTabStrip'
+import { PaneFrame, PaneTabStrip } from '../features/pane-system'
 import { setEditorDocumentDirty } from '@workspace/editor'
 import {
   addTabToGroup,
@@ -211,7 +210,8 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
 
   const treeOpen = editorSidebarState.treeOpen
   const showEditorSidebar =
-    (activeChipSupportsEditorTree(activeItem.kind) || editorSidebarState.sidebarMode === 'search') &&
+    (activeChipSupportsEditorTree(activeItem.kind) ||
+      editorSidebarState.sidebarMode === 'search') &&
     treeOpen &&
     editorTreeFits
   const overlayLayers = allPaneKinds().flatMap((definition) => {

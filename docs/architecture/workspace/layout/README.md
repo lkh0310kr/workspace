@@ -1,6 +1,6 @@
 # Workspace와 pane layout 계약
 
-범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx), [layoutActions](../../../../apps/desktop/src/renderer/src/layout/layoutActions.ts)다.
+범위는 제품 여정 J-01과 J-02의 shell 부분이다. source는 [workspaceStore](../../../../apps/desktop/src/renderer/src/store/workspaceStore.ts), [model registry](../../../../apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts), [layoutSession](../../../../apps/desktop/src/renderer/src/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/panes/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/layout/layoutActions.ts)다.
 
 ## 상태 소유 책임
 

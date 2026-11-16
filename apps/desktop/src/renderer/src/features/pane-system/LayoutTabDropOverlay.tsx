@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { isPaneDragActive } from '../layout/layoutRef'
-import { getTabDrag } from '../layout/tabDrag'
+import { isPaneDragActive } from '../../layout/layoutRef'
+import { getTabDrag } from '../../layout/tabDrag'
 import {
   resolvePaneDragDropPreview,
   resolveTabDropTarget,
   type TabDropPreview
-} from '../layout/layoutTabDrop'
+} from '../../layout/layoutTabDrop'
 
 export function LayoutTabDropOverlay() {
   const [preview, setPreview] = useState<TabDropPreview | null>(null)

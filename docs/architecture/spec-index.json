@@ -749,7 +749,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/panes/PaneGroup.tsx",
-          "sha256": "039abedda8a0ed5e75416359f70b2db84f46e0d615fbe93e68381d6aa3a7d08e"
+          "sha256": "48fa70689ba21830b5a76e1d246cc935f3d41027d2716aa82178108e9cd529dd"
         },
         {
           "path": "apps/desktop/src/renderer/src/store/workspaceLayoutModels.ts",
@@ -923,7 +923,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "234df8d7689330caae069d86dcb9ec142a470ba2325e6214ab6c38101069736b"
+          "sha256": "321e25a27bd15c0ffb5e7a7ef1a3d56bc0344a4dd35dcd814cdecd6fdea0e1eb"
         },
         {
           "path": "apps/desktop/src/renderer/src/components/AgentUsageStatusBar.tsx",
