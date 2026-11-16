@@ -59,7 +59,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorSidebar.tsx",
-          "sha256": "a06f694aded80f7e2cbcca1e45da9b81a02f894e4104b9aa5dcbdd9ccb1ee31a"
+          "sha256": "ad8ec75ac3bec35cef23f72c0d0fa40a1a599ac18a43f41a75e2605a24d3f717"
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
@@ -467,7 +467,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/usePaneGroupEditorSidebarState.ts",
-          "sha256": "6d978ad556066891778e5eb5c68f7a8879dce5d06c51aca8d869908a18e335f3"
+          "sha256": "f50bd755359c1444f7edcae70b67c5984388b0f891ec6486c9a777137250b622"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/paneTabKey.ts",
+          "sha256": "c50a82d885f67a0dfc4d0928ff945385c73b73246ee34742b4b5e8c7db24b6a6"
         }
       ]
     },

@@ -1,5 +1,5 @@
 import { useEditorSidebarState, type EditorSidebarState } from '@workspace/editor'
-import { paneTabStoreKey } from '../../store/paneTabKey'
+import { paneTabStoreKey } from './paneTabKey'
 
 export type { EditorSidebarState } from '@workspace/editor'
 
