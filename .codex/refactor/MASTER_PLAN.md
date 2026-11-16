@@ -41,7 +41,7 @@
 
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
-| R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; 위험 후속 기록 | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ 외부 경로 root 경계, agent-hook lifecycle, 동기 I/O·IME 지연을 별도 위험으로 기록; 테스트와 플랫폼 runtime은 미실행 |
+| R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; agent-hook startup ordering fix identified | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ 외부 경로 root 경계를 T-026에서 차단. `Workspace`가 PTY를 생성한 뒤 hook server가 listen되어 최초 PTY에 hook URL env가 누락될 수 있는 순서 결함을 확인; 동기 I/O·IME 지연은 runtime 검증 전까지 보류 |
 | R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료 | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0; 테스트 실행·runtime 검증은 별도 한계 |
 | R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; 계약 위험 기록 | 공개 API·채널·cleanup 경계 확인; 구현 `unknown` 반환과 선언 DTO drift 후보 기록 |
 | R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
