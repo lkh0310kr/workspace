@@ -18,9 +18,9 @@ import {
   useAppShellState,
   useAppShortcuts,
   useDismissPortalsOnWorkspaceSwitch,
-  useHtmlFullscreen
+  useHtmlFullscreen,
+  useShortcutDispatcher
 } from './features/app-shell'
-import { useShortcutDispatcher } from './shortcuts/useShortcutDispatcher'
 import {
   useLayoutHostCallbacks,
   useLayoutRevisions,

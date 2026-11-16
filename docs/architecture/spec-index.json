@@ -949,7 +949,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/ui/Popover.tsx",
-          "sha256": "d2d2cf15bd476264f4b85462b062d9181fe955e11fbf976267831a7bb388b9e1"
+          "sha256": "33c1651d67292f15d619b500c0865acdfba70b2df3fe4a3cf68dbb47c14b9fbe"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/ui/WorkbenchIcon.tsx",
@@ -966,6 +966,18 @@
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/shellShortcuts.ts",
           "sha256": "ad68e83a0d91dcec175104b6017e22b3adc3fb95bbdf7cc2714f67f10e857c8e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.test.ts",
+          "sha256": "e9c6672c36b0a1127703c0986971c9390f412abaa7adc3781ce3ae1b8890f33e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.ts",
+          "sha256": "65878f81ba18d7ee4e5a2be9ffdccb71bac1b277a50d5fdfe016b8c75e34277c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/app-shell/shortcuts/useShortcutDispatcher.ts",
+          "sha256": "c595c7027c1c1c23273b0e8c6a13ba08bec2397b37bd8ae89e10bda985a660b9"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
@@ -1213,7 +1225,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "4dfd19bb9f274d5431ce365783924a16c25a68f40f68b03bfb1aa06583add1d5"
+          "sha256": "555a9f226f9e980a9179b63b366aebdd6154d6f3f983e82358ae55dd3eff46f8"
         },
         {
           "path": "apps/desktop/electron.vite.config.ts",
@@ -1403,7 +1415,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "4dfd19bb9f274d5431ce365783924a16c25a68f40f68b03bfb1aa06583add1d5"
+          "sha256": "555a9f226f9e980a9179b63b366aebdd6154d6f3f983e82358ae55dd3eff46f8"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/AppSettingsDialog.tsx",

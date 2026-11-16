@@ -7,7 +7,7 @@ import { dispatchLocalBrowserZoom } from '@workspace/browser'
 import type { WorkspaceSettingsTarget } from './useAppShellState'
 import { readPaneGroupConfig, resolveActivePaneTab } from '../pane-system/layout/layoutSession'
 import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
-import { registerShortcut } from '../../shortcuts/shortcutRegistry'
+import { registerShortcut } from './shortcuts/shortcutRegistry'
 
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 2.5
