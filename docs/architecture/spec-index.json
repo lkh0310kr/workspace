@@ -534,7 +534,7 @@
         },
         {
           "path": "apps/desktop/src/main/browser/browserGpuEnv.ts",
-          "sha256": "0a61a72fb055178425eb0c854875c7c7b51e3d5eaae5ec817c97ad1bf908d03d"
+          "sha256": "dd4bf15bcdb66b813e4a08b84d352bd5b7a548967c42cefcfe7e6d3228f2abca"
         },
         {
           "path": "apps/desktop/src/main/browser/browserNav.ts",
@@ -554,14 +554,14 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "423e3e224613f7973e7c13e44e34fa8342a0c4c8cdd462a10dfb75cc18aa0222"
+          "sha256": "33409bc07846724d921d3bf94a8c83c9ebb328550808f6260e080495bad7c60a"
         },
         {
-          "path": "apps/desktop/src/main/search.test.ts",
+          "path": "apps/desktop/src/main/workspace/search.test.ts",
           "sha256": "1c2dcaeee68a293ea0284e0c4e38c431159eec713fb6a373326b292ad8fdb377"
         },
         {
-          "path": "apps/desktop/src/main/search.ts",
+          "path": "apps/desktop/src/main/workspace/search.ts",
           "sha256": "455b5215ab647eded2c9939ec9309723f57fbe7e3870c9917bdf62bd9041f059"
         },
         {
@@ -717,35 +717,35 @@
         },
         {
           "path": "apps/desktop/src/main/ebookState.ts",
-          "sha256": "59dbd04cf4824b6499b655549f55b7c59bec040e883e2bf52d29e553a448c305"
+          "sha256": "bd1d0a4c9624f89315a27e1b207453f5fb99eda26cc4f54c379b1fd77357aad2"
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "423e3e224613f7973e7c13e44e34fa8342a0c4c8cdd462a10dfb75cc18aa0222"
+          "sha256": "33409bc07846724d921d3bf94a8c83c9ebb328550808f6260e080495bad7c60a"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
-          "sha256": "07c771863c80fdf5e5207357a74539af060bd5375d117d8c9828a7ce5c3571e8"
+          "sha256": "beb069f344cbae54925bb417b60fa51f9f78d3b08ff7132a499a105f544b8dcc"
         },
         {
           "path": "apps/desktop/src/main/workspace/ipc/workspaceSearch.ts",
-          "sha256": "cc56855a932aeb48253b1815d830e6b0b3993027edf54a7b86cb79c88a2c5efa"
+          "sha256": "7cd93e4f846cf261e2ca65d804536193da85dfd60ed4ef71b9c933b91400e41a"
         },
         {
           "path": "apps/desktop/src/main/model3d/cacheStore.ts",
           "sha256": "df052ac744d6231bf4b2f48372f7abc500eaaa886684015e5bdfd8cb19cad357"
         },
         {
-          "path": "apps/desktop/src/main/persistence.ts",
-          "sha256": "9ecfc654d3cb3361b31220b28017752684c0560680f5594853bfad950a6ad398"
+          "path": "apps/desktop/src/main/workspace/persistence.ts",
+          "sha256": "b9df04a440d23958e28fb61519438a4caa30fbc01fc4ec0090e1942b13d8b9f8"
         },
         {
           "path": "apps/desktop/src/main/usageMeterConfig.ts",
-          "sha256": "41f1de437f9df99cd594962cd75284b4868eda8184036b0cea4587c30413824b"
+          "sha256": "a9d68bc016a1334febdb2d9ddb01be82ba222a8779e3acd1ac7418aeccbd0fac"
         },
         {
-          "path": "apps/desktop/src/main/workspace.ts",
-          "sha256": "fa7a26e20dc9ce07c0916b6ced62da657065adcdc2a9418bb6193c52b19ed79d"
+          "path": "apps/desktop/src/main/workspace/workspace.ts",
+          "sha256": "e1a351d73ccc7be64cc560bdb5f2ced0476bc4abb82b3ed3b242e73be78a67de"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -1151,15 +1151,15 @@
         },
         {
           "path": "apps/desktop/src/main/model3d/packageResolver.ts",
-          "sha256": "0f2170568fabc2ed9e099b8841be7ed40fb226117db162dac41c4a652a2fc811"
+          "sha256": "c18e9a7f16db16f6afd8a8223b029ceefda57454dd43c892fb2ced6181c66088"
         },
         {
           "path": "apps/desktop/src/main/usage.ts",
-          "sha256": "3082b5e062aef4210ce8eddec0713894f03ebe49bd6ad16a365e5999bd98ac1c"
+          "sha256": "77764a61c0c6bc42625a37ab5ec53d0255c4f5f26661743a33bc118eb55a37f2"
         },
         {
-          "path": "apps/desktop/src/main/workspace.agent-hook.test.ts",
-          "sha256": "7272ae2c4101a266808f94c60603c6ff7e24103e3e883f23c7e22d7f423d21fa"
+          "path": "apps/desktop/src/main/workspace/workspace.agent-hook.test.ts",
+          "sha256": "70fa3cf40d4aad1d7c7e73442f742e74cb1b47cf3ecde90c89880f86f0e31d13"
         },
         {
           "path": "apps/desktop/src/main/workspaceAgentHookServer.ts",

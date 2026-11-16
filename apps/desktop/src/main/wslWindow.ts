@@ -1,5 +1,5 @@
 import type { BrowserWindow, Rectangle } from 'electron'
-import { isWsl, readWindowsWorkingArea } from './wslPaths'
+import { isWsl, readWindowsWorkingArea } from './platform/wslPaths'
 
 /** WSLg: native maximize()/isMaximized() lie about size vs the RAIL host window. */
 const wslMaximizedByTab = new WeakMap<BrowserWindow, boolean>()

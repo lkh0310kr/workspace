@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import * as path from 'node:path'
 import { ebookLocationKey, mergeEbookState, type EbookBookState } from '../shared/ebookState'
-import { appSupportDir } from './persistence'
+import { appSupportDir } from './workspace/persistence'
 
 function statePath(): string {
   if (process.env.WORKSPACE_TEST_EBOOK_STATE) return process.env.WORKSPACE_TEST_EBOOK_STATE

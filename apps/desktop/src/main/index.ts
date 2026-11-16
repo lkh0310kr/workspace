@@ -9,7 +9,7 @@ import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { Workspace } from './workspace'
+import { Workspace } from './workspace/workspace'
 import { registerMediaProtocol } from './mediaProtocol'
 import { registerModelProtocol } from './model3d/modelProtocol'
 import { importJobQueue } from './model3d/importJobQueue'
@@ -20,15 +20,15 @@ import {
   loadWorkspaceSnapshot,
   saveWorkspaceSnapshot,
   saveTerminalSessionBuffers
-} from './persistence'
+} from './workspace/persistence'
 import {
   preferNativeWorkspacePath,
   isWsl,
   isWslWindowsMountPath,
   applyWslDpiScaleFix
-} from './wslPaths'
+} from './platform/wslPaths'
 import { applyBrowserGpuSwitches } from './browser/browserGpuEnv'
-import { shouldIgnoreWatcherPath } from './filesystemWatcherIgnore'
+import { shouldIgnoreWatcherPath } from './workspace/filesystemWatcherIgnore'
 import { revealWslWindow, installWslWindowLifecycle } from './wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook } from './usage'

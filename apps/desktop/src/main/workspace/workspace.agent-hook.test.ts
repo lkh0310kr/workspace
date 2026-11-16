@@ -4,7 +4,7 @@ const { spawnedPtyOptions } = vi.hoisted(() => ({
   spawnedPtyOptions: [] as Array<Record<string, unknown>>
 }))
 
-vi.mock('./terminal/pty', () => ({
+vi.mock('../terminal/pty', () => ({
   Pty: class {
     constructor(options: Record<string, unknown>) {
       spawnedPtyOptions.push(options)
@@ -12,7 +12,7 @@ vi.mock('./terminal/pty', () => ({
   }
 }))
 
-vi.mock('./terminal/ptySession', () => ({
+vi.mock('../terminal/ptySession', () => ({
   PtySession: class {
     setOnOutputUtf8(callback: unknown): void {
       if (typeof callback !== 'function') throw new TypeError('output callback required')

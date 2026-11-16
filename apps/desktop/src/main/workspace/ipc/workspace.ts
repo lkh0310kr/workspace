@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
-import type { Workspace } from '../../workspace'
-import { resolveUserSelectedRootPath } from '../../wslPaths'
-import { saveConfig } from '../../persistence'
+import type { Workspace } from '../workspace'
+import { resolveUserSelectedRootPath } from '../../platform/wslPaths'
+import { saveConfig } from '../persistence'
 import { registerWorkspaceSearchIpc } from './workspaceSearch'
 
 function assertExpectedTabRoot(

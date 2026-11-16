@@ -3,7 +3,7 @@ import {
   normalizeUsageMeterSettings,
   type UsageMeterSettings
 } from '../shared/usage-meter-settings'
-import { loadConfig, saveConfig } from './persistence'
+import { loadConfig, saveConfig } from './workspace/persistence'
 
 export function loadUsageMeterSettings(): UsageMeterSettings {
   const config = loadConfig()

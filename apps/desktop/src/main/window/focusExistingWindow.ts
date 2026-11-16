@@ -1,5 +1,5 @@
 import type { App, BrowserWindow } from 'electron'
-import { isWsl } from '../wslPaths'
+import { isWsl } from '../platform/wslPaths'
 import { pinWslWorkAreaIfMaximized } from '../wslWindow'
 
 /** Orca focus-existing-window.ts — win32 needs extra activation nudges. */

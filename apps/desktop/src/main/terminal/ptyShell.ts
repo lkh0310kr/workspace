@@ -5,7 +5,7 @@ import {
   isWslWindowsMountPath,
   parseWslUncPath,
   resolveWslLinuxPathFromWindowsRoot
-} from '../wslPaths'
+} from '../platform/wslPaths'
 import {
   getWindowsCmdPath,
   resolveWindowsPowerShellExecutablePath

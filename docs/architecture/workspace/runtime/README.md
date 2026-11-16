@@ -1,6 +1,6 @@
 # Desktop 시작·종료·restore 계약
 
-App scope에서 Main·preload·renderer의 수명을 정의한다. 근거는 [main entry](../../../../apps/desktop/src/main/index.ts), [Workspace](../../../../apps/desktop/src/main/workspace.ts), [renderer bootstrap](../../../../apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts), [workspaceStore](../../../../apps/desktop/src/renderer/src/features/workspace/state/workspaceStore.ts)다.
+App scope에서 Main·preload·renderer의 수명을 정의한다. 근거는 [main entry](../../../../apps/desktop/src/main/index.ts), [Workspace](../../../../apps/desktop/src/main/workspace/workspace.ts), [renderer bootstrap](../../../../apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts), [workspaceStore](../../../../apps/desktop/src/renderer/src/features/workspace/state/workspaceStore.ts)다.
 
 ## 시작 순서
 

@@ -1,6 +1,6 @@
 // Direct port of crates/workspace-core/src/layout.rs.
 
-import { defaultLayoutJson } from '../shared/layoutDefaults'
+import { defaultLayoutJson } from '../../shared/layoutDefaults'
 
 // Every flexlayout tab node holds a PaneGroupConfig (a list of
 // heterogeneous terminal/browser/editor tabs, see renderer/layout/

@@ -10,7 +10,7 @@ import { appendTerminalLog } from '../../terminal/terminalDebugLog'
 import { claudeRateLimitStatus, cursorUsageStatus, codexRateLimitStatus } from '../../usage'
 import { loadUsageMeterSettings, saveUsageMeterSettings } from '../../usageMeterConfig'
 import { pickDirectory, pickMediaFile } from '../../nativeDialogs'
-import { isWsl } from '../../wslPaths'
+import { isWsl } from '../wslPaths'
 import { toggleWslWindowMaximize } from '../../wslWindow'
 
 export function registerSystemCapabilityIpc(getMainWindow: () => BrowserWindow | null): void {

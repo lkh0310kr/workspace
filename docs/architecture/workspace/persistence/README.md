@@ -4,7 +4,7 @@ Main 파일, Renderer storage, Chromium 저장과 외부 process의 저장 책�
 
 ## 저장 namespace
 
-[persistence.ts](../../../../apps/desktop/src/main/persistence.ts)의 `appSupportDir`는 앱 설정·Workspace layout·terminal buffer 같은 app 상태를 보관한다. Electron `userData`, 로컬 파일 root, Renderer `localStorage`는 별도 저장 위치다. 경로를 같은 상수로 간주하지 않는다.
+[persistence.ts](../../../../apps/desktop/src/main/workspace/persistence.ts)의 `appSupportDir`는 앱 설정·Workspace layout·terminal buffer 같은 app 상태를 보관한다. Electron `userData`, 로컬 파일 root, Renderer `localStorage`는 별도 저장 위치다. 경로를 같은 상수로 간주하지 않는다.
 
 Dev profile과 packaged profile은 Workspace snapshot, Chromium storage와 userData를 분리한다. 이 경계는 개발 UI가 사용 중인 상태를 덮지 않게 한다. Google Drive 동기화 중인 폴더는 사용자 파일 경로이며 Desktop이 별도 queue나 cursor를 만들지 않는다.
 
@@ -35,6 +35,6 @@ JSON 이름과 storage prefix는 schema version을 대신하지 않는다. Main 
 
 ## 근거와 검증
 
-[persistence](../../../../apps/desktop/src/main/persistence.ts), [ebookState](../../../../apps/desktop/src/main/ebookState.ts), [model cache](../../../../apps/desktop/src/main/model3d/cacheStore.ts), [Editor tree state](../../../../packages/editor/src/tree/editorTreeState.ts), [usage config](../../../../apps/desktop/src/main/usageMeterConfig.ts)가 writer다.
+[persistence](../../../../apps/desktop/src/main/workspace/persistence.ts), [ebookState](../../../../apps/desktop/src/main/ebookState.ts), [model cache](../../../../apps/desktop/src/main/model3d/cacheStore.ts), [Editor tree state](../../../../packages/editor/src/tree/editorTreeState.ts), [usage config](../../../../apps/desktop/src/main/usageMeterConfig.ts)가 writer다.
 
 복구 scenario는 profile 분리, JSON parse 실패, ebook merge, dirty view cache, Editor tree state, cache 재생성을 확인한다. Storage-full·power-loss·OS별 credential 복구 전체는 별도 acceptance다.

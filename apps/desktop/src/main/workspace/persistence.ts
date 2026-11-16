@@ -4,8 +4,8 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import type { WorkspaceState } from './workspace'
 import type { TerminalSessionBuffersFile } from '@workspace/terminal/shared'
-import type { UsageMeterSettings } from '../shared/usage-meter-settings'
-import { isPackagedApp } from './startupLog'
+import type { UsageMeterSettings } from '../../shared/usage-meter-settings'
+import { isPackagedApp } from '../startupLog'
 
 // Port of src/lib.rs's config_path()/workspace_snapshot_path() and their
 // load/save helpers.

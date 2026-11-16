@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { appSupportDir } from './persistence'
+import { appSupportDir } from './workspace/persistence'
 
 // Port of src/lib.rs's install_claude_statusline_hook/claude_rate_limit_status
 // /cursor_usage_status. claude_code_usage_recent (JSONL transcript scanning

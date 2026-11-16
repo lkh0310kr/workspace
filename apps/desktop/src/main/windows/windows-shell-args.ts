@@ -1,5 +1,5 @@
 import { win32 as pathWin32 } from 'node:path'
-import { parseWslUncPath } from '../wslPaths'
+import { parseWslUncPath } from '../platform/wslPaths'
 import {
   buildWslExecArgs,
   buildWslInteractiveLoginShellCommand,

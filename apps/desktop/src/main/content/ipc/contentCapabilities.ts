@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { Workspace } from '../../workspace'
+import { Workspace } from '../../workspace/workspace'
 import { toMediaUrlBrowsed } from '../../mediaProtocol'
 import { model3dLog, readModel3dLogs } from '../../model3d/model3dLog'
 import { openEpubAbsolute } from '../../epub'
