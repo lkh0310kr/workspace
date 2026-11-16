@@ -1,11 +1,12 @@
 import { session } from 'electron'
+import { BROWSER_SESSION_PARTITION } from '@workspace/browser/browserSessionPartition'
 import { setupBrowserSessionUA } from './browserSessionUA'
 import {
   installBrowserWebAuthnAccessHandlers,
   allowsBrowserWebAuthnPermission
 } from './browserWebauthn'
 
-export const BROWSER_SESSION_PARTITION = 'persist:browser'
+export { BROWSER_SESSION_PARTITION }
 
 // Web features that are safe to auto-grant without a per-site prompt UI
 // (which this app has no way to show) — ported from Orca's

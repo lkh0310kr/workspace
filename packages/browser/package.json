@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./browser.module.css": "./src/browser.module.css",
-    "./browserDownloads": "./src/browserDownloads.ts"
+    "./browserDownloads": "./src/browserDownloads.ts",
+    "./browserSessionPartition": "./src/browserSessionPartition.ts"
   },
   "dependencies": {
     "@workspace/ui": "0.1.0"
