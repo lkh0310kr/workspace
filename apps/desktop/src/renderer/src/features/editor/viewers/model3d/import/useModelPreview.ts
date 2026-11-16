@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  openModelPreview,
-  type SceneManifest
-} from '../../../../../electron'
+import { openModelPreview } from '../../../runtime/editorIpc'
 import { onFileChanged, readFileBinaryPreview } from '../../../runtime/localFileSystem'
 import type { SceneManifest as Manifest } from '../../../../../../../shared/model3d/types'
 import { logModel3d } from '../model3dLog'
@@ -113,7 +110,7 @@ export function useModelPreview(tabId: number, filePath: string | null): ModelPr
       }
 
       try {
-        const manifest = (await openModelPreview(tabId, path)) as SceneManifest
+        const manifest = await openModelPreview(tabId, path)
         if (cancelled) return
 
         void logModel3d('preview_manifest', {

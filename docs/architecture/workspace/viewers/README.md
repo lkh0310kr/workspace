@@ -14,6 +14,8 @@ App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구�
 
 직접 file URL, app custom protocol, Blob URL, local viewer service URL은 서로 다르다. format 분류 목록은 [mediaKind](../../../../apps/desktop/src/renderer/src/features/editor/viewers/mediaKind.ts), UI dispatch는 [FileViewerContent](../../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx)가 기준이다.
 
+Renderer의 media·model preview·CAD·EPUB IPC adapter는 [editorIpc](../../../../apps/desktop/src/renderer/src/features/editor/runtime/editorIpc.ts)에 둔다. Editor view는 Main API를 직접 호출하지 않는다.
+
 ## 3D import 계약
 
 [assetRouter](../../../../apps/desktop/src/main/model3d/assetRouter.ts)는 request intent와 package/format을 판단해 import-preview pipeline으로 보낸다. [formatSniffer](../../../../apps/desktop/src/main/model3d/formatSniffer.ts), [packageResolver](../../../../apps/desktop/src/main/model3d/packageResolver.ts), importerRegistry는 파일 확장자 하나만으로 native parsing 결과를 보장하지 않는다. GLTF/mesh/FBX/STEP importer와 conversion dependency는 각각 다르다.

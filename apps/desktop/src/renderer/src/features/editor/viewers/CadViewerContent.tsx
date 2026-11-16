@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { openCadViewerFile } from '../../../electron'
+import { openCadViewerFile } from '../runtime/editorIpc'
 
 interface Props {
   tabId: number

@@ -9,11 +9,7 @@ import {
   type MouseEvent,
   type WheelEvent
 } from 'react'
-import {
-  getMediaUrl,
-  getMediaUrlAbsolute,
-  pickMediaFileDialog
-} from '../../../electron'
+import { getMediaUrl, getMediaUrlAbsolute, pickMediaFileDialog } from '../runtime/editorIpc'
 import { readFileBinaryPreview } from '../runtime/localFileSystem'
 import './viewers.css'
 import { classifyMediaExtension } from './mediaKind'

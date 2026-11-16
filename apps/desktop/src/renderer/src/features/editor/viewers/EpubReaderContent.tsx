@@ -2,7 +2,7 @@
 // click halves, and Foliate/Thorium keys turn CSS-column pages; the last
 // page of a spine item loads the next linear section.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getEbookState, openEpub, openEpubAbsolute, saveEbookState } from '../../../electron'
+import { getEbookState, openEpub, openEpubAbsolute, saveEbookState } from '../runtime/editorIpc'
 import {
   DEFAULT_EBOOK_STATE,
   type EbookBookState,

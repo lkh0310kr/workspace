@@ -91,11 +91,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "ae754d0507af78b5f9a8d1ac9fc7cd12e27bc6a34142ced11a776ac09f31191d"
+          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/CadViewerContent.tsx",
-          "sha256": "d397b3380ab2bb83e385b6d31840c880633d91e7ba749fb387f2261bd0baa107"
+          "sha256": "5afa40f875700d3df8de3051086c89bbdf8ff3ebfc6736e1e20ea8acc1a18dc5"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/ModelViewerContent.tsx",
@@ -103,7 +103,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.tsx",
-          "sha256": "f1197a7006a36b353c06ddd66b274583ea3d494ca35dad8d85bcd5084519aeb8"
+          "sha256": "c4c9b9131ed0bf230945aadfc8a774ef8cf72de2b59c4509ededa5c22ba4f1b7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
@@ -447,7 +447,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "ae754d0507af78b5f9a8d1ac9fc7cd12e27bc6a34142ced11a776ac09f31191d"
+          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/EditorPaneKinds.tsx",
@@ -463,7 +463,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localDocumentSession.ts",
-          "sha256": "495257c69c85d6e0cd82f59381539599b1a040f422c140759f5d99df4249d7b6"
+          "sha256": "dc30a2cc5890191529835ee1f9a2a7902ac966738353c7c8d58a94596f46607a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/usePaneGroupEditorSidebarState.ts",
@@ -496,6 +496,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/editor/runtime/localFileSystem.ts",
           "sha256": "7ec824c06b16c8e9b437a186931ee50cce5f66f6e0b675bd23de952ed9eb7491"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorIpc.ts",
+          "sha256": "f879665944535d9767c6b4e32edbcb3383c414aa4feb430d17c10282a5afac82"
         }
       ]
     },
@@ -741,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/electron.ts",
-          "sha256": "2f05dc767758c2486efe85ab95c7225e40b1863a73e7e24faa071c617303797b"
+          "sha256": "f5ac77807568c0f4e61a3b41fe44e403e46919122a3a4354b1127b0c692bc768"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/useAppBootstrap.ts",
@@ -1119,7 +1123,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx",
-          "sha256": "ae754d0507af78b5f9a8d1ac9fc7cd12e27bc6a34142ced11a776ac09f31191d"
+          "sha256": "5c39928aab78642d9e434a7746095a5a9593e890d26b97dfa7dd85a58720111e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/epub/epubKeys.ts",
@@ -1180,6 +1184,10 @@
         {
           "path": "apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts",
           "sha256": "2f54edb2776e85d2645866c2a1686bae77642f2bf2f17802ed75ab0f50243ad6"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/editor/runtime/editorIpc.ts",
+          "sha256": "f879665944535d9767c6b4e32edbcb3383c414aa4feb430d17c10282a5afac82"
         }
       ]
     },
