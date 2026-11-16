@@ -6,9 +6,8 @@ import {
   useState,
   useSyncExternalStore
 } from 'react'
-import { BrowserAddressBar } from './BrowserAddressBar'
+import { BrowserAddressBar, recordBrowserVisit } from './address-bar'
 import { normalizeBrowserNavigationUrl } from './browserUrl'
-import { recordBrowserVisit } from './browserHistory'
 import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,

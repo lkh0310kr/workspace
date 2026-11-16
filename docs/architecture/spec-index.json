@@ -1324,30 +1324,30 @@
         },
         {
           "path": "packages/browser/src/browser.module.css",
-          "sha256": "f538ed2955f81862ab07c2855fae8fb8e5885c8b14eee15d70e53e096c9fe654"
+          "sha256": "5a13e51d02b8721b28035ccce2503c646e6a8b4677344b07dd6215b7160c685d"
         },
         {
-          "path": "packages/browser/src/BrowserAddressBar.tsx",
-          "sha256": "a54d30a9705a76f290ed458aaaf6e9b3349c9d36e21b105438bd6f541a3b40e6"
+          "path": "packages/browser/src/address-bar/BrowserAddressBar.tsx",
+          "sha256": "a88f073a9a6d305adc97a57ba03d08aa811200feecbf4ec87e97a44a241857ad"
         },
         {
-          "path": "packages/browser/src/browserAddressBarSuggestions.test.ts",
+          "path": "packages/browser/src/address-bar/browserAddressBarSuggestions.test.ts",
           "sha256": "7ca93d74b1b5b6fd6912395f3255a38e2e6b32d689d28049b83613d2dfbca9e2"
         },
         {
-          "path": "packages/browser/src/browserAddressBarSuggestions.ts",
-          "sha256": "3301b73c6e62b373e513021b5ff02213631316279141939840926fd7eac5b3cf"
+          "path": "packages/browser/src/address-bar/browserAddressBarSuggestions.ts",
+          "sha256": "99fd879450534798bc6f426bb747de66e6fe77dc07fd129c90c15352f95eedaa"
         },
         {
           "path": "packages/browser/src/BrowserContent.tsx",
-          "sha256": "cfabe492cb9ee078356b3ac467fbc3532e39c53670bb7a90ffc758eb295e61ee"
+          "sha256": "d00e4139a9659376902cd07378dba847efabb3c95a1dd0151f7e71b5376322cc"
         },
         {
           "path": "packages/browser/src/BrowserDownloadsBar.tsx",
           "sha256": "2d28f6791b3123122476facb5824608488ca7a65a870c492b9b8d4bbcb8d402d"
         },
         {
-          "path": "packages/browser/src/browserHistory.ts",
+          "path": "packages/browser/src/address-bar/browserHistory.ts",
           "sha256": "8077249c3738fc67cb0f6166c309a981b0064129f4cef1fea69c9c30785537f2"
         },
         {
@@ -1436,7 +1436,7 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "e6f5618395119462ab437ddc0e35a72d06398a608c37e3b0ed0c664601165fa5"
+          "sha256": "1abcd4372e52e088c2d4b88c0a7b0fcfd4eb683cfebd59e80af1f2adfbc3dc00"
         },
         {
           "path": "packages/browser/src/useBrowserChromeFocus.ts",
@@ -1453,6 +1453,14 @@
         {
           "path": "packages/browser/src/useWebviewGuestFocus.ts",
           "sha256": "bd3c0a4190e0584b5c09139404580bb9e4cc41acdd042a78cfafef4847a619ed"
+        },
+        {
+          "path": "packages/browser/src/address-bar/address-bar.module.css",
+          "sha256": "67b4e8416c10e44720aba518246d7fc2bb8d431c8709485ee8685755a06f40ed"
+        },
+        {
+          "path": "packages/browser/src/address-bar/index.ts",
+          "sha256": "cd470da00aa02cec02339d391d46f9fafd9b125126abd7bea14534507647810f"
         }
       ]
     },

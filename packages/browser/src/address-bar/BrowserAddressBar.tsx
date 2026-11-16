@@ -13,7 +13,7 @@ import {
   buildAddressBarSuggestions,
   type AddressBarSuggestion
 } from './browserAddressBarSuggestions'
-import styles from './browser.module.css'
+import styles from './address-bar.module.css'
 
 // Real-browser-style address bar: history-based autocomplete dropdown,
 // select-all on focus, Escape reverts to the actual current URL, Enter

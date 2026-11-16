@@ -35,7 +35,7 @@ BrowserContent.navigate는 정규화 실패면 무시한다. guest 미준비면 
 
 ## 방문 기록과 주소 제안
 
-근거: [history](../../../../packages/browser/src/browserHistory.ts), [suggestions](../../../../packages/browser/src/browserAddressBarSuggestions.ts).
+근거: [history](../../../../packages/browser/src/address-bar/browserHistory.ts), [suggestions](../../../../packages/browser/src/address-bar/browserAddressBarSuggestions.ts).
 
 방문 기록은 module cache와 localStorage `workspace.browserHistory`를 사용한다. entry는 url/title/lastVisitedAt/visitCount이며 http(s)만 기록한다. 같은 URL은 title/시간/count를 갱신한다. 최대 500개를 넘으면 가장 오래된 것을 제거한다. storage 실패는 탐색을 막지 않는다.
 

@@ -1,8 +1,10 @@
-export { BrowserAddressBar } from './BrowserAddressBar'
-export type { BrowserHistoryEntry } from './browserHistory'
-export { getBrowserHistory, recordBrowserVisit } from './browserHistory'
-export type { AddressBarSuggestion } from './browserAddressBarSuggestions'
-export { buildAddressBarSuggestions } from './browserAddressBarSuggestions'
+export {
+  BrowserAddressBar,
+  getBrowserHistory,
+  recordBrowserVisit,
+  buildAddressBarSuggestions
+} from './address-bar'
+export type { BrowserHistoryEntry, AddressBarSuggestion } from './address-bar'
 export { BLANK_URL, normalizeBrowserNavigationUrl } from './browserUrl'
 export {
   browserTabUrlForNewTab,

@@ -1,4 +1,4 @@
-import { buildSearchUrl, looksLikeSearchQuery, normalizeBrowserNavigationUrl } from './browserUrl'
+import { buildSearchUrl, looksLikeSearchQuery, normalizeBrowserNavigationUrl } from '../browserUrl'
 import type { BrowserHistoryEntry } from './browserHistory'
 
 // Port of ref-proj/orca's browser-address-bar-suggestions.ts, extended with
