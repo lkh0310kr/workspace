@@ -4,15 +4,20 @@ import { classifyAssetType, assetBaseName } from './asset'
 describe('classifyAssetType', () => {
   it('classifies known image/video/audio/pdf/ebook/markdown/model3d extensions', () => {
     expect(classifyAssetType('a.png')).toBe('image')
+    expect(classifyAssetType('a.bmp')).toBe('image')
     expect(classifyAssetType('a.mp4')).toBe('video')
+    expect(classifyAssetType('a.mkv')).toBe('video')
     expect(classifyAssetType('a.mp3')).toBe('audio')
+    expect(classifyAssetType('a.flac')).toBe('audio')
     expect(classifyAssetType('a.pdf')).toBe('pdf')
     expect(classifyAssetType('a.epub')).toBe('ebook')
     expect(classifyAssetType('a.md')).toBe('markdown')
+    expect(classifyAssetType('a.markdown')).toBe('markdown')
     expect(classifyAssetType('a.glb')).toBe('model3d')
     expect(classifyAssetType('a.fbx')).toBe('model3d')
     expect(classifyAssetType('a.step')).toBe('model3d')
     expect(classifyAssetType('a.urdf')).toBe('cad')
+    expect(classifyAssetType('a.dxf')).toBe('cad')
   })
 
   it('is case-insensitive', () => {

@@ -5,25 +5,15 @@
 // files) or the streaming media protocol (video/audio — never loaded
 // whole into memory, see mediaProtocol.ts).
 
-const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp']
-const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.mkv']
-const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg', '.flac']
+import {
+  AUDIO_EXTENSIONS,
+  CAD_VIEWER_EXTENSIONS,
+  IMAGE_EXTENSIONS,
+  MODEL3D_EXTENSIONS,
+  VIDEO_EXTENSIONS
+} from '../../../shared/mediaExtensions'
 
 export type MediaKind = 'image' | 'pdf' | 'video' | 'audio' | 'epub' | 'model3d' | 'cad' | 'other'
-
-const MODEL3D_EXTENSIONS = [
-  '.glb',
-  '.gltf',
-  '.fbx',
-  '.obj',
-  '.stl',
-  '.ply',
-  '.dae',
-  '.step',
-  '.stp'
-]
-
-const CAD_VIEWER_EXTENSIONS = ['.urdf', '.srdf', '.sdf', '.dxf']
 
 export function classifyMediaExtension(filePath: string): MediaKind {
   const lower = filePath.toLowerCase()

@@ -14,6 +14,14 @@
 // main and renderer, same as layoutSalvage.ts), so extname is
 // hand-rolled rather than using node:path.
 
+import {
+  AUDIO_EXTENSIONS,
+  CAD_VIEWER_EXTENSIONS,
+  IMAGE_EXTENSIONS,
+  MODEL3D_EXTENSIONS,
+  VIDEO_EXTENSIONS
+} from './mediaExtensions'
+
 export type AssetType =
   'image' | 'video' | 'audio' | 'pdf' | 'ebook' | 'markdown' | 'model3d' | 'cad' | 'unknown'
 
@@ -29,41 +37,19 @@ function extname(pathOrName: string): string {
 // files/.ico aren't classified here even though they're clearly assets
 // too — adding them is a real, separate follow-up, not an incidental
 // side effect of extracting existing behavior).
-const EXTENSION_TYPES: Record<string, AssetType> = {
-  '.png': 'image',
-  '.jpg': 'image',
-  '.jpeg': 'image',
-  '.gif': 'image',
-  '.webp': 'image',
-  '.svg': 'image',
-  '.bmp': 'image',
-  '.pdf': 'pdf',
-  '.mp4': 'video',
-  '.webm': 'video',
-  '.mov': 'video',
-  '.mkv': 'video',
-  '.mp3': 'audio',
-  '.wav': 'audio',
-  '.m4a': 'audio',
-  '.ogg': 'audio',
-  '.epub': 'ebook',
-  '.flac': 'audio',
-  '.md': 'markdown',
-  '.markdown': 'markdown',
-  '.glb': 'model3d',
-  '.gltf': 'model3d',
-  '.fbx': 'model3d',
-  '.obj': 'model3d',
-  '.stl': 'model3d',
-  '.ply': 'model3d',
-  '.dae': 'model3d',
-  '.step': 'model3d',
-  '.stp': 'model3d',
-  '.urdf': 'cad',
-  '.srdf': 'cad',
-  '.sdf': 'cad',
-  '.dxf': 'cad'
-}
+const extensionEntries: [string, AssetType][] = [
+  ...IMAGE_EXTENSIONS.map((extension): [string, AssetType] => [extension, 'image']),
+  ...VIDEO_EXTENSIONS.map((extension): [string, AssetType] => [extension, 'video']),
+  ...AUDIO_EXTENSIONS.map((extension): [string, AssetType] => [extension, 'audio']),
+  ...MODEL3D_EXTENSIONS.map((extension): [string, AssetType] => [extension, 'model3d']),
+  ...CAD_VIEWER_EXTENSIONS.map((extension): [string, AssetType] => [extension, 'cad']),
+  ['.pdf', 'pdf'],
+  ['.epub', 'ebook'],
+  ['.md', 'markdown'],
+  ['.markdown', 'markdown']
+]
+
+const EXTENSION_TYPES: Record<string, AssetType> = Object.fromEntries(extensionEntries)
 
 export function classifyAssetType(pathOrName: string): AssetType {
   return EXTENSION_TYPES[extname(pathOrName)] ?? 'unknown'

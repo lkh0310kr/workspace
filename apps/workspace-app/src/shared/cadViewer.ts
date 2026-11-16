@@ -1,6 +1,8 @@
 /** CAD Viewer (cadgen viewer) — shared types and URL helpers. */
 
-export const CAD_VIEWER_EXTENSIONS = ['.urdf', '.srdf', '.sdf', '.dxf'] as const
+import { CAD_VIEWER_EXTENSIONS } from './mediaExtensions'
+
+export { CAD_VIEWER_EXTENSIONS } from './mediaExtensions'
 
 export type CadViewerExtension = (typeof CAD_VIEWER_EXTENSIONS)[number]
 

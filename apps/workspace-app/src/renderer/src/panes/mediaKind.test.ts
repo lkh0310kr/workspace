@@ -5,6 +5,7 @@ describe('classifyMediaExtension', () => {
   it('classifies images', () => {
     expect(classifyMediaExtension('a/b.png')).toBe('image')
     expect(classifyMediaExtension('a/b.JPEG')).toBe('image')
+    expect(classifyMediaExtension('a/b.bmp')).toBe('image')
   })
 
   it('classifies pdf', () => {
@@ -14,11 +15,13 @@ describe('classifyMediaExtension', () => {
   it('classifies video', () => {
     expect(classifyMediaExtension('a/b.mp4')).toBe('video')
     expect(classifyMediaExtension('a/b.MKV')).toBe('video')
+    expect(classifyMediaExtension('a/b.mov')).toBe('video')
   })
 
   it('classifies audio', () => {
     expect(classifyMediaExtension('a/b.mp3')).toBe('audio')
     expect(classifyMediaExtension('a/b.flac')).toBe('audio')
+    expect(classifyMediaExtension('a/b.m4a')).toBe('audio')
   })
 
   it('classifies epub', () => {
@@ -36,6 +39,7 @@ describe('classifyMediaExtension', () => {
   it('classifies cad viewer formats (non-STEP)', () => {
     expect(classifyMediaExtension('robot.urdf')).toBe('cad')
     expect(classifyMediaExtension('layout.dxf')).toBe('cad')
+    expect(classifyMediaExtension('a/b.SRDF')).toBe('cad')
   })
 
   it('falls back to other', () => {
