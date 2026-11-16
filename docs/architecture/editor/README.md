@@ -19,7 +19,7 @@
 
 ## 소유권
 
-`packages/editor`는 React와 CodeMirror로 만든 UI/순수 규칙을 소유한다. 앱의 Electron API, 인증, Yjs, 파일 저장소를 직접 import하지 않는다. `packages/editor/package.json`의 export는 기본 API, `EditorMarkdownSurface`, `code-mirror`, `tree-row`와 네 CSS 진입점을 제공한다. 실제 의존성 버전과 해석 결과는 package manifest와 lockfile을 사용한다.
+`packages/editor`는 React와 CodeMirror로 만든 UI/순수 규칙을 소유한다. 앱의 Electron API, 인증, Yjs, 파일 저장소를 직접 import하지 않는다. `packages/editor/package.json`의 export는 기본 API, `EditorMarkdownSurface`, `code-mirror`, `tree` 기능 진입점과 CSS 진입점을 제공한다. 실제 의존성 버전과 해석 결과는 package manifest와 lockfile을 사용한다.
 
 `apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts`가 Electron renderer shim을 통해 로컬 파일시스템을 연결한다. `features/editor/EditorContent.tsx`는 저장·자동 저장·제목 변경·활성 editor·pane 콜백을 조정한다. Provider별 저장 정책을 공통 surface에 포함하지 않는다.
 

@@ -55,4 +55,4 @@ PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유한다. �
 | LAY-05 | 다른 workspace에 연속 persist              | `workspaceStore.persist.test.ts`: workspace별 timer 유지 및 같은 workspace 요청 coalescing     |
 | LAY-06 | root 변경 후 이전 Editor tree 확장 복원 안 함 | editorTreeState.test.ts                                                                          |
 
-관련 구현은 `packages/editor/src/editorTree*` 및 Desktop layout adapter에 있다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.
+관련 구현은 `packages/editor/src/tree/` 및 Desktop layout adapter에 있다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.

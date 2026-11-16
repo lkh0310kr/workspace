@@ -1,5 +1,5 @@
-import type { EditorProvider, EditorTreeItem } from './provider'
-import { EditorProviderError } from './provider'
+import type { EditorProvider, EditorTreeItem } from '../provider'
+import { EditorProviderError } from '../provider'
 
 /** Resolve a provider-relative path through its lazy tree without using host filesystem APIs. */
 export async function resolveEditorTreePath(

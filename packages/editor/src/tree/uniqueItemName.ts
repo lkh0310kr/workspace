@@ -1,4 +1,4 @@
-import type { EditorProvider, EditorTreeItem } from './provider'
+import type { EditorProvider, EditorTreeItem } from '../provider'
 import { resolveEditorTreeDirectory } from './resolveEditorTreePath'
 
 /** Return the first case-insensitively unused sibling name. */

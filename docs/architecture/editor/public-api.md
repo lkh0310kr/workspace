@@ -1,6 +1,6 @@
 # 공개 API와 작은 UI 계약
 
-Package scope에서 [index.ts](../../../packages/editor/src/index.ts)의 export를 역할별로 연결한다. 실제 prop/type declaration은 source가 기준이며 소비 앱에서 별도 복사한 구현을 표준으로 취급하지 않는다.
+기본 진입점은 [index.ts](../../../packages/editor/src/index.ts)이며, Editor tree 기능은 [tree/index.ts](../../../packages/editor/src/tree/index.ts)의 `@workspace/editor/tree` 하위 경로로도 제공한다. 기존 기본 진입점의 tree export는 호환을 위해 유지한다. 실제 prop/type declaration은 source가 기준이며 소비 앱에서 별도 복사한 구현을 표준으로 취급하지 않는다.
 
 ## API owner 지도
 
@@ -19,7 +19,7 @@ Package scope에서 [index.ts](../../../packages/editor/src/index.ts)의 export�
 
 ## Tree composition
 
-`EditorTreePane`은 공유 virtual tree의 public 조립 component다. 공통 pane frame과 host `header`/`footer` slot을 제공하고 typed `tree` props로 provider-specific callback을 연결한다. `EditorTreeToolbar`는 제목·상태·action 영역의 공통 배치를 제공한다. 저수준 `EditorTreeView`, row, virtual list는 package public entry에서 감춰 소비 앱이 독립 tree shell을 만들지 않게 한다. 검색 결과처럼 row tree가 아닌 본문을 조립해야 할 때는 `EditorTreeFrame`을 사용한다.
+`EditorTreePane`은 공유 virtual tree의 public 조립 component다. 공통 pane frame과 host `header`/`footer` slot을 제공하고 typed `tree` props로 provider-specific callback을 연결한다. `EditorTreeToolbar`는 제목·상태·action 영역의 공통 배치를 제공한다. 저수준 `EditorTreeView`, row, virtual list는 외부 package entry에서 감춰 소비 앱이 독립 tree shell을 만들지 않게 한다. Tree 소스와 스타일, 상태 훅은 `packages/editor/src/tree/`에 둔다. 검색 결과처럼 row tree가 아닌 본문을 조립해야 할 때는 `EditorTreeFrame`을 사용한다.
 
 ## Tab와 close
 

@@ -1,5 +1,5 @@
 import styles from './treeView.module.css'
-import type { EditorItemKind } from './provider'
+import type { EditorItemKind } from '../provider'
 
 export interface EditorTreeRowClassInput {
   className?: string

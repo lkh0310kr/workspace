@@ -22,7 +22,7 @@ test('resolves the fuzzy search and CSS subpaths used by Workspace Desktop', () 
   )
   assert.equal(
     import.meta.resolve('@workspace/editor/treeView.module.css'),
-    expectedSourceUrl('src/treeView.module.css')
+    expectedSourceUrl('src/tree/treeView.module.css')
   )
   assert.equal(
     import.meta.resolve('@workspace/editor/assetPreview.module.css'),

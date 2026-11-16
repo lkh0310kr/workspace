@@ -49,6 +49,12 @@
       "@workspace/editor": [
         "../../packages/editor/src/index.ts"
       ],
+      "@workspace/editor/tree.css": [
+        "../../packages/editor/src/tree/tree.css"
+      ],
+      "@workspace/editor/treeView.module.css": [
+        "../../packages/editor/src/tree/treeView.module.css"
+      ],
       "@workspace/editor/EditorMarkdownSurface": [
         "../../packages/editor/src/EditorMarkdownSurface.tsx"
       ],

@@ -1,4 +1,4 @@
-import type { EditorItemKind } from './provider'
+import type { EditorItemKind } from '../provider'
 
 export interface EditorTreeNavigationRow {
   path: string

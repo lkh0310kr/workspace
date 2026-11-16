@@ -1,6 +1,6 @@
 # Editor TreeView
 
-Desktop Editor는 공유 `packages/editor`의 TreeView와 tree pane을 사용한다. Desktop Editor adapter는 로컬 provider를 연결하고 filesystem mutation, workspace selection과 pane 상태를 소유한다.
+Desktop Editor는 공유 `packages/editor`의 `@workspace/editor/tree` 기능 slice를 사용한다. tree UI·상태·탐색 규칙·스타일은 `packages/editor/src/tree/`에서 소유한다. Desktop Editor adapter는 로컬 provider를 연결하고 filesystem mutation, workspace selection과 pane 상태를 소유한다.
 
 ## 책임 경계
 

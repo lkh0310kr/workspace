@@ -6,7 +6,7 @@ import React, {
   type MouseEventHandler,
   type ReactNode
 } from 'react'
-import type { EditorItemKind } from './provider'
+import type { EditorItemKind } from '../provider'
 import { editorTreeRowClassName } from './treeRowModel'
 import styles from './treeView.module.css'
 

@@ -1,5 +1,5 @@
 import { EditorProviderError, type EditorProvider, type EditorTreeItem } from './provider'
-import { resolveEditorTreeDirectory, resolveEditorTreePath } from './resolveEditorTreePath'
+import { resolveEditorTreeDirectory, resolveEditorTreePath } from './tree/resolveEditorTreePath'
 
 // Shared Markdown title path helpers used by editor hosts.
 function toEditorRelativePath(path: string): string {

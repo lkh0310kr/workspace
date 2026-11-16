@@ -25,6 +25,7 @@ const session = new Map<string, EditorTreeState>()
 const EXPANDED_KEY = 'workspace.editorTreeExpanded'
 const SCROLL_KEY = 'workspace.editorTreeScroll'
 const ROOT_KEY = 'workspace.editorTreeRoot'
+// These persisted keys are retained only to migrate prior Editor tree state.
 const LEGACY_EXPANDED_KEY = 'workspace.explorerExpanded'
 const LEGACY_SCROLL_KEY = 'workspace.explorerScroll'
 const LEGACY_ROOT_KEY = 'workspace.explorerRoot'

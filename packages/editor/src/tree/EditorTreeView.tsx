@@ -6,7 +6,7 @@ import React, {
   type RefObject,
   type ReactNode
 } from 'react'
-import type { EditorItemKind } from './provider'
+import type { EditorItemKind } from '../provider'
 import type { EditorTreeProjection } from './treeModel'
 import { EditorTreeRow } from './EditorTreeRow'
 import { EditorTreeVirtualList } from './EditorTreeVirtualList'
