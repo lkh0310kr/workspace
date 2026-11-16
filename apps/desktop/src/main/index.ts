@@ -11,8 +11,8 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { Workspace } from './workspace/workspace'
 import { registerMediaProtocol } from './content/media/mediaProtocol'
-import { registerModelProtocol } from './model3d/modelProtocol'
-import { importJobQueue } from './model3d/importJobQueue'
+import { registerModelProtocol } from './content/model3d/modelProtocol'
+import { importJobQueue } from './content/model3d/importJobQueue'
 import { registerEpubProtocol } from './content/epub/epub'
 import {
   loadConfig,

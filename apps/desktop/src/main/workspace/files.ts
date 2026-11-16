@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { spawn } from 'node:child_process'
-import { model3dLog } from '../model3d/model3dLog'
+import { model3dLog } from '../content/model3d/model3dLog'
 
 function toWorkspaceRelPath(rel: string): string {
   return rel.replace(/\\/g, '/')

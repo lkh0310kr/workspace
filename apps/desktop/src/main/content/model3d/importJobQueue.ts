@@ -4,7 +4,7 @@ import type {
   ImportJob,
   ImportJobPhase,
   SceneManifest
-} from '../../shared/model3d/types'
+} from '../../../shared/model3d/types'
 import { model3dLog } from './model3dLog'
 
 let nextJobId = 1

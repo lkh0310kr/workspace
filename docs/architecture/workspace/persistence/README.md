@@ -35,6 +35,6 @@ JSON 이름과 storage prefix는 schema version을 대신하지 않는다. Main 
 
 ## 근거와 검증
 
-[persistence](../../../../apps/desktop/src/main/workspace/persistence.ts), [ebookState](../../../../apps/desktop/src/main/content/epub/ebookState.ts), [model cache](../../../../apps/desktop/src/main/model3d/cacheStore.ts), [Editor tree state](../../../../packages/editor/src/tree/editorTreeState.ts), [usage config](../../../../apps/desktop/src/main/agent/usage/usageMeterConfig.ts)가 writer다.
+[persistence](../../../../apps/desktop/src/main/workspace/persistence.ts), [ebookState](../../../../apps/desktop/src/main/content/epub/ebookState.ts), [model cache](../../../../apps/desktop/src/main/content/model3d/cacheStore.ts), [Editor tree state](../../../../packages/editor/src/tree/editorTreeState.ts), [usage config](../../../../apps/desktop/src/main/agent/usage/usageMeterConfig.ts)가 writer다.
 
 복구 scenario는 profile 분리, JSON parse 실패, ebook merge, dirty view cache, Editor tree state, cache 재생성을 확인한다. Storage-full·power-loss·OS별 credential 복구 전체는 별도 acceptance다.

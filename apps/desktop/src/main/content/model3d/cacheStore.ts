@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import type { SceneManifest } from '../../shared/model3d/types'
+import type { SceneManifest } from '../../../shared/model3d/types'
 import { toModelUrl } from './modelProtocolUrl'
 
 export const MODEL3D_CACHE_CONVERTER_VERSION = 'cadgen-glb-1'

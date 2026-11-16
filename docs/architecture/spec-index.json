@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "6ed685d15e0a14439cca3f3865277a477f4071c52e84c60d4a815ade909aa2c9"
+          "sha256": "8c9c3336c6b9ba786f89d5baac183ce7ed74163abac1cf9735e0f0e441f32e66"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "6ed685d15e0a14439cca3f3865277a477f4071c52e84c60d4a815ade909aa2c9"
+          "sha256": "8c9c3336c6b9ba786f89d5baac183ce7ed74163abac1cf9735e0f0e441f32e66"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -732,8 +732,8 @@
           "sha256": "7cd93e4f846cf261e2ca65d804536193da85dfd60ed4ef71b9c933b91400e41a"
         },
         {
-          "path": "apps/desktop/src/main/model3d/cacheStore.ts",
-          "sha256": "df052ac744d6231bf4b2f48372f7abc500eaaa886684015e5bdfd8cb19cad357"
+          "path": "apps/desktop/src/main/content/model3d/cacheStore.ts",
+          "sha256": "99238c27b57b8b705801cad61d88b23bd93416e870a897a2b6f7694204789c85"
         },
         {
           "path": "apps/desktop/src/main/workspace/persistence.ts",
@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.ts",
-          "sha256": "8a51f23f820fbdddfb7371ce38014360d70ae59bfdc84c7e08a8d22f8e8ee1a4"
+          "sha256": "1369d0f20b7e2dd28bc2c6785783d56a8a8896c4961261fee653eb474d490730"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -1134,24 +1134,24 @@
       ],
       "sources": [
         {
-          "path": "apps/desktop/src/main/model3d/assetRouter.ts",
-          "sha256": "330f359c4fba3383c8a560758395be7c8d5394f55f489f3b2402d62145f2deef"
+          "path": "apps/desktop/src/main/content/model3d/assetRouter.ts",
+          "sha256": "3d352ffaaa3c5b792b8314fb93a8170c543535462c05d99117fdf290e656e500"
         },
         {
-          "path": "apps/desktop/src/main/model3d/formatSniffer.ts",
-          "sha256": "9c6b4957a1ca40cdcdc8c01bc8ebf66de31ae626bd62032232f6f19950b1d8fe"
+          "path": "apps/desktop/src/main/content/model3d/formatSniffer.ts",
+          "sha256": "53443c5026fc22f69a5fc5184984dc29e1fcc6ebc8ebba59235c364b419dbb5f"
         },
         {
-          "path": "apps/desktop/src/main/model3d/importJobQueue.ts",
-          "sha256": "8272c7591535699bc85fa6b2eb0314866b5aac3454c489e5e50dced3338f45e0"
+          "path": "apps/desktop/src/main/content/model3d/importJobQueue.ts",
+          "sha256": "cbaae30f68228501ca870481876495363b78035466617971609c0de72704a5ea"
         },
         {
-          "path": "apps/desktop/src/main/model3d/packageResolver.test.ts",
+          "path": "apps/desktop/src/main/content/model3d/packageResolver.test.ts",
           "sha256": "81770f2c34983276a6a175dc806c2f8909604a5e1d922ecbc72d6e8087c83063"
         },
         {
-          "path": "apps/desktop/src/main/model3d/packageResolver.ts",
-          "sha256": "c18e9a7f16db16f6afd8a8223b029ceefda57454dd43c892fb2ced6181c66088"
+          "path": "apps/desktop/src/main/content/model3d/packageResolver.ts",
+          "sha256": "252044b51ca6bb9c984eadf84ec2a8591768e92c5ea4352f1fe4619e3c09852e"
         },
         {
           "path": "apps/desktop/src/main/agent/usage/usage.ts",

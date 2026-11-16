@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { resolveUnderRoot } from '../workspace/files'
+import { resolveUnderRoot } from '../../workspace/files'
 
 export interface ResolvedPackage {
   primaryPath: string

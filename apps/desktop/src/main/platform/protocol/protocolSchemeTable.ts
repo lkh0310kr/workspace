@@ -1,5 +1,5 @@
 import type { CustomScheme } from 'electron'
-import { MODEL_SCHEME } from '../../model3d/modelProtocolUrl'
+import { MODEL_SCHEME } from '../../content/model3d/modelProtocolUrl'
 
 export const MEDIA_SCHEME = 'workspace-media'
 export const EPUB_SCHEME = 'workspace-epub'

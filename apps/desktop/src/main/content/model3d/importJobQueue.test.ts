@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ImportJobQueue } from './importJobQueue'
-import type { SceneManifest } from '../../shared/model3d/types'
+import type { SceneManifest } from '../../../shared/model3d/types'
 
 const readyManifest: SceneManifest = {
   version: 1,

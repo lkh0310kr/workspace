@@ -1,5 +1,5 @@
-import type { ImportContext, ImportResult, Importer } from '../../../shared/model3d/importer'
-import type { DetectedModelFormat } from '../../../shared/model3d/types'
+import type { ImportContext, ImportResult, Importer } from '../../../../shared/model3d/importer'
+import type { DetectedModelFormat } from '../../../../shared/model3d/types'
 import { mimeTypeForModelFormat } from '../formatSniffer'
 import { model3dLog } from '../model3dLog'
 import { toModelUrl } from '../modelProtocolUrl'

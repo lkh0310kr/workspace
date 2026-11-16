@@ -1,5 +1,5 @@
 import * as fs from 'node:fs'
-import type { ImportContext, ImportResult, Importer } from '../../../shared/model3d/importer'
+import type { ImportContext, ImportResult, Importer } from '../../../../shared/model3d/importer'
 import { buildCacheKey, convertedGlbPath, model3dCacheDir } from '../cacheStore'
 import { mimeTypeForModelFormat } from '../formatSniffer'
 import { model3dLog } from '../model3dLog'

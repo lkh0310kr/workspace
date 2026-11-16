@@ -1,4 +1,4 @@
-import type { ImportContext, ImportResult, Importer } from '../../../shared/model3d/importer'
+import type { ImportContext, ImportResult, Importer } from '../../../../shared/model3d/importer'
 import { model3dLog } from '../model3dLog'
 
 const STUB_FORMATS: never[] = []

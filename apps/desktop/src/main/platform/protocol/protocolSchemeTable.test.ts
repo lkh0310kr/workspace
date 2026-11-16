@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EPUB_SCHEME, MEDIA_SCHEME, PRIVILEGED_SCHEMES } from './protocolSchemeTable'
-import { MODEL_SCHEME } from '../../model3d/modelProtocolUrl'
+import { MODEL_SCHEME } from '../../content/model3d/modelProtocolUrl'
 
 describe('privileged scheme table', () => {
   it('carries every workspace scheme, since Electron only accepts one registration call', () => {

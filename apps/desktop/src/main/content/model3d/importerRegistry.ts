@@ -1,5 +1,5 @@
-import type { Importer } from '../../shared/model3d/importer'
-import type { DetectedModelFormat } from '../../shared/model3d/types'
+import type { Importer } from '../../../shared/model3d/importer'
+import type { DetectedModelFormat } from '../../../shared/model3d/types'
 import { stepConvertImporter } from './importers/stepConvertImporter'
 import { fbxNativeImporter } from './importers/fbxNative'
 import { gltfNativeImporter } from './importers/gltfNative'
