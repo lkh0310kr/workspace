@@ -72,6 +72,10 @@ export default defineConfig({
         '@workspace/home': resolve('../../packages/home/src'),
         '@workspace/browser': resolve('../../packages/browser/src'),
         '@workspace/terminal': resolve('../../packages/terminal/src'),
+        '@workspace/ui/Popover': resolve('../../packages/ui/src/popover/Popover.tsx'),
+        '@workspace/ui/ContextMenu': resolve('../../packages/ui/src/context-menu/ContextMenu.tsx'),
+        '@workspace/ui/MenuList': resolve('../../packages/ui/src/menu-list/MenuList.tsx'),
+        '@workspace/ui/context-menu.css': resolve('../../packages/ui/src/context-menu/context-menu.css'),
         '@workspace/ui': resolve('../../packages/ui/src'),
         '@xterm': resolve('node_modules/@xterm')
       }

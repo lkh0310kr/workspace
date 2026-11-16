@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { MenuList, type MenuListItem } from './MenuList'
-import type { RegisterPortal } from './Popover'
+import { MenuList, type MenuListItem } from '../menu-list/MenuList'
+import type { RegisterPortal } from '../popover/Popover'
 import './context-menu.css'
 
 export type ContextMenuItem =

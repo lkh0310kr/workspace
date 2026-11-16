@@ -5,10 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./Popover": "./src/Popover.tsx",
-    "./ContextMenu": "./src/ContextMenu.tsx",
-    "./MenuList": "./src/MenuList.tsx",
-    "./context-menu.css": "./src/context-menu.css"
+    "./Popover": "./src/popover/Popover.tsx",
+    "./ContextMenu": "./src/context-menu/ContextMenu.tsx",
+    "./MenuList": "./src/menu-list/MenuList.tsx",
+    "./context-menu.css": "./src/context-menu/context-menu.css"
   },
   "peerDependencies": {
     "react": "^19.2.1",

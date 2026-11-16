@@ -2245,34 +2245,34 @@
       "sources": [
         {
           "path": "packages/ui/package.json",
-          "sha256": "ffa3c74c83f95142374d672cc3a91002699e39b0e68fdfb316185ccd217fac82"
+          "sha256": "69f7af54d91bfde98af549a1898a67640191e34cac5ec0911c2f6c8df7d002a4"
         },
         {
-          "path": "packages/ui/src/ContextMenu.tsx",
-          "sha256": "f7cf18d18c56382cf8c81fa561f6fef5d4e12ce5cfd919867ff74507d8cc69c1"
+          "path": "packages/ui/src/context-menu/ContextMenu.tsx",
+          "sha256": "d11c084ebd9be9c5a3eac82c6cf9de79b59bc754b1194c4822de8b7860e5331a"
         },
         {
-          "path": "packages/ui/src/MenuList.tsx",
+          "path": "packages/ui/src/menu-list/MenuList.tsx",
           "sha256": "4d373bb27ceba1d045a0ae7bbbe6dddea3e466f6473c76ed3b0ca7c0bc910474"
         },
         {
-          "path": "packages/ui/src/Popover.test.ts",
+          "path": "packages/ui/src/popover/Popover.test.ts",
           "sha256": "99c625c5c24c8db6d42fe3b5c8db46a3a57ee17b38fa847c30c73e7b20ce6352"
         },
         {
-          "path": "packages/ui/src/Popover.tsx",
+          "path": "packages/ui/src/popover/Popover.tsx",
           "sha256": "05becea37c04ad83283ac918d195b42fd9d8d7b2f1955ec4ba39e5b3f05b3440"
         },
         {
-          "path": "packages/ui/src/context-menu.css",
+          "path": "packages/ui/src/context-menu/context-menu.css",
           "sha256": "0ae91c16f19f86c2501929ff94aebe84961ae49e0f0e9e0ffddc21f0fe15673a"
         },
         {
           "path": "packages/ui/src/index.ts",
-          "sha256": "5c1e05fb22b8cfa8cb70cf44e8e84e78e27aaf669b0b202f49162bb66ae7e29c"
+          "sha256": "a4843b19b00334f7e76df6066bf50d95dbaf2fb64a2820c0926296d49bb074eb"
         },
         {
-          "path": "packages/ui/src/popover.css",
+          "path": "packages/ui/src/popover/popover.css",
           "sha256": "6d14980322a4c6c123f03aa8c4f472660337246830f05d77072a542d4715fafc"
         }
       ]
