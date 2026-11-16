@@ -879,7 +879,7 @@
         },
         {
           "path": "apps/workspace-app/src/preload/contentApi.ts",
-          "sha256": "aa7227636667c3514e6e5b97f6bc011e1d9f0d3d1170c6ec352586201fb2eac7"
+          "sha256": "8cff20ed4b1f452074367fe8dae22b1c5644be2cbb4b373430b740b27802bfa7"
         },
         {
           "path": "apps/workspace-app/src/preload/index.d.ts",
