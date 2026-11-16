@@ -42,7 +42,7 @@
 | 하위 영역 | 경로 | 추적 파일 | 상태 | 현재 조사 근거 |
 | --- | --- | ---: | --- | --- |
 | R-001a | `apps/workspace-app/src/main/**` | 172 | 검토 완료; T-026/T-031/T-033 validated | 코드 경로·설정·테스트 assertion의 정적 검토 완료; OBJ root escape와 agent-hook startup race를 수정. binary preview 디스크 read는 async 처리. Base64/IPC 메모리 비용 및 Linux IME 준비 지연은 별도 검증 위험 |
-| R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료 | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0; 테스트 실행·runtime 검증은 별도 한계 |
+| R-001b | `apps/workspace-app/src/renderer/**` | 421 | 검토·분류 완료; TreeView CRUD root-switch race deferred | 399개 소스/테스트 의미 검토, 22개 vendor/정적 자산 분류; 미검토 경로 0. branch-load race guard 확인; CRUD provider 내부 await 중 root 전환은 재현/정책 테스트가 없어 수정 보류 |
 | R-001c | `apps/workspace-app/src/preload/**` | 8 | 검토 완료; T-032 validated | runtime `contentApi`·`systemApi`를 기존 공개 `WorkspaceApi`의 부분 타입으로 검사; IPC payload runtime validation은 범위 밖 위험으로 별도 기록 |
 | R-001d | `apps/workspace-app/src/shared/**` | 89 | 검토 완료; 계약 위험 기록 | agent/usage/layout/media/terminal·PKMS shared 책임 확인; terminal capture timeout listener 정리·correlation 위험 기록 |
 | R-001e | 앱 루트·scripts·resources 등 나머지 | 76 | 검토·분류 완료; 후속 위험 기록 | 텍스트 설정/build/release/workflow 스크립트 검토; notarization·Windows secret workflow·Vitest 인자 전달 차이 기록; vendor patch/바이너리·visual assertion의 일부 상세 내용은 제외/부분 검토로 명시 |
