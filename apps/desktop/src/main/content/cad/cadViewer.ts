@@ -6,7 +6,7 @@ import {
   buildCadViewerFileUrl,
   parseCadViewerLaunchJson,
   type CadViewerOpenResult
-} from '../../shared/cadViewer'
+} from '../../../shared/cadViewer'
 
 type ViewerInstance = {
   serveRoot: string

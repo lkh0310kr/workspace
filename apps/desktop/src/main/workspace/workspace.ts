@@ -20,7 +20,7 @@ import { openEpub, type EpubBook } from '../content/epub/epub'
 import type { AssetOpenRequest, ImportJob, SceneManifest } from '../../shared/model3d/types'
 import { routeAssetOpen } from '../content/model3d/assetRouter'
 import { importJobQueue } from '../content/model3d/importJobQueue'
-import { openCadViewerFile as openCadViewerFile_ } from '../content/cadViewer'
+import { openCadViewerFile as openCadViewerFile_ } from '../content/cad/cadViewer'
 import { assertExpectedWorkspaceRoot } from './workspaceRootGuard'
 
 // Direct port of crates/workspace-core/src/workspace.rs.

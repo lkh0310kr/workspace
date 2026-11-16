@@ -54,7 +54,7 @@ import {
 } from './agent/workspaceAgentHookServer'
 import { createWorkspaceAfterAgentHookServer } from './agent/workspaceAgentHookStartup'
 import { resolveMacOptionTerminalBytes } from './terminal/terminalMacOptionShortcuts'
-import { disposeCadViewers } from './content/cadViewer'
+import { disposeCadViewers } from './content/cad/cadViewer'
 import { reinforceExistingWindowFocus } from './platform/window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './terminal/windows-path-registry-change'
 import { checkForUpdatesByUser, initializeAutoUpdates } from './platform/update/autoUpdate'

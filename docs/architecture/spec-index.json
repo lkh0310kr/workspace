@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "a702d5e750e92cdeed96de27dc97cab678d2d7196bd3b2b2d20c75d0eec75980"
+          "sha256": "a26e61571fb3a852fc6cff3f34d0f602e7528f363a760faaf6a994350a7ad73f"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "a702d5e750e92cdeed96de27dc97cab678d2d7196bd3b2b2d20c75d0eec75980"
+          "sha256": "a26e61571fb3a852fc6cff3f34d0f602e7528f363a760faaf6a994350a7ad73f"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -745,7 +745,7 @@
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.ts",
-          "sha256": "1369d0f20b7e2dd28bc2c6785783d56a8a8896c4961261fee653eb474d490730"
+          "sha256": "913e3c894a1e9b6acc8f5b7114252d37aa6d05657300c7c4e35ec111deea9a92"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",
@@ -1137,6 +1137,10 @@
         "docs/architecture/workspace/viewers/README.md"
       ],
       "sources": [
+        {
+          "path": "apps/desktop/src/main/content/cad/cadViewer.ts",
+          "sha256": "cd119d7139067e29da983d74e09269ec5645bcb0e9f79a7303616ddfda405e50"
+        },
         {
           "path": "apps/desktop/src/main/content/model3d/assetRouter.ts",
           "sha256": "3d352ffaaa3c5b792b8314fb93a8170c543535462c05d99117fdf290e656e500"

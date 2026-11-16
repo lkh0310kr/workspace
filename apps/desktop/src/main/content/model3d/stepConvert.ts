@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import * as path from 'node:path'
-import { findAgentsPython } from '../cadViewer'
+import { findAgentsPython } from '../cad/cadViewer'
 
 export type StepConvertResult =
   { ok: true; glbPath: string; warnings: string[] } | { ok: false; error: string }
