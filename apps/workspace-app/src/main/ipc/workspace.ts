@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import type { Workspace } from '../workspace'
-import type { SearchOptions } from '../search'
 import { resolveUserSelectedRootPath } from '../wslPaths'
 import { saveConfig } from '../persistence'
+import { registerWorkspaceSearchIpc } from './workspaceSearch'
 
 /** Register tab, filesystem, search, and workspace-scoped media IPC handlers. */
 export function registerWorkspaceIpc(getWorkspace: () => Workspace, persist: () => void): void {
@@ -71,39 +71,7 @@ export function registerWorkspaceIpc(getWorkspace: () => Workspace, persist: () 
     getWorkspace().renamePath(tabId, fromRel, toRel)
   )
 
-  // Search streams multiple results and supports cancellation, so it uses
-  // event channels instead of a one-shot ipcMain.handle request.
-  const activeSearches = new Map<string, { cancel: () => void }>()
-  ipcMain.on(
-    'fs:search-in-files',
-    (event, requestId: string, tabId: number, query: string, options: SearchOptions) => {
-      activeSearches.get(requestId)?.cancel()
-      try {
-        const handle = getWorkspace().searchInFiles(
-          tabId,
-          query,
-          options,
-          (result) => {
-            if (!event.sender.isDestroyed())
-              event.sender.send('fs:search-result', requestId, result)
-          },
-          (error) => {
-            activeSearches.delete(requestId)
-            if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, error)
-          }
-        )
-        activeSearches.set(requestId, handle)
-      } catch (error) {
-        activeSearches.delete(requestId)
-        const message = error instanceof Error ? error.message : String(error)
-        if (!event.sender.isDestroyed()) event.sender.send('fs:search-done', requestId, message)
-      }
-    }
-  )
-  ipcMain.on('fs:search-cancel', (_event, requestId: string) => {
-    activeSearches.get(requestId)?.cancel()
-    activeSearches.delete(requestId)
-  })
+  registerWorkspaceSearchIpc(getWorkspace)
   ipcMain.handle('fs:list-all-files', (_event, tabId: number) => getWorkspace().listAllFiles(tabId))
   ipcMain.handle('media:get-url', (_event, tabId: number, rel: string) =>
     getWorkspace().mediaUrl(tabId, rel)
