@@ -38,11 +38,12 @@
 | T-027 | R-001b | FileViewer의 이미지/PDF 미리보기를 현재 탭·경로 source에 묶어 경로 전환 뒤 이전 Blob 표시를 차단 | `FileViewerContent.tsx`, path-change lifecycle test, asset viewer spec | 지연된 preview 응답 중 동일 component 경로 변경 동작 재현 | 낮음~중간 | deferred preview lifecycle test, app typecheck, root check, changed-file lint/format | validated |
 | T-028 | R-004 | PKMS Web workspace 전환 전에 열린 Drive 문서 sync를 기다리고 sync 실패 시 현재 workspace를 유지 | `apps/pkms-web/app/routes/pkms-google-drive.tsx`, `flushDocumentBeforeWorkspaceSync.ts` 및 Node lifecycle test, editor parity spec | workspace 전환 계약과 기존 route의 새-runtime-first / old-session-local-close 순서 대조 | 중간~높음 | Node built-in lifecycle tests (4 cases), PKMS Web typecheck, root check, Prettier, spec-index 검사 | validated |
 | T-029 | R-001b | workspace layout persist debounce를 workspace별 timer로 분리해 다른 탭 저장 요청이 취소되지 않게 함 | `workspaceStore.ts`, persist contract test, layout spec | 탭 1→탭 1 최신값 coalescing과 탭 2 병렬 예약 반례 | 낮음~중간 | `workspaceStore.persist.test.ts`, app typecheck, root check, 변경 경로 lint/format, spec-index | validated |
+| T-030 | R-001e | Vitest 실행 wrapper가 `npm test -- <경로/옵션>` 인자를 Vitest로 전달 | `apps/workspace-app/scripts/run-vitest.mjs`, 해당 source digest | 기존 wrapper 동작 및 npm 인자 전달 경로 확인 | 낮음 | `npm test -- --help`로 옵션 전달 확인, 단일 파일 필터로 focused Vitest 실행, source digest 검사 | validated |
 
 ## 검토 현황
 
 - 검토한 전체 영역: 9 / 9; 정적 조사와 경로 분류 완료, 실행 환경 검증은 명시된 한계로 기록
-- 채택한 리팩터링 작업: 33개; 검증 완료 33, 대기 0, 진행 중 0, 차단 0, 보류 0
+- 채택한 리팩터링 작업: 34개; 검증 완료 34, 대기 0, 진행 중 0, 차단 0, 보류 0
 - 변경 불필요로 검토 완료한 영역: 여러 패키지 및 R-001 하위 영역; 보류 후보와 경계 위험은 아래 조사 내역에 기록
 
 ## 체크포인트
@@ -95,4 +96,5 @@
 - T-024 완료: EPUB open error를 `{tabId, filePath, absolutePath, message}`로 저장하고 현재 source에 해당하는 오류만 표시한다. 새 source에는 기존 error branch가 reader host를 제거하지 않으므로 같은 component instance가 다시 로드한다. effect cleanup의 cancelled guard가 이전 async open failure의 stale 적용을 막는다. reject→새 path 성공과 늦은 이전 reject 2 tests, app typecheck 통과.
 - T-025 완료: SQL `LIKE path||'/%'` prefix matching을 slash-boundary literal helper로 교체하고 object key prefix도 literal string prefix로 확인한다. migration 적용 후 `_` false conflict, `%` sibling delete, wildcard-shaped move/create/asset cases를 포함한 6개 local Postgres SQL scripts가 모두 통과했다. 수정 전 underscore false-positive를 재현했고, `npm run pkms:server:typecheck` 및 root `npm run check`도 통과했다. local database test는 `docker exec -i supabase_db_pkms-client psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/<file>.sql`로 실행했다.
 - R-001b pane/viewer 후보: `EpubReaderContent.tsx`의 error branch가 hostRef를 제거해 실패한 책 다음 path 로드를 막는 결함은 T-024에서 source-bound error·stale async 결과 테스트로 수정했다. FileViewer는 T-027에서 Blob preview를 tabId/path에 묶고 다음 경로 응답 전에 이전 파일이 보이지 않는지 검증했다. `CadViewerContent.tsx`는 `paneActive` 변화 때 webview를 재생성하지만 pane state 보존 계약은 없어 보류한다. 실제 WebGL/CAD/EPUB runtime acceptance는 별도 한계다.
-- R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test`의 Vitest wrapper는 경로 인자를 넘기지 못하고 직접 Vitest 실행이 권장된다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
+- R-001e build/release 조사: `electron-builder.yml`의 `notarize: false`는 공개 macOS 배포 notarization 요구 문서와 어긋난다. Windows release workflow는 Google Drive desktop secret/allowlist를 build env에 주입하지 않는 것으로 보여 workflow 실행 시 구성 검증이 필요하다. `build:linux`는 공통 build의 typecheck/helper/decoder 준비를 생략하지만 Linux는 현재 비활성 플랫폼이라 재활성화 때 확인한다. `npm test` wrapper의 경로 인자 미전달은 T-030에서 수정했다. WebGL probe script와 app 환경 helper의 switch 로직은 유사해 drift 위험이 있으나 CLI 경계가 달라 추출은 보류했다. 설정/스크립트 검토에서 배포를 실행하지 않았다.
+- R-001e T-030: `run-vitest.mjs`가 CLI 인자를 버려 `npm test -- <필터>`도 전체 suite로 실행하던 결함을 고치고 Vitest 호출 인자에 `process.argv.slice(2)`를 전달했다. `npm test -- --help`에서 Vitest 옵션 화면이 출력되어 인자 전달을 확인했다. 파일 필터 focused 검증도 수행했다.

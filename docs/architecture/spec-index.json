@@ -963,7 +963,7 @@
         },
         {
           "path": "apps/workspace-app/scripts/run-vitest.mjs",
-          "sha256": "dd1e49997dff0b5d4a52bac8fa9f88a04b37f33c7447afd46e1fe9747b5a7bc3"
+          "sha256": "5f6c3c6e9eaefbce9ba53e16012194488edbe356b2c0afdc572a8ee71cb56138"
         },
         {
           "path": "apps/workspace-app/src/main/ipc/workspaceSearch.ts",
