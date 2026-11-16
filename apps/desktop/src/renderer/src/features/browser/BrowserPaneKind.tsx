@@ -19,6 +19,9 @@ export const browserPaneKind: PaneKindDefinition = {
   tabLabel(item) {
     return getBrowserTabLabel(item)
   },
+  renderTabIcon(item) {
+    return item.favicon ? <img src={item.favicon} className="pane-tab-favicon" alt="" /> : null
+  },
   onItemRemoved(item) {
     closeBrowserTab(item.id)
   },

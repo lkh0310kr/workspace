@@ -129,6 +129,8 @@ export interface PaneKindDefinition {
   renderOverlay?: (ctx: PaneOverlayRenderContext) => ReactNode
   /** Optional kind-owned sidebar, mounted only while this kind is active. */
   renderSidebar?: ComponentType<PaneSidebarRenderContext>
+  /** Optional kind-owned tab icon; generic pane-system UI supplies the fallback. */
+  renderTabIcon?: (item: PaneTabItem, size: number) => ReactNode
   /** Optional path-opening behavior supplied by Editor-like features. */
   openFileInGroup?: (context: PaneFileOpenContext) => void | Promise<void>
   /** Base tab-chip label. The dirty "•" prefix is applied generically on

@@ -3,8 +3,7 @@ import {
   detectAgentStatusFromTitle,
   normalizeTerminalTitle
 } from '@workspace/terminal/agent/agent-title-status'
-import { getAgentLabel } from '../../agent/agent-catalog'
-import { TerminalPane } from '@workspace/terminal'
+import { AgentIcon, getAgentLabel, TerminalPane } from '@workspace/terminal'
 import { desktopTerminalPaneHost } from './terminalPaneHost'
 import type { PaneKindDefinition } from '../pane-system/paneKindRegistry'
 import type { PaneTabItem } from '../pane-system/layout/paneTypes'
@@ -28,6 +27,9 @@ export const terminalPaneKind: PaneKindDefinition = {
     return { id, kind: 'terminal', terminalId: await spawnTerminal(120, 40, workspaceTabId) }
   },
   tabLabel: terminalTabLabel,
+  renderTabIcon(item, size) {
+    return item.terminalAgent ? <AgentIcon agent={item.terminalAgent} size={size - 2} /> : null
+  },
   render(ctx) {
     return (
       <TerminalPane

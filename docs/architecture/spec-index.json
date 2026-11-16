@@ -630,7 +630,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/BrowserPaneKind.tsx",
-          "sha256": "d9c6ac88b97e1d25176176bc96cde2c7606be5bdfd49dced8d4112f81468fcbf"
+          "sha256": "154fdc81d8c8cbec2ee83280ab559ac6db12c7468f51c06a3358aacccdf7ecec"
         },
         {
           "path": "apps/desktop/src/shared/browserDownloadEvent.ts",
@@ -865,7 +865,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/paneKindRegistry.ts",
-          "sha256": "7f6253bdce8068d06c9a99deb84f2c0da4e9447bc92ca456f37e9c7e384e4070"
+          "sha256": "fac6cf41b320536cd54f1eb89629e8c9e1a381afb0e43f97cec4d30e7fe790f4"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/builtinPaneKinds.ts",
@@ -930,7 +930,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/TerminalPaneKind.tsx",
-          "sha256": "ce5268462b99018a1329e84e18ef1eaa5b15555de213a7dc2df93c05bca1ea52"
+          "sha256": "2809f5da6149b08d29f6ab771069f3b7fbcc057d477ab31bfa8d77cce1c4796f"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/state/runtimeTerminalTitlesStore.ts",
@@ -1345,7 +1345,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "1feeb0ce3e39137c2fac4148d232487a04fd6db03313a82183a7cfc864aaaf6e"
+          "sha256": "eaf4eb311f02283e75f054ad15f000d427fe6588cb0e23c9ac65268378da661d"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",

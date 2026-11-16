@@ -12,6 +12,8 @@ export { focusTerminalTextarea } from './focusTerminalTextarea'
 export { TerminalPane } from './TerminalPane'
 export { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
 export { copyTerminalSelection } from './terminal-selection-copy'
+export { AgentIcon, AGENT_CATALOG, getAgentLabel } from './agent/ui/agent-catalog'
+export type { AgentCatalogEntry } from './agent/ui/agent-catalog'
 
 export {
   BRACKETED_PASTE_START,

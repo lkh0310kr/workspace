@@ -10,7 +10,6 @@ import {
 import type { TabNode } from 'flexlayout-react'
 import { ContextMenu } from '../../components/ContextMenu'
 import { PanePicker } from './PanePicker'
-import { AgentIcon } from '../../agent/agent-catalog'
 import { PaneTabItem, TabKind } from './layout/paneTypes'
 import {
   paneKindIcon,
@@ -259,13 +258,8 @@ export function PaneTabStrip({
                 id={item.id}
                 label={paneTabLabel(item, dirty)}
                 icon={
-                  item.kind === 'browser' && item.favicon ? (
-                    <img src={item.favicon} className="pane-tab-favicon" alt="" />
-                  ) : item.kind === 'terminal' && item.terminalAgent ? (
-                    <AgentIcon agent={item.terminalAgent} size={12} />
-                  ) : (
-                    <WorkbenchIcon name={paneKindIcon(item.kind) as WorkbenchIconName} size={14} />
-                  )
+                  getPaneKind(item.kind).renderTabIcon?.(item, 14) ??
+                  <WorkbenchIcon name={paneKindIcon(item.kind) as WorkbenchIconName} size={14} />
                 }
                 active={item.id === activeTabId}
                 preview={item.isPreview}
