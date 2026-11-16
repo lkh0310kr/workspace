@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { pasteTerminalClipboard } from './terminal-clipboard-paste'
-import {
-  markTerminalBracketedPasteInterrupted,
-  pasteTerminalText
-} from './terminal-bracketed-paste'
+import { markTerminalBracketedPasteInterrupted, pasteTerminalText } from '@workspace/terminal'
 
 describe('terminal clipboard paste', () => {
   it('forces bracketed paste for generated image-only clipboard paths', async () => {

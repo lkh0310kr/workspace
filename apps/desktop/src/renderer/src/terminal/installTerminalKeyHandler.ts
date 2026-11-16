@@ -8,12 +8,9 @@ import { sendCapturedTerminalInput } from './terminal-captured-input-dispatch'
 import { pasteClipboardIntoTerminal } from './terminal-clipboard-paste'
 import { readTerminalClipboardSelection } from '@workspace/terminal/terminal/terminal-clipboard-selection-text'
 import { copyTerminalSelection } from './terminal-selection-copy'
-import { shouldBypassXtermClipboardKeyboardEvent } from './xterm-clipboard-bypass-policy'
+import { shouldBypassXtermClipboardKeyboardEvent } from '@workspace/terminal'
 import { notifyTerminalKeyboardPasteHandled } from './installTerminalPasteHandler'
-import {
-  resolveTerminalShortcutAction,
-  type TerminalShortcutAction
-} from './terminal-shortcut-policy'
+import { resolveTerminalShortcutAction, type TerminalShortcutAction } from '@workspace/terminal'
 import { reprTerminalBytes, serializeKeyboardEvent, termLog } from './terminalDebugLog'
 import type { PtyTransport } from './ptyTransport'
 

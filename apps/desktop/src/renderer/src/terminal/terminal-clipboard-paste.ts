@@ -1,7 +1,7 @@
 import type { Terminal } from '@xterm/xterm'
 import { readClipboardText, saveClipboardImageAsTempFile } from '../electron'
-import { pasteTerminalText, type PasteTerminalTextOptions } from './terminal-bracketed-paste'
-import { resolveTerminalMultilinePasteOptions } from './terminal-paste-options'
+import { pasteTerminalText, type PasteTerminalTextOptions } from '@workspace/terminal'
+import { resolveTerminalMultilinePasteOptions } from '@workspace/terminal'
 
 type PasteTerminalClipboardDeps = {
   readClipboardText: () => Promise<string>

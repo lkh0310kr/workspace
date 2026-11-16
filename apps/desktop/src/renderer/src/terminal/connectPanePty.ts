@@ -19,7 +19,7 @@ import { useRuntimeTerminalTitlesStore } from '../store/runtimeTerminalTitlesSto
 import {
   markTerminalBracketedPasteInterrupted,
   observeTerminalBracketedPasteModeOutput
-} from './terminal-bracketed-paste'
+} from '@workspace/terminal'
 import { forwardXtermInputToPty } from './forward-xterm-input-to-pty'
 import { reprTerminalBytes, termLog } from './terminalDebugLog'
 

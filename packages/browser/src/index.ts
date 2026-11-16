@@ -42,7 +42,6 @@ export type { BrowserZoomDirection, BrowserZoomWebview } from './browserZoom'
 export { BrowserNavButton } from './BrowserNavButton'
 export type { BrowserNavHistoryEntry } from './BrowserNavButton'
 export { BrowserDownloadsBar } from './BrowserDownloadsBar'
-export type { BrowserDownloadItem } from './BrowserDownloadsBar'
 export type { BrowserOpenNewTabEvent, BrowserPaneHost } from './BrowserPaneHost'
 export type { BrowserWebviewEventMap, BrowserWebviewPort } from './BrowserWebview'
 export { BrowserContent } from './BrowserContent'
@@ -50,3 +49,11 @@ export type { BrowserPaneItem } from './BrowserPaneHost'
 export { BrowserPaneOverlaySlot } from './BrowserPaneOverlaySlot'
 export { browserPageGuestNeedsAttach, resolveBrowserPageWebview } from './browserPageGuestRecovery'
 export type { GetPersistentBrowserWebview } from './browserPageGuestRecovery'
+
+export {
+  applyBrowserDownloadEvent,
+  getBrowserDownloads,
+  getBrowserDownloadsForWebview,
+  subscribeBrowserDownloads
+} from './browserDownloads'
+export type { BrowserDownloadEvent, BrowserDownloadItem } from './browserDownloads'

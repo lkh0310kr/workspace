@@ -12,7 +12,7 @@ Electron webview guest, pane overlay viewport, renderer/main IPC로 구성한다
 | packages/browser/src/BrowserAddressBar.tsx                                                                                                                      | URL 입력, 방문 기록 제안, 주소창 focus/dismiss host port                                                 |
 | packages/browser/src/BrowserWebview.ts, BrowserPaneHost.ts                                                                                                      | feature가 쓰는 최소 guest/event 타입과 Desktop host capability 계약                                      |
 | packages/browser/src/browserUrl.ts, browserAddressBarSuggestions.ts, browserHistory.ts, browserNavigationState.ts, browserZoom.ts, browserPageWebviewActions.ts | URL 정책, 제안 순위, 방문 기록, navigation state 안전 조회                                               |
-| packages/browser/src/BrowserContent.tsx                                                                                                                         | Browser pane view, URL/loading/error/rendererGone, webContentsId, pending navigation, listener 연결      |
+| packages/browser/src/BrowserContent.tsx, browserDownloads.ts                                                                                                    | Browser pane view와 다운로드 상태 store; IPC 이벤트 수신은 Desktop relay가 연결                          |
 | packages/browser/src/browserPageGuestRecovery.ts                                                                                                                | guest/container 정합성 판정과 stale React ref 복구; persistent registry 조회는 host capability 사용      |
 | renderer/src/features/browser/browserPaneHost.ts                                                                                                                | `Electron.WebviewTag`를 BrowserWebviewPort로 변환하고 Desktop registry·IPC/focus 기능을 주입하는 adapter |
 | packages/browser/src/BrowserPaneOverlaySlot.tsx, renderer/src/panes/kinds/browserKind.tsx                                                                       | Browser overlay slot과 Browser pane tab 구성                                                             |
@@ -29,7 +29,7 @@ workspaceTabId는 workspace, paneNodeId는 layout group, item.id는 browser 탭 
 
 BrowserContent는 좁은 BrowserPaneItem(url/title/favicon/zoomFactor), workspace tabId, paneNodeId, paneVisible/chipActive와 host capability 및 navigation/focus callbacks를 받는다. URL/title/favicon/zoom 변경은 onUpdate로 layout item에 반영한다. guest 생명주기를 React component mount와 동일시하지 않는다.
 
-PaneGroup은 `PaneKindDefinition.renderOverlay`로 overlay kind를 배치한다. Browser slot과 view는 Browser package가 제공하며, pane kind는 좁은 item data와 callbacks를 전달한다. `BrowserAddressBar`와 `BrowserContent`는 package의 host capability를 사용한다. Desktop이 Electron guest lifecycle·download store·InteractionCoordinator·IPC adapter를 제공한다. tab 선택과 workspace visibility는 계속 표시·입력 신호이며 webview 제거 조건이 아니다.
+PaneGroup은 `PaneKindDefinition.renderOverlay`로 overlay kind를 배치한다. Browser slot과 view는 Browser package가 제공하며, pane kind는 좁은 item data와 callbacks를 전달한다. `BrowserAddressBar`와 `BrowserContent`는 package의 host capability를 사용한다. Desktop이 Electron guest lifecycle·persistent registry·InteractionCoordinator·IPC adapter를 제공한다. 다운로드 store와 표시 정책은 Browser package가 소유하고 Desktop relay가 preload 이벤트를 전달한다. tab 선택과 workspace visibility는 계속 표시·입력 신호이며 webview 제거 조건이 아니다.
 
 ## 재구현 순서
 

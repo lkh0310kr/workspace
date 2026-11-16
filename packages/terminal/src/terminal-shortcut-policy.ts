@@ -1,5 +1,3 @@
-import type { OptionKeyLocationState } from '../lib/keyboard-layout/option-key-location-state'
-
 export type TerminalShortcutEvent = {
   key: string
   code?: string
@@ -46,7 +44,7 @@ function isOptionNavigationCode(code?: string): boolean {
 export function resolveTerminalShortcutAction(
   event: TerminalShortcutEvent,
   isMac: boolean,
-  optionKeyLocations: OptionKeyLocationState = 0,
+  optionKeyLocations: 0 | 1 | 2 | 3 = 0,
   getKittyKeyboardFlags: () => number = () => 0
 ): TerminalShortcutAction | null {
   if (event.isComposing) {

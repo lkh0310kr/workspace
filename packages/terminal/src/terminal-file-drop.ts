@@ -1,4 +1,4 @@
-import type { TuiAgent } from '../../../shared/agent/tui-agent'
+import type { TuiAgent } from './types/tuiAgent'
 
 export const TERMINAL_FILE_DROP_EVENT = 'workspace-terminal-file-drop'
 

@@ -550,7 +550,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/browserDownloads.ts",
-          "sha256": "c33a3073e632556609cb3ee1dddf62aa836e6ffbc706a9b836448c411cd03721"
+          "sha256": "59f6b9fb4f3fc812fff50779b0878f4090549c37ab136a58b8b4be758ccd6baa"
         },
         {
           "path": "apps/desktop/src/renderer/src/browserNavHistory.ts",
@@ -611,6 +611,10 @@
         {
           "path": "apps/desktop/src/shared/browserDownloadEvent.ts",
           "sha256": "b043a0d47022e93799eb9b2d872ec80b4643421af68342e5dd0a1b157061e86d"
+        },
+        {
+          "path": "packages/browser/src/browserDownloads.ts",
+          "sha256": "e1dc740dcdbb0a4011eb93f508dc32d0b15acd8db4cb9c08f248e76e0d5845cb"
         }
       ]
     },
@@ -786,7 +790,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/terminalPaneHost.ts",
-          "sha256": "2476e85b5356a9feac43194047ee23a6ccd9febee0f324f20abcde2f4d235d27"
+          "sha256": "c2593ad85762f7b3731af1ab38ff1946aa5721f5a92768b530dc817101cfa68c"
         },
         {
           "path": "apps/desktop/src/renderer/src/terminal/ptyDataMultiplexer.ts",
@@ -1020,7 +1024,7 @@
       "sources": [
         {
           "path": "packages/browser/package.json",
-          "sha256": "25a9f8ec4041bd9eeeabc3c3b8aa71dca3c3d7546f1be3cfaea3de834385dafe"
+          "sha256": "51d2b321c6db6dcf5a1e99fff77cdd4231d1ec5a3637a761bb22dc7fb9eadb4e"
         },
         {
           "path": "packages/browser/src/BrowserAddressBar.tsx",
@@ -1032,7 +1036,7 @@
         },
         {
           "path": "packages/browser/src/BrowserDownloadsBar.tsx",
-          "sha256": "7f0fd87601debc3cfa3b3426710762ad2ae0d9b1d7570f630ae209fb268762ac"
+          "sha256": "2d28f6791b3123122476facb5824608488ca7a65a870c492b9b8d4bbcb8d402d"
         },
         {
           "path": "packages/browser/src/BrowserNavButton.tsx",
@@ -1040,7 +1044,7 @@
         },
         {
           "path": "packages/browser/src/BrowserPaneHost.ts",
-          "sha256": "3b6c418af29210c521c506462e72f379a20559598116084c9b1b3a9db697bd1e"
+          "sha256": "e742de68c6241efb21097c661500d60aa9a1ddb56a6e7fd0b2f7c4a7cd3ee3d4"
         },
         {
           "path": "packages/browser/src/BrowserWebview.ts",
@@ -1120,7 +1124,7 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "471a3c14d9e11974110cf6d902b22a7d31ada0134e26614831e66c6f482c74f8"
+          "sha256": "6391ff420a3d06491e3d1eced530efcb68237855f79c360051f4c9172dc994ac"
         },
         {
           "path": "packages/browser/src/useBrowserPageSlotViewport.ts",
@@ -1173,7 +1177,7 @@
         },
         {
           "path": "packages/terminal/src/index.ts",
-          "sha256": "c19d1c9d4dc82626d45cb2c56d34a40ed5d023af325ff44d252500f997e87edb"
+          "sha256": "2919614922c1948df939abcb9980b7155fe36a9c56389a360cf0a27e6729e6e7"
         },
         {
           "path": "packages/terminal/src/monospace-font-family.test.ts",
@@ -1622,6 +1626,46 @@
         {
           "path": "packages/terminal/src/types/tuiAgent.ts",
           "sha256": "7c470c858ddc10988ea2b7e230d127a8d9bc70acf03e8dc8226d799749ce023b"
+        },
+        {
+          "path": "packages/terminal/src/terminal-bracketed-paste.ts",
+          "sha256": "39867a7d9e744228f32430fb6ffd90b70fc27440445f07dc4252d2da044919eb"
+        },
+        {
+          "path": "packages/terminal/src/terminal-bracketed-paste.test.ts",
+          "sha256": "c5a7cea4f57a23a250a55c9bb6c86daa39b6b10c735a734094d2d2c6dcf78308"
+        },
+        {
+          "path": "packages/terminal/src/terminal-paste-options.ts",
+          "sha256": "91a9becd5a3affedf3a6f97ed4849ebf97223d03a974f970e8941c4a7f14104e"
+        },
+        {
+          "path": "packages/terminal/src/terminal-paste-options.test.ts",
+          "sha256": "b9d71c561f656d4eb17bbef4886685eb65671900b1bc1703325f50640bbf5e7e"
+        },
+        {
+          "path": "packages/terminal/src/terminal-file-drop.ts",
+          "sha256": "54fe217462278e5303d02f89eba2ed2c1772e87c7ca0c01331fdd337faedff0f"
+        },
+        {
+          "path": "packages/terminal/src/terminal-file-drop.test.ts",
+          "sha256": "a5e0913a130d92fd6fce95b5d0db2f186354ad6454d744642f836284965ebc29"
+        },
+        {
+          "path": "packages/terminal/src/terminal-shortcut-policy.ts",
+          "sha256": "10e16e1f3447f1edea75f47a8b1aeb1fa7859675d7ccc188f9b4600960a89406"
+        },
+        {
+          "path": "packages/terminal/src/terminal-shortcut-policy.test.ts",
+          "sha256": "44261c7249acfeada3afac2910014ab3dd0a51376b22709acd3ec44d3ce35d7e"
+        },
+        {
+          "path": "packages/terminal/src/xterm-clipboard-bypass-policy.ts",
+          "sha256": "d221ce4483a5cd6f7c7b5246501deeaf099eef1b976fd970dce738c8ea9fffc7"
+        },
+        {
+          "path": "packages/terminal/src/xterm-clipboard-bypass-policy.test.ts",
+          "sha256": "68b5f32fb64dead329d7c6776f3b09b5f7d868c11aabc6599e2c75a83177f09f"
         }
       ]
     },

@@ -15,7 +15,7 @@ import { requestKeyboardSurface } from '../../interaction/keyboardSurface'
 import { registerTerminalKeyboardTarget } from '../../terminal/terminalKeyboardSurface'
 import { installTerminalKeyHandler } from '../../terminal/installTerminalKeyHandler'
 import { installTerminalPasteHandler } from '../../terminal/installTerminalPasteHandler'
-import { installTerminalFileDropHandler } from '../../terminal/terminal-file-drop'
+import { installTerminalFileDropHandler } from '@workspace/terminal'
 import { termLog } from '../../terminal/terminalDebugLog'
 
 export type { TerminalPaneHost } from '@workspace/terminal'

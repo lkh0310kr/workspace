@@ -1,11 +1,5 @@
-export interface BrowserDownloadItem {
-  id: string
-  filename: string
-  path: string
-  receivedBytes: number
-  totalBytes: number
-  state: 'progressing' | 'interrupted' | 'completed' | 'cancelled'
-}
+import type { BrowserDownloadItem } from './browserDownloads'
+export type { BrowserDownloadItem } from './browserDownloads'
 
 interface Props {
   items: readonly BrowserDownloadItem[]
