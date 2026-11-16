@@ -63,7 +63,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "4ab5d15abfacc3dfe4c57dd6f21e56c8ca4427cc3b22ae537b5e54ad62190d3a"
+          "sha256": "9f6c2f66c095d1550392460d197db4699207e4309e053daa28e0a54d3b0256c7"
         },
         {
           "path": "apps/desktop/src/renderer/src/editor/localEditorProvider.ts",
@@ -553,22 +553,6 @@
           "sha256": "be7554f8693dc733b88e350e446560c0608d0853444a9fc2acc0276b73fef00c"
         },
         {
-          "path": "apps/desktop/src/renderer/src/browser/useBrowserChromeFocus.ts",
-          "sha256": "ee016c2bb922f98dd5c117864e7e3c35b962b35b5efe869b13c52b4df7bf17ad"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browser/useBrowserGuestActivationFocus.ts",
-          "sha256": "b3af95bba442df74765a8afacce45fb6ae1b12cb2fff01393ebe59d5077c3f20"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browser/useWebviewDragPassthroughActive.ts",
-          "sha256": "8cebed016fd6e53b93b308b51ed9037349d7f768dc4de127f0075cf22efcb2eb"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/browser/useWebviewGuestFocus.ts",
-          "sha256": "16c84125300ba38ee558be1bfd33e1b1a0e00b341455b0b2daa64f925ec5f23d"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/browserDownloads.ts",
           "sha256": "c33a3073e632556609cb3ee1dddf62aa836e6ffbc706a9b836448c411cd03721"
         },
@@ -597,20 +581,12 @@
           "sha256": "b978050c141e09393400b29afb00ce9de6d3917ae1f8c085197271b75c3c6b81"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/browser/BrowserContent.tsx",
-          "sha256": "950bba2a168fea9b4e436ea2bbf53e20d454af05754c84358afdc358353484aa"
-        },
-        {
-          "path": "apps/desktop/src/renderer/src/features/browser/BrowserPaneOverlaySlot.tsx",
-          "sha256": "cd9d51d9a02e3b9e9998777eff3ea51f42dad5019e94002546698ae20434239a"
-        },
-        {
           "path": "apps/desktop/src/renderer/src/features/browser/browserPaneHost.ts",
-          "sha256": "b572c9f08208b786a4920529831680c2c6041a646043f52b1d15d53ec284a268"
+          "sha256": "d9f096cc27b6b90ced45de49d1c76cae6048729ab7ed89de91ce3e49961135c7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/index.ts",
-          "sha256": "e4fb7c2f978fa922e97ac14ff8135b375d1c85a194d908a53349188ed0a21f7f"
+          "sha256": "7a8deb393596029726766baa3d473c2cee5297a502ae4f39c031124bde635369"
         },
         {
           "path": "apps/desktop/src/renderer/src/interaction/InteractionCoordinator.ts",
@@ -1041,7 +1017,7 @@
       "scope": "package",
       "owner": "packages/browser",
       "specStatus": "drafted",
-      "coverage": "Browser address input, navigation/history/zoom policies, guest actions, overlay viewport management, and navigation-state policy. Electron guest lifecycle and IPC are Desktop adapters.",
+      "coverage": "Browser pane view, overlay slot, controls, address input, navigation/history/zoom policies, guest focus, and viewport management. Electron guest creation/recovery, persistent registry, download state, and IPC are Desktop adapters.",
       "documents": [
         "packages/browser/README.md"
       ],
@@ -1055,8 +1031,32 @@
           "sha256": "a54d30a9705a76f290ed458aaaf6e9b3349c9d36e21b105438bd6f541a3b40e6"
         },
         {
+          "path": "packages/browser/src/BrowserContent.tsx",
+          "sha256": "adb56ab4f235f8758bbff7df7757a418a364b3f2a0601a0d81f1889d472446d6"
+        },
+        {
+          "path": "packages/browser/src/BrowserDownloadsBar.tsx",
+          "sha256": "7f0fd87601debc3cfa3b3426710762ad2ae0d9b1d7570f630ae209fb268762ac"
+        },
+        {
+          "path": "packages/browser/src/BrowserNavButton.tsx",
+          "sha256": "70148da49c8164bd4a7926c2dc5e1a57a0edf8643d4e25c73833441d5b49f933"
+        },
+        {
+          "path": "packages/browser/src/BrowserPaneHost.ts",
+          "sha256": "c4127ba6b53ea2a55d24318b915ec2f8d0bf78b680bca13a6c76c4ce7855d3a8"
+        },
+        {
+          "path": "packages/browser/src/BrowserPaneOverlaySlot.tsx",
+          "sha256": "c95ebf570d361e7663c218f3f5443eecf1f452ebd13e317231d4b42efbe338ed"
+        },
+        {
           "path": "packages/browser/src/browser.module.css",
           "sha256": "f538ed2955f81862ab07c2855fae8fb8e5885c8b14eee15d70e53e096c9fe654"
+        },
+        {
+          "path": "packages/browser/src/browser.css",
+          "sha256": "9fbb0a5f52235a1f68173084f9558a63f4eed914ef5ce8cbff22ba0f9d2564c2"
         },
         {
           "path": "packages/browser/src/browserAddressBarSuggestions.test.ts",
@@ -1112,11 +1112,23 @@
         },
         {
           "path": "packages/browser/src/index.ts",
-          "sha256": "a5f1fb64ec78471ed4e9252b7181ff8060285ea13123beb11da3c4a3517e54e8"
+          "sha256": "ddac0b3541c8ca7a16156f9d3921132b005b32c81703ca1eb6aeef6c5677084d"
         },
         {
           "path": "packages/browser/src/useBrowserPageSlotViewport.ts",
           "sha256": "b4882a72f9adefe60a16a54046b9bab98fb45d4e7aacefacac75c27a7ca00232"
+        },
+        {
+          "path": "packages/browser/src/useBrowserChromeFocus.ts",
+          "sha256": "ee016c2bb922f98dd5c117864e7e3c35b962b35b5efe869b13c52b4df7bf17ad"
+        },
+        {
+          "path": "packages/browser/src/useBrowserGuestActivationFocus.ts",
+          "sha256": "79c9e383461c2a04c07c3d32a3a6190d8fd37f09ed42a4b4fa24676d47e47e5e"
+        },
+        {
+          "path": "packages/browser/src/useWebviewGuestFocus.ts",
+          "sha256": "d259b0ec9df27933ed5f15666b011d0cc3d9d0922c5c03e1dff025a1ae839fc4"
         }
       ]
     },

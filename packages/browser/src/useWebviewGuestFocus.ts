@@ -1,6 +1,5 @@
 import { useMemo, type RefObject } from 'react'
-import { browserFocusLog } from './browserFocusDebugLog'
-import { focusBrowserGuestWebview, isWebviewHostFocused } from './browserGuestFocus'
+import type { BrowserPaneHost } from './BrowserPaneHost'
 
 /** How browser chrome hands focus to the <webview> guest (Orca browser-page-guest-focus). */
 export type WebviewGuestFocus = {
@@ -10,30 +9,31 @@ export type WebviewGuestFocus = {
 }
 
 export function useWebviewGuestFocus(
-  webviewRef: RefObject<Electron.WebviewTag | null>
+  webviewRef: RefObject<Electron.WebviewTag | null>,
+  host: Pick<BrowserPaneHost, 'focusGuest' | 'isWebviewHostFocused' | 'logFocus'>
 ): WebviewGuestFocus {
   return useMemo(
     () => ({
       blur: () => {
-        browserFocusLog('useWebviewGuestFocus.blur', 'blur guest host')
+        host.logFocus('useWebviewGuestFocus.blur', 'blur guest host')
         webviewRef.current?.blur()
       },
       isAttached: () => webviewRef.current !== null,
       focus: (reason = 'unknown') => {
         const webview = webviewRef.current
         if (!webview) {
-          browserFocusLog('useWebviewGuestFocus.focus', 'no webview ref', { reason })
+          host.logFocus('useWebviewGuestFocus.focus', 'no webview ref', { reason })
           return false
         }
-        focusBrowserGuestWebview(webview, reason)
-        const ok = isWebviewHostFocused(webview)
-        browserFocusLog('useWebviewGuestFocus.focus', ok ? 'focused' : 'focus incomplete', {
+        host.focusGuest(webview, reason)
+        const ok = host.isWebviewHostFocused(webview)
+        host.logFocus('useWebviewGuestFocus.focus', ok ? 'focused' : 'focus incomplete', {
           reason,
           tabItemId: webview.dataset.tabItemId
         })
         return ok
       }
     }),
-    [webviewRef]
+    [webviewRef, host]
   )
 }

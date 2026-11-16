@@ -1,5 +1,5 @@
 # @workspace/browser
 
-Browser address input, navigation policy, visit-history suggestions, overlay viewport management, navigation/zoom policy, and guarded guest actions. Electron webview lifecycle, pane overlay registration, downloads, and IPC remain Desktop adapters.
+Browser feature package: pane view and overlay slot, address input, navigation/history UI, viewport state, zoom policy, and guest focus coordination. The typed `BrowserPaneHost` boundary lets Desktop provide Electron webview creation/recovery, persistent guest registry, download state/reveal, InteractionCoordinator, and IPC behavior.
 
 Detailed lifecycle and IPC contract: [Browser architecture](../../docs/architecture/workspace/browser/README.md).

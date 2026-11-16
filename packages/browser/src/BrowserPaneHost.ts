@@ -1,4 +1,13 @@
 import type { BrowserNavHistoryEntry } from './BrowserNavButton'
+import type { BrowserDownloadItem } from './BrowserDownloadsBar'
+
+export interface BrowserPaneItem {
+  id: string
+  url?: string
+  title?: string
+  favicon?: string
+  zoomFactor?: number
+}
 
 export type BrowserOpenNewTabEvent = { hostWebContentsId: number; url: string }
 
@@ -35,4 +44,26 @@ export interface BrowserPaneHost {
     webContentsId: number
   ) => Promise<{ entries: BrowserNavHistoryEntry[]; activeIndex: number } | null>
   goToNavHistoryIndex: (webContentsId: number, index: number) => Promise<void>
+  ensureWebview: (args: {
+    tabItemId: string
+    container: HTMLDivElement
+    initialUrl: string
+    initialZoom: number
+  }) => { webview: Electron.WebviewTag; created: boolean } | null
+  guestNeedsAttach: (tabItemId: string, webview: Electron.WebviewTag | null) => boolean
+  resolveWebview: (
+    tabItemId: string,
+    webviewRef: { current: Electron.WebviewTag | null }
+  ) => Electron.WebviewTag | null
+  setWebviewInputLock: (webview: Electron.WebviewTag, inputLocked: boolean) => void
+  getDownloads: (webContentsId: number) => BrowserDownloadItem[]
+  subscribeDownloads: (listener: () => void) => () => void
+  revealDownload: (path: string) => void
+  isGuestInteractive: (webview: Electron.WebviewTag) => boolean
+  isGuestWebContentsFocused: (webContentsId: number) => boolean
+  isWebviewHostFocused: (webview: Electron.WebviewTag) => boolean
+  isDragPassthroughActive: () => boolean
+  subscribeDragPassthrough: (listener: () => void) => () => void
+  logFocus: (location: string, message: string, data?: Record<string, unknown>) => void
+  snapshotFocus: (webview?: Electron.WebviewTag | null) => Record<string, unknown>
 }

@@ -1,45 +1,39 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
-  BrowserAddressBar,
-  normalizeBrowserNavigationUrl,
-  recordBrowserVisit,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react'
+import { BrowserAddressBar } from './BrowserAddressBar'
+import { normalizeBrowserNavigationUrl } from './browserUrl'
+import { recordBrowserVisit } from './browserHistory'
+import {
   applyBrowserPageViewportLayout,
   ensureBrowserPageViewport,
   parkBrowserPageViewport,
-  syncBrowserPageChromeInset,
-  useBrowserPageSlotViewport,
-  readBrowserNavigationState,
-  dispatchLocalBrowserZoom,
-  registerBrowserZoomPersist,
-  loadBrowserPageWebviewUrl,
-  reloadBrowserPageWebview,
-  BrowserNavButton,
-  BrowserDownloadsBar
-} from '@workspace/browser'
-import { browserFocusLog, snapshotBrowserFocusState } from '../../browser/browserFocusDebugLog'
-import { getBrowserDownloadsForWebview, subscribeBrowserDownloads } from '../../browserDownloads'
-import { revealItemInDir } from '../../electron'
-import type { BrowserDownloadItem } from '@workspace/browser'
-import { ensureBrowserPageWebview } from '../../browser/ensureBrowserPageWebview'
-import {
-  browserPageGuestNeedsAttach,
-  resolveBrowserPageWebview
-} from '../../browser/browserPageGuestRecovery'
-import { useBrowserChromeFocus } from '../../browser/useBrowserChromeFocus'
-import { useBrowserGuestActivationFocus } from '../../browser/useBrowserGuestActivationFocus'
-import { useWebviewGuestFocus } from '../../browser/useWebviewGuestFocus'
-import { setBrowserPageWebviewInputLock } from '../../browser/ensureBrowserPageWebview'
-import type { PaneTabItem } from '../../layout/paneTypes'
-import type { BrowserPaneHost } from './browserPaneHost'
+  syncBrowserPageChromeInset
+} from './browserPageViewport'
+import { useBrowserPageSlotViewport } from './useBrowserPageSlotViewport'
+import { readBrowserNavigationState } from './browserNavigationState'
+import { dispatchLocalBrowserZoom, registerBrowserZoomPersist } from './browserZoom'
+import { loadBrowserPageWebviewUrl, reloadBrowserPageWebview } from './browserPageWebviewActions'
+import { BrowserNavButton } from './BrowserNavButton'
+import { BrowserDownloadsBar, type BrowserDownloadItem } from './BrowserDownloadsBar'
+import type { BrowserPaneHost, BrowserPaneItem } from './BrowserPaneHost'
+import { useBrowserChromeFocus } from './useBrowserChromeFocus'
+import { useBrowserGuestActivationFocus } from './useBrowserGuestActivationFocus'
+import { useWebviewGuestFocus } from './useWebviewGuestFocus'
 
 interface Props {
   host: BrowserPaneHost
   tabId: number
   paneNodeId: string
-  item: PaneTabItem
+  item: BrowserPaneItem
   paneVisible: boolean
   chipActive: boolean
-  onUpdate: (patch: Partial<PaneTabItem>) => void
+  onUpdate: (patch: Partial<BrowserPaneItem>) => void
   onOpenNewTab: (url: string) => void
   onFocusPaneGroup: () => void
   onSelectPaneTab: (id: string) => void
@@ -72,6 +66,11 @@ export function BrowserContent({
   const isActive = paneVisible && chipActive
   const isPaintable = paneVisible
   const chipShown = isActive
+  const dragPassthroughActive = useSyncExternalStore(
+    host.subscribeDragPassthrough,
+    host.isDragPassthroughActive,
+    () => false
+  )
 
   const slotViewport = useBrowserPageSlotViewport(paneNodeId)
   const [attachNonce, setAttachNonce] = useState(0)
@@ -107,18 +106,20 @@ export function BrowserContent({
   const domReadyRef = useRef(false)
   const pendingNavigationRef = useRef<string | null>(null)
 
-  const guestFocus = useWebviewGuestFocus(webviewRef)
+  const guestFocus = useWebviewGuestFocus(webviewRef, host)
   const { keepAddressBarFocusRef } = useBrowserChromeFocus({
     chipShown,
     addressBarInputRef: addressInputRef,
     guestFocus
   })
   useBrowserGuestActivationFocus({
+    host,
     isActive: chipShown,
     workspaceTabId: tabId,
     paneTabItemId: item.id,
     webviewRef,
     keepAddressBarFocusRef,
+    dragPassthroughActive,
     webviewReady: webContentsId !== null
   })
 
@@ -147,13 +148,13 @@ export function BrowserContent({
   // a stale ref — chrome still renders but reload/devtools silently no-op.
   useEffect(() => {
     if (!slotViewport || !paneVisible) return
-    if (!browserPageGuestNeedsAttach(item.id, webviewRef.current)) {
+    if (!hostRef.current.guestNeedsAttach(item.id, webviewRef.current)) {
       guestRecoveryAttemptsRef.current = 0
       return
     }
     if (guestRecoveryAttemptsRef.current >= 3) return
     guestRecoveryAttemptsRef.current += 1
-    browserFocusLog('BrowserContent.guestRecovery', 'reattach orphaned browser guest', {
+    hostRef.current.logFocus('BrowserContent.guestRecovery', 'reattach orphaned browser guest', {
       tabItemId: item.id,
       paneNodeId,
       attempt: guestRecoveryAttemptsRef.current
@@ -191,7 +192,7 @@ export function BrowserContent({
     if (!viewport) return
 
     const initialZoom = item.zoomFactor ?? 1
-    const ensured = ensureBrowserPageWebview({
+    const ensured = paneHost.ensureWebview({
       tabItemId: item.id,
       container: viewport.container,
       initialUrl: item.url ?? DEFAULT_URL,
@@ -296,7 +297,10 @@ export function BrowserContent({
         return
       }
       if (document.activeElement === addressInputRef.current) return
-      browserFocusLog('BrowserContent.viewportPointerDown', 'pointer down on guest container')
+      hostRef.current.logFocus(
+        'BrowserContent.viewportPointerDown',
+        'pointer down on guest container'
+      )
       paneHost.setActiveWebview(guest)
       void paneHost.focusGuest(guest, 'viewport-pointerdown')
     }
@@ -314,7 +318,7 @@ export function BrowserContent({
     const onFocus = (): void => {
       paneHost.setActiveWebview(guest)
       onFocusPaneGroupRef.current()
-      browserFocusLog('BrowserContent.webviewFocus', 'host webview focus')
+      hostRef.current.logFocus('BrowserContent.webviewFocus', 'host webview focus')
     }
     const onBlur = (): void => {
       if (paneHost.getActiveWebview() === guest) paneHost.setActiveWebview(null)
@@ -378,20 +382,24 @@ export function BrowserContent({
     })
 
     if (chipShown) {
-      setBrowserPageWebviewInputLock(webview, false)
+      hostRef.current.setWebviewInputLock(webview, false)
       hostRef.current.setActiveWebview(webview)
       hostRef.current.requestKeyboardSurface('browser-chip-shown')
       hostRef.current.requestGuestFocus(tabId, item.id, 'chip-shown')
-      browserFocusLog('BrowserContent.chipShown', 'chip shown', snapshotBrowserFocusState(webview))
+      hostRef.current.logFocus(
+        'BrowserContent.chipShown',
+        'chip shown',
+        hostRef.current.snapshotFocus(webview)
+      )
     }
     if (!chipShown) {
-      browserFocusLog(
+      hostRef.current.logFocus(
         'BrowserContent.chipHidden',
         'chip hidden',
-        snapshotBrowserFocusState(webview)
+        hostRef.current.snapshotFocus(webview)
       )
       addressInputRef.current?.blur()
-      setBrowserPageWebviewInputLock(webview, true)
+      hostRef.current.setWebviewInputLock(webview, true)
       hostRef.current.moveFocusToRendererBeforeHide()
       if (hostRef.current.getActiveWebview() === webview) {
         hostRef.current.setActiveWebview(null)
@@ -405,10 +413,10 @@ export function BrowserContent({
         setDownloadItems([])
         return
       }
-      setDownloadItems(getBrowserDownloadsForWebview(webContentsId))
+      setDownloadItems(hostRef.current.getDownloads(webContentsId))
     }
     refresh()
-    return subscribeBrowserDownloads(refresh)
+    return hostRef.current.subscribeDownloads(refresh)
   }, [webContentsId])
 
   useEffect(() => {
@@ -439,7 +447,7 @@ export function BrowserContent({
     const normalized = normalizeBrowserNavigationUrl(url, true)
     if (!normalized) return
     addressInputRef.current?.blur()
-    const webview = resolveBrowserPageWebview(item.id, webviewRef)
+    const webview = hostRef.current.resolveWebview(item.id, webviewRef)
     if (!webview) return
     const result = loadBrowserPageWebviewUrl(webview, normalized)
     if (result === 'not-ready') {
@@ -500,7 +508,7 @@ export function BrowserContent({
               className="browser-nav-btn"
               title={loading ? 'Stop' : 'Reload'}
               onClick={() => {
-                const wv = resolveBrowserPageWebview(item.id, webviewRef)
+                const wv = hostRef.current.resolveWebview(item.id, webviewRef)
                 if (!wv) return
                 if (loading) {
                   try {
@@ -520,7 +528,7 @@ export function BrowserContent({
               className="browser-nav-btn browser-nav-btn-devtools"
               title="Toggle DevTools"
               onClick={() => {
-                const wv = resolveBrowserPageWebview(item.id, webviewRef)
+                const wv = hostRef.current.resolveWebview(item.id, webviewRef)
                 if (!wv) return
                 if (wv.isDevToolsOpened()) wv.closeDevTools()
                 else wv.openDevTools()
@@ -543,7 +551,7 @@ export function BrowserContent({
         <BrowserDownloadsBar
           items={downloadItems}
           onReveal={(path) => {
-            revealItemInDir(path).catch(console.error)
+            hostRef.current.revealDownload(path)
           }}
         />
       </div>
@@ -554,7 +562,7 @@ export function BrowserContent({
             type="button"
             className="browser-crash-reload"
             onClick={() => {
-              const wv = resolveBrowserPageWebview(item.id, webviewRef)
+              const wv = hostRef.current.resolveWebview(item.id, webviewRef)
               if (!wv) return
               reloadBrowserPageWebview(wv, { ignoreCache: false })
             }}

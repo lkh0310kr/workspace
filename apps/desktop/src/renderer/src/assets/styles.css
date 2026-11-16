@@ -912,63 +912,6 @@ input {
   display: none;
 }
 
-/* Orca BrowserPaneOverlayLayer — slot + chrome are siblings; guests mount in the slot root. */
-.browser-pane-overlay-slot {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  pointer-events: none;
-}
-
-.browser-overlay-slot-root {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.browser-pane-page-stack {
-  position: relative;
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  /* Orca browser-page-pane: chrome stack must not block guest hit-testing below. */
-  pointer-events: none;
-}
-
-/* Orca browser-page-pane.tsx */
-.browser-page-pane {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  pointer-events: none;
-}
-
-.browser-page-pane--active {
-  z-index: 10;
-}
-
-.browser-page-pane--paintable {
-  z-index: 0;
-  opacity: 0;
-}
-
-.browser-page-pane--hidden {
-  display: none;
-}
-
-.browser-page-chrome-header {
-  pointer-events: auto;
-  flex-shrink: 0;
-}
-
 .browser-content-slot-wrap {
   flex: 1 1 0;
   min-height: 0;
@@ -977,47 +920,6 @@ input {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-/* Imperative host for browser-page-viewport shells (Orca overlay slot parity). */
-.browser-content-slot-host {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  flex: 1 1 0;
-  overflow: hidden;
-}
-
-/* Orca-parity crash banner (host-guest/browser-page-guest-recovery.ts) */
-.browser-crash-banner {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: var(--bg-base);
-  color: var(--text-muted);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  pointer-events: auto;
-}
-
-.browser-crash-reload {
-  padding: 4px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  background: var(--bg-surface);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.browser-crash-reload:hover {
-  background: var(--bg-hover);
 }
 
 .pane-header {
@@ -2004,14 +1906,6 @@ input {
   cursor: default;
 }
 
-/* A <webview> guest's own content went fullscreen — see the matching
-   .titlebar rule above; hides just the nav+address row, not
-   .browser-pane-chrome as a whole (that also wraps the webview content
-   itself, which must stay visible). */
-.app-root.html-fullscreen .browser-nav {
-  display: none;
-}
-
 /* Browser tab content's own chrome (nav+address row) — previously this was
    PaneFrame's job for the whole pane (contentSlot mode); now it's scoped
    inside BrowserContent.tsx since a pane can mix browser tabs with other
@@ -2087,219 +1981,6 @@ input {
 .md-editor-host {
   height: 100%;
   min-height: 0;
-}
-
-.browser-nav {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  flex-shrink: 0;
-}
-
-.browser-nav-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 28px;
-  font-family: var(--font-mono);
-}
-
-.browser-nav-btn:hover {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
-.browser-nav-btn:disabled {
-  color: var(--text-muted);
-  opacity: 0.35;
-  cursor: default;
-  background: transparent;
-}
-
-.browser-nav-btn-devtools {
-  font-size: 11px;
-  letter-spacing: -0.5px;
-}
-
-.browser-zoom-controls {
-  display: flex;
-  align-items: center;
-  margin-left: 2px;
-  border-left: 1px solid var(--border);
-  padding-left: 2px;
-}
-
-.browser-zoom-label {
-  min-width: 40px;
-  height: 28px;
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  cursor: pointer;
-}
-
-.browser-zoom-label:hover {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
-.browser-nav-history-popover {
-  min-width: 280px;
-  max-width: 420px;
-}
-
-.browser-nav-history-list {
-  display: flex;
-  flex-direction: column;
-  max-height: 320px;
-}
-
-.browser-nav-history-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.browser-nav-history-item:hover {
-  background: var(--bg-hover);
-}
-
-.browser-nav-history-title {
-  font-size: 12px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.browser-nav-history-url {
-  font-size: 11px;
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.browser-downloads-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.browser-download-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.browser-download-item-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.browser-download-filename {
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.browser-download-status {
-  font-size: 11px;
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
-}
-
-.browser-download-progress {
-  height: 3px;
-  background: var(--bg-hover);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.browser-download-progress-fill {
-  height: 100%;
-  background: var(--text-muted);
-  transition: width 0.15s ease;
-}
-
-.browser-download-reveal {
-  align-self: flex-start;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.browser-download-reveal:hover {
-  text-decoration: underline;
-}
-
-.browser-download-item--completed {
-  border-color: var(--border-strong);
-}
-
-.browser-download-item--interrupted,
-.browser-download-item--cancelled {
-  border-color: color-mix(in srgb, #d9822b 35%, var(--border));
-}
-
-/* GitHub-style thin indeterminate progress line while a browser pane loads */
-.browser-loading-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.browser-loading-bar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40%;
-  background: var(--text-muted);
-  animation: browser-loading-slide 1.1s ease-in-out infinite;
-}
-
-@keyframes browser-loading-slide {
-  0% {
-    left: -40%;
-  }
-  100% {
-    left: 100%;
-  }
 }
 
 /* —— flexlayout —— */
@@ -3350,8 +3031,6 @@ textarea,
 .pane-tab,
 .pane-tab-close,
 .pane-tab-add,
-.browser-nav-btn,
-.browser-zoom-label,
 .titlebar-sidebar-toggle,
 .context-menu-item,
 .quick-open-row,
@@ -3378,9 +3057,7 @@ textarea,
 .workspace-tab-rail-row:hover:not(.active),
 .pane-tab:hover:not(.active),
 .workspace-tab-rail-home:hover:not(.active),
-.workspace-tab-rail-add:hover,
-.browser-nav-btn:hover:not(:disabled),
-.browser-zoom-label:hover {
+.workspace-tab-rail-add:hover {
   background: var(--bg-hover);
 }
 
