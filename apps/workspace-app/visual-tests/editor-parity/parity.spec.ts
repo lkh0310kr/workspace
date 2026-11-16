@@ -326,7 +326,7 @@ test('all host surfaces align common tree rows and readable document columns', a
       })
     const documentSelector =
       host === 'desktop-pkms-editor'
-        ? '.pkms-google-drive-editor'
+        ? '[data-drive-editor]'
         : host === 'web-pkms-editor'
           ? '.main-panel'
           : '.visual-document'
@@ -372,7 +372,7 @@ test('all host surfaces align common tree rows and readable document columns', a
           borderRadius: style.borderRadius
         }
       }),
-      title: await rect('.editor-markdown-title'),
+      title: await rect('[data-editor-markdown-title]'),
       body: await rect('.cm-content'),
       document: documentRect
     })
@@ -519,7 +519,7 @@ test('Markdown scroll and caret state restore across reopen in all hosts', async
       await page.getByRole('treeitem', { name: 'Verification' }).click()
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
-    const scroll = page.locator('.editor-markdown-scroll')
+    const scroll = page.locator('[data-editor-markdown-scroll]')
     const editor = page.locator('.cm-content').first()
     await editor.click()
     await page.keyboard.press('Control+End')
@@ -538,7 +538,9 @@ test('Markdown scroll and caret state restore across reopen in all hosts', async
     }
 
     await expect
-      .poll(async () => Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll))
+      .poll(async () =>
+        Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll)
+      )
       .toBeLessThanOrEqual(16, `scroll restoration failed for ${host}`)
     await page.locator('.cm-content').first().focus()
     await page.keyboard.type('X')
@@ -558,19 +560,19 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
       await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
     }
 
-    await page.locator('.editor-markdown-title').first().click()
+    await page.locator('[data-editor-markdown-title]').first().click()
     const input = page.getByRole('textbox', { name: 'Markdown document title' })
     await expect(input).toBeFocused()
     await input.fill('Renamed parity note')
     await input.press('Enter')
-    await expect(page.locator('.editor-markdown-title:not(input)').first()).toHaveText(
+    await expect(page.locator('[data-editor-markdown-title]:not(input)').first()).toHaveText(
       'Renamed parity note'
     )
     await expect(
       page.getByRole('treeitem', { name: 'Renamed parity note', exact: true })
     ).toBeVisible()
 
-    const scroll = page.locator('.editor-markdown-scroll').first()
+    const scroll = page.locator('[data-editor-markdown-scroll]').first()
     const editor = page.locator('.cm-content').first()
     await editor.click()
     await page.keyboard.press('Control+End')
@@ -581,21 +583,25 @@ test('both PKMS host surfaces rename Markdown documents from the shared title', 
     await page.getByRole('treeitem', { name: 'Readme', exact: true }).click()
     await expect(page.getByText('Readme preview', { exact: true })).toBeVisible()
     await page.getByRole('treeitem', { name: 'Renamed parity note', exact: true }).click()
-    await expect(page.locator('.editor-markdown-title').first()).toHaveText('Renamed parity note')
+    await expect(page.locator('[data-editor-markdown-title]').first()).toHaveText(
+      'Renamed parity note'
+    )
     await expect
-      .poll(async () => Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll))
+      .poll(async () =>
+        Math.abs((await scroll.evaluate((element) => element.scrollTop)) - savedScroll)
+      )
       .toBeLessThanOrEqual(24)
     await editor.focus()
     await page.keyboard.type('X')
     await expect(editor).toContainText('View state paragraph 90.X')
 
-    await page.locator('.editor-markdown-title').first().click()
+    await page.locator('[data-editor-markdown-title]').first().click()
     await input.fill('Readme')
     await input.press('Enter')
     await expect(page.getByRole('alert')).toContainText('already exists')
     await expect(input).toHaveValue('Readme')
     await input.press('Escape')
-    await expect(page.locator('.editor-markdown-title:not(input)').first()).toHaveText(
+    await expect(page.locator('[data-editor-markdown-title]:not(input)').first()).toHaveText(
       'Renamed parity note'
     )
   }
@@ -669,9 +675,9 @@ test('Desktop Drive tree keyboard navigation and overflow survive hide and reope
   await page.setViewportSize({ width: 1440, height: 600 })
   await page.goto('/?host=desktop-pkms-editor&scenario=tree-overflow')
   const tree = page.getByRole('tree', { name: 'PKMS Google Drive files' })
-  const viewport = page.locator('.pkms-google-drive-tree-scroll > [data-editor-tree-content]')
-  const header = page.locator('.pkms-google-drive-file-toolbar')
-  const footer = page.locator('.pkms-google-drive-tree-footer')
+  const viewport = page.locator('[data-editor-tree-frame] > [data-editor-tree-content]').last()
+  const header = page.locator('[data-editor-tree-toolbar]')
+  const footer = page.locator('[data-editor-tree-frame] > [data-editor-tree-footer]')
   await expect(footer).toHaveCount(0)
   const folder = page.getByRole('treeitem', { name: 'Verification' })
   await folder.click()
@@ -770,13 +776,13 @@ test('PKMS context menus and editor chrome use the shared unboxed controls', asy
   expect(menuChrome[1]).toEqual(menuChrome[0])
 
   await page.goto('/?host=desktop-pkms-editor')
-  await expect(page.locator('.pkms-google-drive-sync-state')).toBeVisible()
+  await expect(page.locator('[data-drive-sync-state]')).toBeVisible()
   await page.getByRole('treeitem', { name: 'Verification' }).click()
   await page.getByRole('treeitem', { name: /Codex Drive smoke test/ }).click()
-  await expect(page.locator('.editor-markdown-document')).toBeVisible()
-  await expect(page.locator('.editor-width-toggle')).toBeVisible()
+  await expect(page.locator('[data-editor-markdown-document]')).toBeVisible()
+  await expect(page.locator('[data-editor-action-button]')).toBeVisible()
   const controlStyles = await Promise.all(
-    ['.pkms-google-drive-sync-state', '.editor-width-toggle'].map((selector) =>
+    ['[data-drive-sync-state]', '[data-editor-action-button]'].map((selector) =>
       page.locator(selector).evaluate((element) => {
         const style = getComputedStyle(element)
         return [style.padding, style.borderWidth, style.borderRadius]

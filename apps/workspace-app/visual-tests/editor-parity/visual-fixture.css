@@ -55,7 +55,7 @@ body {
   background: var(--surface);
 }
 
-.visual-tree > .editor-tree-pane {
+.visual-tree > [data-editor-tree-frame] {
   width: 100%;
   height: 100%;
 }
@@ -67,7 +67,7 @@ body {
   overflow: hidden;
 }
 
-.visual-document > .editor-markdown-document {
+.visual-document > [data-editor-markdown-document] {
   width: 100%;
   min-height: 0;
   flex: 1;

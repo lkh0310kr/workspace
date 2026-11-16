@@ -10,6 +10,7 @@ import {
   type YAMLSeq
 } from 'yaml'
 import type { EditorView } from '@codemirror/view'
+import styles from './markdownDocument.module.css'
 
 type PropertyType = 'text' | 'date' | 'number' | 'checkbox' | 'list' | 'complex'
 interface PropertyRow {
@@ -153,7 +154,7 @@ export function EditorMarkdownProperties({
   const { rows } = frontmatter
   if (rows.length === 0) return null
   const replaceRange = (from: number, to: number, insert: string) => {
-    const scroll = view.dom.closest<HTMLElement>('.editor-markdown-scroll')
+    const scroll = view.dom.closest<HTMLElement>('[data-editor-markdown-scroll]')
     const top = scroll?.scrollTop ?? 0
     const left = scroll?.scrollLeft ?? 0
     view.dispatch({ changes: { from, to, insert } })
@@ -216,16 +217,20 @@ export function EditorMarkdownProperties({
   const add = frontmatter.bodyFrom === null ? createFirstProperty : addProperty
 
   return (
-    <section className="editor-markdown-properties" aria-label="Document properties">
-      <h2 className="editor-properties-heading">Properties</h2>
-      <div className="editor-properties-list">
+    <section className={styles['editor-markdown-properties']} aria-label="Document properties">
+      <h2 className={styles['editor-properties-heading']}>Properties</h2>
+      <div className={styles['editor-properties-list']}>
         {rows.map((row) => (
-          <div className={`editor-property-row is-${row.type}`} key={`${row.key}-${row.line}`}>
-            <span className="editor-property-type">
+          <div
+            className={styles['editor-property-row']}
+            data-property-type={row.type}
+            key={`${row.key}-${row.line}`}
+          >
+            <span className={styles['editor-property-type']}>
               <TypeIcon type={row.type} />
             </span>
             <input
-              className="editor-property-name"
+              className={styles['editor-property-name']}
               aria-label={`Property name: ${row.key}`}
               value={row.key}
               disabled={view.state.readOnly || row.type === 'complex'}
@@ -234,7 +239,9 @@ export function EditorMarkdownProperties({
               }
             />
             {row.type === 'checkbox' ? (
-              <label className="editor-property-value editor-property-checkbox">
+              <label
+                className={`${styles['editor-property-value']} ${styles['editor-property-checkbox']}`}
+              >
                 <input
                   type="checkbox"
                   checked={row.value === 'true'}
@@ -244,10 +251,14 @@ export function EditorMarkdownProperties({
                 <span>{row.value === 'true' ? 'Checked' : 'Unchecked'}</span>
               </label>
             ) : row.type === 'complex' ? (
-              <span className="editor-property-value editor-property-structured">{row.value}</span>
+              <span
+                className={`${styles['editor-property-value']} ${styles['editor-property-structured']}`}
+              >
+                {row.value}
+              </span>
             ) : row.type === 'list' ? (
               <input
-                className="editor-property-value"
+                className={styles['editor-property-value']}
                 aria-label={`Property value: ${row.key}`}
                 value={(row.value as string[]).join(', ')}
                 disabled={view.state.readOnly}
@@ -263,7 +274,7 @@ export function EditorMarkdownProperties({
               />
             ) : (
               <input
-                className="editor-property-value"
+                className={styles['editor-property-value']}
                 aria-label={`Property value: ${row.key}`}
                 type={row.type === 'date' ? 'date' : row.type === 'number' ? 'number' : 'text'}
                 value={String(row.value)}
@@ -272,7 +283,7 @@ export function EditorMarkdownProperties({
               />
             )}
             <button
-              className="editor-property-remove"
+              className={styles['editor-property-remove']}
               type="button"
               aria-label={`Remove property: ${row.key}`}
               disabled={view.state.readOnly}
@@ -288,7 +299,7 @@ export function EditorMarkdownProperties({
         ))}
       </div>
       {adding ? (
-        <form className="editor-property-add-form" onSubmit={add}>
+        <form className={styles['editor-property-add-form']} onSubmit={add}>
           <TypeIcon type={newType} />
           <input
             autoFocus
@@ -315,7 +326,7 @@ export function EditorMarkdownProperties({
         </form>
       ) : (
         <button
-          className="editor-property-add"
+          className={styles['editor-property-add']}
           type="button"
           disabled={view.state.readOnly}
           onClick={() => setAdding(true)}

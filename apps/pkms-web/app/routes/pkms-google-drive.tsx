@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { EditorDocumentSession, EditorSyncPhase, EditorTreeItem } from '@workspace/editor'
 import { EditorMarkdownEditor, markdownTitleFor } from '@workspace/editor'
+import markdownDocumentStyles from '@workspace/editor/markdown-document.module.css'
 import {
   DriveAuthenticationRequiredError,
   parseGoogleAccountAllowlist,
@@ -18,7 +19,7 @@ import {
   replaceGoogleDriveYText,
   type GoogleDriveWorkspaceEntry
 } from '@pkms/google-drive'
-import '@pkms/google-drive/workspace.css'
+import driveStyles from '@pkms/google-drive/workspace.module.css'
 
 const WORKSPACE_MARKER = 'pkms-google-drive-v1'
 const ROOT_STORAGE_KEY = 'pkms-google-drive-root'
@@ -572,15 +573,16 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
   const breadcrumb = useMemo(() => (directory ? directory.split('/') : []), [directory])
 
   return (
-    <main className="pkms-google-drive-root">
-      <header className="pkms-google-drive-header">
+    <main className={driveStyles['pkms-google-drive-root']}>
+      <header className={driveStyles['pkms-google-drive-header']}>
         <div>
-          <div className="pkms-google-drive-eyebrow">PKMS Google Drive</div>
+          <div className={driveStyles['pkms-google-drive-eyebrow']}>PKMS Google Drive</div>
           <h1>Google Drive workspace</h1>
           <p>{status}</p>
         </div>
-        <div className="pkms-google-drive-controls">
+        <div className={driveStyles['pkms-google-drive-controls']}>
           <button
+            data-drive-control=""
             type="button"
             onClick={() => void connect()}
             disabled={busy || !googleIdentityReady}
@@ -594,9 +596,10 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                 : 'Connect Google Drive'}
           </button>
           {googleIdentityError ? (
-            <div className="pkms-google-drive-error" role="alert">
+            <div className={driveStyles['pkms-google-drive-error']} role="alert">
               <span>{googleIdentityError}</span>
               <button
+                data-drive-control=""
                 type="button"
                 onClick={() => {
                   setGoogleIdentityError('')
@@ -609,13 +612,28 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
           ) : null}
           {runtime ? (
             <>
-              <button type="button" onClick={() => void createItem('markdown')} disabled={busy}>
+              <button
+                data-drive-control=""
+                type="button"
+                onClick={() => void createItem('markdown')}
+                disabled={busy}
+              >
                 New note
               </button>
-              <button type="button" onClick={() => void createItem('folder')} disabled={busy}>
+              <button
+                data-drive-control=""
+                type="button"
+                onClick={() => void createItem('folder')}
+                disabled={busy}
+              >
                 New folder
               </button>
-              <button type="button" onClick={() => void syncNow()} disabled={busy}>
+              <button
+                data-drive-control=""
+                type="button"
+                onClick={() => void syncNow()}
+                disabled={busy}
+              >
                 Sync now
               </button>
             </>
@@ -624,16 +642,17 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       </header>
 
       {error ? (
-        <div className="pkms-google-drive-error" role="alert">
+        <div className={driveStyles['pkms-google-drive-error']} role="alert">
           {error}
         </div>
       ) : null}
 
       {!runtime && roots.length ? (
-        <section className="pkms-google-drive-root-picker">
+        <section className={driveStyles['pkms-google-drive-root-picker']}>
           <h2>Select a PKMS Google Drive workspace</h2>
           {roots.map((root) => (
             <button
+              data-drive-control=""
               key={root.id}
               type="button"
               disabled={busy}
@@ -646,13 +665,14 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       ) : null}
 
       {!runtime && connection && !roots.length ? (
-        <section className="pkms-google-drive-root-picker">
+        <section className={driveStyles['pkms-google-drive-root-picker']}>
           <h2>No PKMS Google Drive workspace exists for this account.</h2>
           <p>
             Create a new root to test the direct Drive data path. This does not migrate or modify
             the existing PKMS cloud source.
           </p>
           <button
+            data-drive-control=""
             type="button"
             disabled={busy}
             onClick={() => {
@@ -676,15 +696,19 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
       ) : null}
 
       {runtime ? (
-        <section className="pkms-google-drive-workspace">
+        <section className={driveStyles['pkms-google-drive-workspace']}>
           <aside
-            className="pkms-google-drive-tree"
+            className={driveStyles['pkms-google-drive-tree']}
             aria-label={searchOpen ? 'Search workspace' : 'Google Drive files'}
           >
             {searchOpen ? (
-              <section className="pkms-google-drive-search" aria-label="Search workspace contents">
-                <div className="pkms-google-drive-search-heading">
+              <section
+                className={driveStyles['pkms-google-drive-search']}
+                aria-label="Search workspace contents"
+              >
+                <div className={driveStyles['pkms-google-drive-search-heading']}>
                   <button
+                    data-drive-control=""
                     type="button"
                     onClick={() => {
                       setSearchOpen(false)
@@ -703,11 +727,15 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                   maxLength={200}
                   onChange={(event) => setSearchQuery(event.target.value)}
                 />
-                <p className="pkms-google-drive-search-note">
+                <p className={driveStyles['pkms-google-drive-search-note']}>
                   Drive searches whole words and quoted phrases. Partial-word matches are not
                   available.
                 </p>
-                <div className="pkms-google-drive-search-status" role="status" aria-live="polite">
+                <div
+                  className={driveStyles['pkms-google-drive-search-status']}
+                  role="status"
+                  aria-live="polite"
+                >
                   {searchLoading
                     ? 'Searching…'
                     : searchError ||
@@ -715,9 +743,10 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                         ? `${searchResults.length} matching Markdown files`
                         : 'Search all Markdown files')}
                 </div>
-                <div className="pkms-google-drive-search-results">
+                <div className={driveStyles['pkms-google-drive-search-results']}>
                   {searchResults.map((result) => (
                     <button
+                      data-drive-control=""
                       key={result.id}
                       type="button"
                       onClick={() => void openEntry(result)}
@@ -728,6 +757,7 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                   ))}
                   {searchNextPage ? (
                     <button
+                      data-drive-control=""
                       type="button"
                       disabled={searchLoadingMore}
                       onClick={() => {
@@ -778,8 +808,9 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
               </section>
             ) : (
               <>
-                <div className="pkms-google-drive-breadcrumb">
+                <div className={driveStyles['pkms-google-drive-breadcrumb']}>
                   <button
+                    data-drive-control=""
                     type="button"
                     onClick={() => {
                       setDirectory('')
@@ -792,6 +823,7 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                     const path = breadcrumb.slice(0, index + 1).join('/')
                     return (
                       <button
+                        data-drive-control=""
                         key={path}
                         type="button"
                         onClick={() => {
@@ -806,7 +838,8 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                 </div>
                 {directory ? (
                   <button
-                    className="pkms-google-drive-back"
+                    data-drive-control=""
+                    className={driveStyles['pkms-google-drive-back']}
                     type="button"
                     onClick={() => {
                       const parent = parentPath(directory)
@@ -817,12 +850,13 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                     ← Parent folder
                   </button>
                 ) : null}
-                <div className="pkms-google-drive-entry-list">
+                <div className={driveStyles['pkms-google-drive-entry-list']}>
                   {entries.map((entry) => (
                     <button
+                      data-drive-control=""
                       key={entry.id}
                       type="button"
-                      className={activeFile?.id === entry.id ? 'active' : ''}
+                      className={activeFile?.id === entry.id ? driveStyles.active : undefined}
                       onClick={() => void openEntry(entry)}
                     >
                       <span aria-hidden="true">
@@ -832,29 +866,54 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                     </button>
                   ))}
                   {!entries.length ? (
-                    <div className="pkms-google-drive-empty">This folder is empty.</div>
+                    <div className={driveStyles['pkms-google-drive-empty']}>
+                      This folder is empty.
+                    </div>
                   ) : null}
                 </div>
               </>
             )}
           </aside>
-          <div className="pkms-google-drive-editor">
+          <div className={driveStyles['pkms-google-drive-editor']} data-drive-editor="">
             {session && activeFile ? (
               <EditorMarkdownEditor
                 title={
-                  <div className="editor-title-block">
-                    <div className="editor-markdown-title">{markdownTitleFor(activeFile.path)}</div>
+                  <div
+                    className={markdownDocumentStyles['editor-title-block']}
+                    data-editor-title-block=""
+                  >
+                    <div
+                      className={markdownDocumentStyles['editor-markdown-title']}
+                      data-editor-markdown-title=""
+                    >
+                      {markdownTitleFor(activeFile.path)}
+                    </div>
                   </div>
                 }
                 actions={
-                  <div className="pkms-google-drive-file-actions">
-                    <button type="button" onClick={() => void session.save()} disabled={busy}>
+                  <div className={driveStyles['pkms-google-drive-file-actions']}>
+                    <button
+                      data-drive-control=""
+                      type="button"
+                      onClick={() => void session.save()}
+                      disabled={busy}
+                    >
                       Save
                     </button>
-                    <button type="button" onClick={() => void renameActive()} disabled={busy}>
+                    <button
+                      data-drive-control=""
+                      type="button"
+                      onClick={() => void renameActive()}
+                      disabled={busy}
+                    >
                       Rename
                     </button>
-                    <button type="button" onClick={() => void deleteActive()} disabled={busy}>
+                    <button
+                      data-drive-control=""
+                      type="button"
+                      onClick={() => void deleteActive()}
+                      disabled={busy}
+                    >
                       Delete
                     </button>
                   </div>
@@ -868,7 +927,7 @@ export default function PkmsGoogleDriveRoute(): React.JSX.Element {
                 }}
               />
             ) : (
-              <div className="pkms-google-drive-editor-empty">
+              <div className={driveStyles['pkms-google-drive-editor-empty']}>
                 Select a Markdown file to open it.
               </div>
             )}

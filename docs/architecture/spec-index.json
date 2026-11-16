@@ -69,7 +69,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/assets/styles.css",
-          "sha256": "444372a42f2caa52689f929c71a2efa0fe26fc1ac8e2417f2d77c4b67f79f309"
+          "sha256": "1caffe1a5b9224b6543d58b0b281dc438b4ac98c47686037accb9e2bbb6fce2f"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/editor/localEditorProvider.ts",
@@ -129,7 +129,7 @@
         },
         {
           "path": "packages/editor/package.json",
-          "sha256": "6a16fad57b2a3eb7366dac02d2e8b9fa9abb282a7e97e215a664a0ad08ac3983"
+          "sha256": "21db7cbaf94041feed2262999d71c429d3cdbb13c4e1aaea343568491d067722"
         },
         {
           "path": "packages/editor/src/codeMirror.ts",
@@ -153,7 +153,7 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownDocument.tsx",
-          "sha256": "d3506e0a73594ea2cf2a9c9d0f31223a793a1973aabddb9336022ebe511f0b40"
+          "sha256": "55996aeb5d9f317a67756484ef0d69d7b13f2652665dc5ec29fb900b348a82a8"
         },
         {
           "path": "packages/editor/src/EditorMarkdownEditor.tsx",
@@ -161,15 +161,15 @@
         },
         {
           "path": "packages/editor/src/EditorMarkdownSurface.tsx",
-          "sha256": "92fb5551a1a26337dc41cef09ea1d44a8b337d8685b5f1b30bc6e6198cd33181"
+          "sha256": "b8330eb703f72324b76184b1a85ef325024950e87724d1223415e704869b7b0e"
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitle.tsx",
-          "sha256": "4e53c370d0f9e297cb8fee047e3e08fe5bb55e94b13c6fe5a4532198b3955035"
+          "sha256": "2a49c0fe9cdf15d736c38a3c3991179b9e9c2f5764d630a6100d0fe0b9470a81"
         },
         {
           "path": "packages/editor/src/EditorMarkdownTitleInput.tsx",
-          "sha256": "566f5299507a069189cf1d9ac7620e5d6591dca1b56f23d7faeb532553d1f2ac"
+          "sha256": "0cbf091145dae82c67f1a6c9ee64bed3887b1d656d33fdc26cdf99bb5c3809fa"
         },
         {
           "path": "packages/editor/src/EditorMenuList.tsx",
@@ -205,7 +205,7 @@
         },
         {
           "path": "packages/editor/src/EditorTextSurface.tsx",
-          "sha256": "b2fdea917805ccea02eab58a2134f1ff04688d2d72cd777d8e174c86a0d33f1c"
+          "sha256": "88d032ba02555ef00c03740049865d3df0632892db3abd8ccb4ce28f5d2a42cd"
         },
         {
           "path": "packages/editor/src/EditorTreeRow.tsx",
@@ -240,8 +240,8 @@
           "sha256": "9693d1a17d89bc81fb6b58b730c7a25df3e4eae3ae9458e8608968b1575b5d23"
         },
         {
-          "path": "packages/editor/src/markdownDocument.css",
-          "sha256": "01cbe9bb6c832d27059ff63951d9878c8a734e8793da427c61907b12983f97b9"
+          "path": "packages/editor/src/markdownDocument.module.css",
+          "sha256": "d93abd77c70ba04ec103bcd6f34f7766cc12c519b6bacbbcbef6a6eccb268e64"
         },
         {
           "path": "packages/editor/src/markdownEditor.ts",
@@ -253,7 +253,7 @@
         },
         {
           "path": "packages/editor/src/markdownLivePreview.ts",
-          "sha256": "f2dce0c49b26583cffc89e1b60f7f3e976bce304d61f9a38ed6a100244f92fbf"
+          "sha256": "c1e48516d0d270532c32bd8d8950bc3e154ca80f328531723548287430d2fa6d"
         },
         {
           "path": "packages/editor/src/markdownTitle.ts",
@@ -281,7 +281,7 @@
         },
         {
           "path": "packages/editor/src/treeView.module.css",
-          "sha256": "398f3a35d8c0e077e1ff0ae0ae589fbaca268ca01e36eddf0297ec4eaa868465"
+          "sha256": "754b7424837a424c6cb0a710fb637286a67550ee575db03843f8918665a23ebf"
         },
         {
           "path": "packages/editor/src/tree.css",
@@ -337,7 +337,7 @@
         },
         {
           "path": "packages/editor/src/EditorTreePane.tsx",
-          "sha256": "6524328e788774cfe9039f2acf97a88a64763b8996f7b243823eab0daf3f424a"
+          "sha256": "70c960f7d35c1bbdc15b842f2c312e7b44e9724c880bf7bc380f599e54186e40"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/components/EditorTreeIgnored.test.ts",
@@ -345,7 +345,7 @@
         },
         {
           "path": "packages/editor/src/EditorTreeToolbar.tsx",
-          "sha256": "23afc8dec5567549de485a0d8027f511a220fe66ae54c1f9b9dfe367985cf702"
+          "sha256": "b6b388c6cd0eb96ad52b54f3270196270c68c2681aecd5798288f6ce528031e0"
         },
         {
           "path": "packages/editor/src/treeRowModel.ts",
@@ -353,7 +353,7 @@
         },
         {
           "path": "scripts/check-editor-tree-contract.mjs",
-          "sha256": "abec785aba4b8da507730de1e919488490ebe7e439769db3c7d5e0912329fc89"
+          "sha256": "715630627cd1da1437eea8b070c01881313496441d64555ca35e99159e8024bd"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/index.html",
@@ -361,11 +361,11 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/main.tsx",
-          "sha256": "dd0536fffa4628bf6d5ee78806bbb85790ed8c3032de707c823269f764a2fb90"
+          "sha256": "f015b3e3a8ad7e2e321f9519916a4ab68017f73e176e6856f1adf65431739e56"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/parity.spec.ts",
-          "sha256": "a6c485d87cf850e8ede5f2e4450cab168f42bc6e0149b5c5da5940d58d38b315"
+          "sha256": "af25a306092447a8f74d5aed366030c6b9fd0f03d2ce34f6d99597550769d9f8"
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/playwright.config.ts",
@@ -377,7 +377,7 @@
         },
         {
           "path": "apps/workspace-app/visual-tests/editor-parity/visual-fixture.css",
-          "sha256": "23073c28800b4ceb0f30dd3d1b7530cf9c8c9d1d389f0ead60c6a5852ca11447"
+          "sha256": "93d3c87089e4d04184b90b3f7d5e7229c2cc6a142dbc6006b796c04ca1671e29"
         },
         {
           "path": "apps/workspace-app/scripts/run-editor-visual.mjs",
@@ -389,11 +389,11 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "332d804970243b3c321c3bd12167102c9eb4f094a2f68837fcf0ef446f4d4dd5"
+          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "0c93050c2ce9e923949178dad1135801b5c4e588a39bd6db06c5687765c8f16c"
+          "sha256": "34ac237d926038fb9f616f0145ff0d372ef51c78cfadcd827afdc4daf8113c10"
         },
         {
           "path": "packages/pkms-client/src/components/FileTreeList.tsx",
@@ -404,8 +404,8 @@
           "sha256": "a7cf449c2f9d1fb9b2032f6287c865a3666c5e29bd44cb2e361bb7e8bedb2cee"
         },
         {
-          "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "962c7f074376fafc50ccfd3e006a3186f06e6e026131dcaa12e3fd833d86fe87"
+          "path": "packages/pkms-google-drive/src/workspace.module.css",
+          "sha256": "61d8725f5618d411b1fbbe2a632b9ed6fec8052f145650515ba2df3257d8c452"
         }
       ]
     },
@@ -415,9 +415,7 @@
       "owner": "apps/workspace-app",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "docs/architecture/workspace/editor/providers.md"
-      ],
+      "documents": ["docs/architecture/workspace/editor/providers.md"],
       "sources": [
         {
           "path": "apps/workspace-app/src/renderer/src/activeEditorView.ts",
@@ -985,7 +983,7 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "332d804970243b3c321c3bd12167102c9eb4f094a2f68837fcf0ef446f4d4dd5"
+          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
         }
       ]
     },
@@ -1088,10 +1086,7 @@
       "owner": "apps/pkms-web",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-web/README.md",
-        "docs/architecture/pkms/web/README.md"
-      ],
+      "documents": ["apps/pkms-web/README.md", "docs/architecture/pkms/web/README.md"],
       "sources": [
         {
           "path": "apps/pkms-web/app/routes.ts",
@@ -1107,7 +1102,7 @@
         },
         {
           "path": "apps/pkms-web/app/routes/pkms-google-drive.tsx",
-          "sha256": "4f08be87f5f46ee26cb69fb5be173ce411a6f5f90f8a97df7210847448e4ef82"
+          "sha256": "bd03b3483b5769fc5830bf9deb89789e20a1fa152ddf2a8e87a218a173951627"
         },
         {
           "path": "apps/pkms-web/workers/web.ts",
@@ -1121,10 +1116,7 @@
       "owner": "apps/pkms-server",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-server/README.md",
-        "docs/architecture/pkms/server/README.md"
-      ],
+      "documents": ["apps/pkms-server/README.md", "docs/architecture/pkms/server/README.md"],
       "sources": [
         {
           "path": "apps/pkms-server/src/app.ts",
@@ -1187,10 +1179,7 @@
       "owner": "apps/pkms-ios",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "apps/pkms-ios/README.md",
-        "docs/architecture/pkms/ios/README.md"
-      ],
+      "documents": ["apps/pkms-ios/README.md", "docs/architecture/pkms/ios/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",
@@ -1239,7 +1228,7 @@
         },
         {
           "path": "packages/pkms-google-drive/package.json",
-          "sha256": "97e27a3926f36e679b1088662a758c584d53ac09da8f27413b176cab9ae3c7c8"
+          "sha256": "e348e070aaed94e286bad78157ce81b30217d5585d71b0e33e2a90c314d8629a"
         },
         {
           "path": "packages/pkms-google-drive/src/index.ts",
@@ -1315,11 +1304,11 @@
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsPane.tsx",
-          "sha256": "332d804970243b3c321c3bd12167102c9eb4f094a2f68837fcf0ef446f4d4dd5"
+          "sha256": "1e10cd9479bcbef8ba6579653c82bd8a6661303e05a94dd893d77861cef9d5fe"
         },
         {
           "path": "apps/workspace-app/src/renderer/src/panes/pkms/PkmsGoogleDrivePane.tsx",
-          "sha256": "0c93050c2ce9e923949178dad1135801b5c4e588a39bd6db06c5687765c8f16c"
+          "sha256": "34ac237d926038fb9f616f0145ff0d372ef51c78cfadcd827afdc4daf8113c10"
         },
         {
           "path": "packages/pkms-google-drive/src/syncEngine.ts",
@@ -1366,8 +1355,8 @@
           "sha256": "de678e358f414f814fbc418547829c3cc24d8c53200d28f90caf46fc52071bd3"
         },
         {
-          "path": "packages/pkms-google-drive/src/workspace.css",
-          "sha256": "962c7f074376fafc50ccfd3e006a3186f06e6e026131dcaa12e3fd833d86fe87"
+          "path": "packages/pkms-google-drive/src/workspace.module.css",
+          "sha256": "61d8725f5618d411b1fbbe2a632b9ed6fec8052f145650515ba2df3257d8c452"
         }
       ]
     },
@@ -1377,10 +1366,7 @@
       "owner": "packages/pkms-core",
       "specStatus": "drafted",
       "coverage": "Code-derived behavior and explicitly stated gaps; not full regeneration verification.",
-      "documents": [
-        "packages/pkms-core/README.md",
-        "docs/architecture/pkms/core/README.md"
-      ],
+      "documents": ["packages/pkms-core/README.md", "docs/architecture/pkms/core/README.md"],
       "sources": [
         {
           "path": "apps/pkms-ios/NativeMarkdownDocument.swift",

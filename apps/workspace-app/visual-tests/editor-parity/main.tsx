@@ -17,7 +17,6 @@ import type { GoogleDriveWorkspaceEntry } from '../../../../packages/pkms-google
 import '@workspace/editor/tree.css'
 import '../../../../packages/editor/src/editorHost.css'
 import '../../../../packages/editor/src/markdown.css'
-import '../../../../packages/editor/src/markdownDocument.css'
 import '../../../../packages/pkms-client/src/styles.css'
 import '../../src/renderer/src/assets/styles.css'
 import './visual-fixture.css'

@@ -551,7 +551,7 @@ class TableWidget extends WidgetType {
             cell.replaceChildren()
             appendTableCellContent(cell, raw)
           } else if (range.to <= view.state.doc.length) {
-            const scroll = view.dom.closest<HTMLElement>('.editor-markdown-scroll')
+            const scroll = view.dom.closest<HTMLElement>('[data-editor-markdown-scroll]')
             const top = scroll?.scrollTop ?? 0
             const left = scroll?.scrollLeft ?? 0
             view.dispatch({ changes: { from: range.from, to: range.to, insert: escaped } })
@@ -625,7 +625,7 @@ function writeTableWidths(view: EditorView, sourceTo: number, widths: number[]):
   const nextLine = endLine.number < doc.lines ? doc.line(endLine.number + 1) : null
   const metadata = `<!-- workspace-table-widths: ${widths.map((width) => Math.round(width)).join(',')} -->`
   const current = nextLine?.text.match(/^\s*<!-- workspace-table-widths: [\d., ]+ -->\s*$/)
-  const scroll = view.dom.closest<HTMLElement>('.editor-markdown-scroll')
+  const scroll = view.dom.closest<HTMLElement>('[data-editor-markdown-scroll]')
   const top = scroll?.scrollTop ?? 0
   const left = scroll?.scrollLeft ?? 0
   if (current && nextLine)

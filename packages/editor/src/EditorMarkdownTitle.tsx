@@ -1,5 +1,6 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react'
 import { EditorMarkdownTitleInput } from './EditorMarkdownTitleInput'
+import styles from './markdownDocument.module.css'
 
 function titleOffsetAtPoint(event: MouseEvent<HTMLDivElement>, title: string): number {
   const element = event.currentTarget
@@ -52,7 +53,7 @@ export function EditorMarkdownTitle({
   onCancel
 }: Props) {
   return (
-    <div className="editor-title-block">
+    <div className={styles['editor-title-block']} data-editor-title-block="">
       {editing ? (
         <EditorMarkdownTitleInput
           inputRef={inputRef}
@@ -64,7 +65,8 @@ export function EditorMarkdownTitle({
         />
       ) : (
         <div
-          className="editor-markdown-title"
+          className={styles['editor-markdown-title']}
+          data-editor-markdown-title=""
           title={path ?? undefined}
           onClick={(event) => onStartEditing?.(titleOffsetAtPoint(event, title))}
         >

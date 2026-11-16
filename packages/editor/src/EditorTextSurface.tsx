@@ -34,6 +34,7 @@ export interface EditorTextSurfaceProps {
   onViewReady?: (view: EditorView | null) => void
   onSearchPanelChange?: (open: boolean) => void
   className?: string
+  markdownSurface?: boolean
   ariaLabel?: string
   spellcheck?: boolean
   autocapitalize?: string
@@ -56,6 +57,7 @@ export function EditorTextSurface({
   onViewReady,
   onSearchPanelChange,
   className,
+  markdownSurface = false,
   ariaLabel,
   spellcheck,
   autocapitalize,
@@ -272,6 +274,10 @@ export function EditorTextSurface({
   }, [sessionSnapshot])
 
   return (
-    <div ref={hostRef} className={['editor-text-surface', className].filter(Boolean).join(' ')} />
+    <div
+      ref={hostRef}
+      className={['editor-text-surface', className].filter(Boolean).join(' ')}
+      data-editor-markdown-surface={markdownSurface ? '' : undefined}
+    />
   )
 }

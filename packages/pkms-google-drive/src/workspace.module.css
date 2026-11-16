@@ -14,23 +14,24 @@
     sans-serif;
 }
 
-.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control):not(.editor-action-button):not(.pkms-google-drive-sync-state)) {
+/* Explicit opt-in for Drive-owned controls. Shared Editor tree actions and sync status stay unboxed. */
+.pkms-google-drive-root [data-drive-control] {
   appearance: none;
   min-height: 32px;
   padding: 6px 10px;
   border: 1px solid var(--drive-border);
   border-radius: 6px;
   color: inherit;
-  background: transparent !important;
+  background: transparent;
   font: inherit;
   cursor: pointer;
 }
 
-.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control):hover:not(:disabled)) {
+.pkms-google-drive-root [data-drive-control]:hover:not(:disabled) {
   background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
-.pkms-google-drive-root :where(button:not([data-editor-tree-create-action]):not(.pkms-google-drive-sync-state):disabled) {
+.pkms-google-drive-root [data-drive-control]:disabled {
   cursor: default;
   opacity: 0.55;
 }
@@ -325,8 +326,9 @@
   align-items: center;
   gap: 5px;
   overflow: hidden;
-  padding: 2px 4px;
-  border-color: transparent;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: var(--drive-muted);
   font-size: 10px;
   text-overflow: ellipsis;
@@ -464,12 +466,12 @@
   overflow: auto;
 }
 
-.pkms-google-drive-root.is-desktop .editor-title-block {
+.pkms-google-drive-root.is-desktop [data-editor-title-block] {
   box-sizing: border-box;
   width: 100%;
 }
 
-.pkms-pane-host > nav[aria-label='PKMS storage source'] button {
+:global(.pkms-pane-host > nav[aria-label='PKMS storage source'] button) {
   appearance: none;
   min-height: 26px;
   padding: 3px 9px;
@@ -481,7 +483,7 @@
   cursor: pointer;
 }
 
-.pkms-pane-host > nav[aria-label='PKMS storage source'] button[aria-pressed='true'] {
+:global(.pkms-pane-host > nav[aria-label='PKMS storage source'] button)[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--accent, #8b7cf6) 50%, transparent);
   background: color-mix(in srgb, var(--accent, #8b7cf6) 16%, transparent);
 }

@@ -35,9 +35,7 @@ if (!/className=\{\[styles\.view,[\s\S]{0,160}className\]/.test(sharedTreeView))
   failures.push('EditorTreeView must apply its CSS Module root class and host class.')
 }
 if (!/rootDropTarget\s*&&\s*styles\.rootDropTarget/.test(sharedTreeView)) {
-  failures.push(
-    'EditorTreeView must expose root drop target state through its CSS Module.'
-  )
+  failures.push('EditorTreeView must expose root drop target state through its CSS Module.')
 }
 if (
   !/if\s*\(inlineEdit\)[\s\S]*?aria-label=\{inlineEdit\.ariaLabel\}[\s\S]*?event\.key === 'Enter'[\s\S]*?event\.key === 'Escape'/.test(
@@ -55,20 +53,39 @@ if (
 ) {
   failures.push('EditorTreeView must route blank-area drops to the workspace root.')
 }
-if (!/\.view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(sharedTreeStyles)) {
+if (
+  !/\.view\s*\{[^}]*min-height:\s*100%[^}]*flex:\s*1 1 auto[^}]*flex-direction:\s*column[^}]*padding-block:\s*4px/s.test(
+    sharedTreeStyles
+  )
+) {
   failures.push('packages/editor/src/treeView.module.css must own common tree root geometry.')
 }
-if (!/\.item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(sharedTreeStyles)) {
+if (
+  !/\.item\s*\{[^}]*height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*min-height:\s*var\(--editor-tree-row-height,\s*27px\)[^}]*padding-block:\s*3px[^}]*border:\s*0[^}]*border-radius:\s*4px/s.test(
+    sharedTreeStyles
+  )
+) {
   failures.push('packages/editor/src/treeView.module.css must own shared tree row geometry.')
 }
 if (!/\.item\s*\{[^}]*line-height:\s*1\.4/s.test(sharedTreeStyles)) {
   failures.push('packages/editor/src/treeView.module.css must own shared tree row line height.')
 }
-if (!/\.createAction\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(sharedTreeStyles)) {
+if (
+  !/\.createAction\s*\{[^}]*all:\s*unset[^}]*width:\s*26px[^}]*height:\s*26px/s.test(
+    sharedTreeStyles
+  )
+) {
   failures.push('The shared tree action module must keep creation controls unboxed.')
 }
-if (!/data-editor-tree-row/.test(await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')) || !/data-editor-tree-content/.test(sharedTreePane)) {
-  failures.push('Shared tree elements must expose stable data attributes for host styling and tests.')
+if (
+  !/data-editor-tree-row/.test(
+    await readFile(path.join(root, 'packages/editor/src/EditorTreeRow.tsx'), 'utf8')
+  ) ||
+  !/data-editor-tree-content/.test(sharedTreePane)
+) {
+  failures.push(
+    'Shared tree elements must expose stable data attributes for host styling and tests.'
+  )
 }
 if (
   !/\.cm-md-fold-control'\s*:\s*\{[^}]*width:\s*'16px'[^}]*height:\s*'21px'[^}]*padding:\s*'0'[^}]*border:\s*'0'[^}]*borderRadius:\s*'0'/s.test(
@@ -95,43 +112,24 @@ for (const [relativePath, selector] of [
   }
 }
 
-const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.css')
+const driveStylesPath = path.join(root, 'packages/pkms-google-drive/src/workspace.module.css')
 const driveStyles = await readFile(driveStylesPath, 'utf8')
 const normalizedDriveStyles = driveStyles.replace(/\s+/g, ' ')
-if (
-  !normalizedDriveStyles.includes(
-    '.pkms-google-drive-root :where(button:not([data-editor-tree-row]):not([data-editor-tree-create-action]):not(.cm-md-fold-control)'
-  )
-) {
+if (/\.pkms-google-drive-root\s+:where\(button/.test(normalizedDriveStyles)) {
   failures.push(
-    'Google Drive button reset must exclude shared tree rows, Markdown fold, and tree create controls.'
+    'Google Drive must not style every button under its root; use explicit data-drive-control hooks.'
   )
 }
-if (
-  !normalizedDriveStyles.includes(
-    '.pkms-google-drive-root :where(button:not([data-editor-tree-create-action]):not(.pkms-google-drive-sync-state):disabled)'
-  )
-) {
-  failures.push(
-    'Google Drive disabled button styling must preserve shared tree create control state.'
-  )
+if (!normalizedDriveStyles.includes('.pkms-google-drive-root [data-drive-control]')) {
+  failures.push('Google Drive standalone controls must opt in through data-drive-control.')
 }
 if (
-  !/\.pkms-google-drive-root\s+:where\(button:not\(\[data-editor-tree-row\]\):not\(\[data-editor-tree-create-action\]\):not\(\.cm-md-fold-control\):not\(\.editor-action-button\):not\(\.pkms-google-drive-sync-state\)\)/.test(normalizedDriveStyles) ||
-  !/\.pkms-google-drive-root\s+button\.pkms-google-drive-sync-state\s*\{\s*all:\s*unset;\s*display:\s*inline-flex;\s*min-height:\s*0;[^}]*padding:\s*0;\s*border:\s*0;\s*border-radius:\s*0;/.test(
+  !/\.pkms-google-drive-root button\.pkms-google-drive-sync-state\s*\{[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*0;/.test(
     normalizedDriveStyles
   )
 ) {
-  failures.push('Google Drive global button rules must not add chrome to sync or editor width controls.')
+  failures.push('Google Drive sync status must remain unboxed.')
 }
-if (
-  /\.editor-markdown-document\.pkms-google-drive-markdown\s+\.editor-markdown-title\s*\{/.test(
-    driveStyles
-  )
-) {
-  failures.push('Google Drive must use the shared Markdown filename title width.')
-}
-
 if (
   !/export\s*\{[^}]*\bEditorTreePane\b[^}]*\}\s*from\s*['"]\.\/EditorTreePane['"]/.test(
     packageIndex

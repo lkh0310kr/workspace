@@ -153,7 +153,8 @@ export function EditorMarkdownSurface({
   return (
     <EditorTextSurface
       {...textSurfaceProps}
-      className={['editor-markdown-surface', className].filter(Boolean).join(' ')}
+      markdownSurface
+      className={className}
       extensions={sharedExtensions}
       onViewReady={onViewReady}
       onSearchPanelChange={onSearchPanelChange}

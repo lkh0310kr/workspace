@@ -40,7 +40,7 @@ import {
 import { PKMS_QUICK_OPEN_EVENT } from '@pkms/client/hostEvents'
 import { ContextMenu, type ContextMenuItem } from '../../components/ContextMenu'
 import type { GoogleDriveWorkspaceEntry } from '@pkms/google-drive'
-import '@pkms/google-drive/workspace.css'
+import driveStyles from '@pkms/google-drive/workspace.module.css'
 
 interface RootOption {
   id: string
@@ -1593,7 +1593,7 @@ export function PkmsGoogleDrivePane({
 
   return (
     <main
-      className="pkms-google-drive-root is-desktop"
+      className={`${driveStyles['pkms-google-drive-root']} ${driveStyles['is-desktop']}`}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -1604,15 +1604,16 @@ export function PkmsGoogleDrivePane({
     >
       {!root && (
         <header
-          className="pkms-google-drive-header"
+          className={driveStyles['pkms-google-drive-header']}
           style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 12 }}
         >
           <div>
-            <div className="pkms-google-drive-eyebrow">PKMS</div>
+            <div className={driveStyles['pkms-google-drive-eyebrow']}>PKMS</div>
             <p style={{ margin: '4px 0' }}>{status}</p>
           </div>
           {!root && (
             <button
+              data-drive-control=""
               type="button"
               onClick={() => void connect()}
               disabled={busy || !connection.clientConfigured}
@@ -1635,7 +1636,12 @@ export function PkmsGoogleDrivePane({
       {!root && roots.length > 0 && (
         <section style={{ display: 'grid', gap: 8, padding: 16 }}>
           {roots.map((item) => (
-            <button key={item.id} disabled={busy} onClick={() => void setConnected(item)}>
+            <button
+              data-drive-control=""
+              key={item.id}
+              disabled={busy}
+              onClick={() => void setConnected(item)}
+            >
               {item.name}
             </button>
           ))}
@@ -1649,6 +1655,7 @@ export function PkmsGoogleDrivePane({
           <section style={{ padding: 16 }}>
             <p>No PKMS Google Drive workspace exists for this account.</p>
             <button
+              data-drive-control=""
               disabled={busy}
               onClick={() => {
                 setBusy(true)
@@ -1671,7 +1678,7 @@ export function PkmsGoogleDrivePane({
         )}
       {root && (
         <section
-          className="pkms-google-drive-workspace"
+          className={driveStyles['pkms-google-drive-workspace']}
           style={{
             display: 'flex',
             flex: 1,
@@ -1681,17 +1688,18 @@ export function PkmsGoogleDrivePane({
         >
           {treeOpen && (
             <EditorTreeFrame
-              className="pkms-google-drive-tree"
+              className={driveStyles['pkms-google-drive-tree']}
               ariaLabel="Google Drive files"
               header={
                 <EditorTreeToolbar
                   title="Files"
-                  className="pkms-google-drive-file-toolbar"
-                  headingClassName="pkms-google-drive-file-toolbar-heading"
+                  className={driveStyles['pkms-google-drive-file-toolbar']}
+                  headingClassName={driveStyles['pkms-google-drive-file-toolbar-heading']}
                   status={
                     <button
                       type="button"
-                      className="pkms-google-drive-sync-state"
+                      className={driveStyles['pkms-google-drive-sync-state']}
+                      data-drive-sync-state=""
                       onClick={() => {
                         if (
                           sessionSnapshot?.savePhase === 'dirty' ||
@@ -1709,7 +1717,7 @@ export function PkmsGoogleDrivePane({
                       title="Sync now"
                     >
                       <span
-                        className={`pkms-google-drive-sync-indicator${documentSaving || documentSyncing ? ' is-busy' : error || documentNeedsAttention ? ' is-error' : ''}`}
+                        className={`${driveStyles['pkms-google-drive-sync-indicator']} ${documentSaving || documentSyncing ? driveStyles['is-busy'] : error || documentNeedsAttention ? driveStyles['is-error'] : ''}`}
                       />
                       <span>
                         {documentSaving
@@ -1739,7 +1747,7 @@ export function PkmsGoogleDrivePane({
               }
               footer={
                 roots.length > 1 ? (
-                  <div className="pkms-google-drive-tree-footer">
+                  <div className={driveStyles['pkms-google-drive-tree-footer']}>
                     <select
                       aria-label="PKMS Google Drive workspace"
                       value={root.id}
@@ -1769,7 +1777,7 @@ export function PkmsGoogleDrivePane({
               }}
             >
               {searchOpen && (
-                <div className="pkms-google-drive-search-row">
+                <div className={driveStyles['pkms-google-drive-search-row']}>
                   {searchOpen ? (
                     <>
                       <input
@@ -1788,6 +1796,7 @@ export function PkmsGoogleDrivePane({
                         style={{ minWidth: 0, flex: 1 }}
                       />
                       <button
+                        data-drive-control=""
                         type="button"
                         onClick={() => {
                           setSearchOpen(false)
@@ -1820,6 +1829,7 @@ export function PkmsGoogleDrivePane({
                     <>
                       {searchResults.map((entry) => (
                         <button
+                          data-drive-control=""
                           key={entry.id}
                           type="button"
                           onClick={() => void openEntry(entry)}
@@ -1831,6 +1841,7 @@ export function PkmsGoogleDrivePane({
                       ))}
                       {searchPageToken && (
                         <button
+                          data-drive-control=""
                           type="button"
                           disabled={searching}
                           onClick={() => void loadMoreSearchResults()}
@@ -1841,6 +1852,7 @@ export function PkmsGoogleDrivePane({
                     </>
                   ) : searchPageToken ? (
                     <button
+                      data-drive-control=""
                       type="button"
                       disabled={searching}
                       onClick={() => void loadMoreSearchResults()}
@@ -1856,7 +1868,7 @@ export function PkmsGoogleDrivePane({
               ) : (
                 <EditorTreePane
                   ariaLabel="PKMS Google Drive tree viewport"
-                  className="pkms-google-drive-tree-scroll"
+                  className={driveStyles['pkms-google-drive-tree-scroll']}
                   contentRef={treeScrollContainerRef}
                   style={{ flex: '1 1 auto', minHeight: 0 }}
                   tree={{
@@ -1911,7 +1923,8 @@ export function PkmsGoogleDrivePane({
             </EditorTreeFrame>
           )}
           <div
-            className="pkms-google-drive-editor"
+            className={driveStyles['pkms-google-drive-editor']}
+            data-drive-editor=""
             style={{ flex: 1, minWidth: 0, overflow: 'auto' }}
           >
             {session && activeFile ? (
@@ -1922,7 +1935,7 @@ export function PkmsGoogleDrivePane({
                   onOpenFile={openBreadcrumbFile}
                 />
                 <EditorMarkdownEditor
-                  className="pkms-google-drive-markdown"
+                  className={driveStyles['pkms-google-drive-markdown']}
                   title={
                     <EditorMarkdownTitle
                       path={activeFile.path}
@@ -1965,7 +1978,7 @@ export function PkmsGoogleDrivePane({
       )}
       {dialogRequest && (
         <div
-          className="pkms-google-drive-dialog-backdrop"
+          className={driveStyles['pkms-google-drive-dialog-backdrop']}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setDialogRequest(null)
           }}
@@ -1974,7 +1987,7 @@ export function PkmsGoogleDrivePane({
           }}
         >
           <section
-            className="pkms-google-drive-dialog"
+            className={driveStyles['pkms-google-drive-dialog']}
             role="dialog"
             aria-modal="true"
             aria-label={dialogRequest.title}
@@ -1982,17 +1995,19 @@ export function PkmsGoogleDrivePane({
             <>
               <h2>{dialogRequest.title}</h2>
               <p>{dialogRequest.message}</p>
-              <div className="pkms-google-drive-dialog-actions">
+              <div className={driveStyles['pkms-google-drive-dialog-actions']}>
                 <button
+                  data-drive-control=""
                   type="button"
-                  className="pkms-google-drive-dialog-cancel"
+                  className={driveStyles['pkms-google-drive-dialog-cancel']}
                   onClick={() => setDialogRequest(null)}
                 >
                   Cancel
                 </button>
                 <button
+                  data-drive-control=""
                   type="button"
-                  className="pkms-google-drive-dialog-submit is-danger"
+                  className={`${driveStyles['pkms-google-drive-dialog-submit']} ${driveStyles['is-danger']}`}
                   onClick={() => {
                     dialogRequest.onConfirm()
                     setDialogRequest(null)

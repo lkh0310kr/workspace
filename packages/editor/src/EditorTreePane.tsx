@@ -26,6 +26,7 @@ export function EditorTreeFrame({
 }: EditorTreeFrameProps) {
   return (
     <div
+      data-editor-tree-frame=""
       className={[styles.pane, className].filter(Boolean).join(' ')}
       aria-label={ariaLabel}
       role="group"

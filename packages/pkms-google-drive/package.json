@@ -10,6 +10,6 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./workspace.css": "./src/workspace.css"
+    "./workspace.module.css": "./src/workspace.module.css"
   }
 }

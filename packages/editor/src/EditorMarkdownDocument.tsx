@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 're
 import type { EditorView } from '@codemirror/view'
 import { EditorMarkdownProperties } from './EditorMarkdownProperties'
 import { editorViewScrollElement } from './editorViewScrollContext'
-import './markdownDocument.css'
+import styles from './markdownDocument.module.css'
 
 const MARKDOWN_WIDTH_MODE_KEY = 'workspace.markdownWidthMode'
 
@@ -51,7 +51,7 @@ export function EditorMarkdownDocument({
   const handleBackgroundClick = (event: MouseEvent<HTMLDivElement>) => {
     if (
       (event.target as HTMLElement).closest(
-        '.cm-editor, .editor-title-block, .editor-markdown-title, .md-title-edit'
+        '.cm-editor, [data-editor-title-block], [data-editor-markdown-title], [data-editor-markdown-title-edit]'
       )
     )
       return
@@ -60,14 +60,16 @@ export function EditorMarkdownDocument({
 
   return (
     <div
-      className={['editor-markdown-document', wide && 'is-wide', className]
+      className={[styles['editor-markdown-document'], wide && styles['is-wide'], className]
         .filter(Boolean)
         .join(' ')}
+      data-editor-markdown-document=""
     >
-      <div className="editor-floating-actions">
+      <div className={styles['editor-floating-actions']}>
         <button
           type="button"
-          className="editor-action-button editor-width-toggle"
+          className={`${styles['editor-action-button']} ${styles['editor-width-toggle']}`}
+          data-editor-action-button=""
           aria-label={wide ? 'Use readable document width' : 'Use wide document width'}
           aria-pressed={wide}
           title={wide ? 'Readable width' : 'Wide width'}
@@ -78,10 +80,15 @@ export function EditorMarkdownDocument({
         {actions}
       </div>
       <editorViewScrollElement.Provider value={scrollRef}>
-        <div ref={scrollRef} className="editor-markdown-scroll" onClick={handleBackgroundClick}>
+        <div
+          ref={scrollRef}
+          className={styles['editor-markdown-scroll']}
+          data-editor-markdown-scroll=""
+          onClick={handleBackgroundClick}
+        >
           {title}
           <EditorMarkdownProperties view={propertiesView} revision={propertiesRevision} />
-          <div className="editor-markdown-content">{children}</div>
+          <div className={styles['editor-markdown-content']}>{children}</div>
         </div>
       </editorViewScrollElement.Provider>
     </div>

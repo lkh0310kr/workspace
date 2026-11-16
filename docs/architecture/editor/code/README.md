@@ -38,7 +38,7 @@ mount 시 history, 공통 검색, host extensions, default/history keymap, Tab i
 | 미저장 내용 | 메모리에는 기록, session이 clean일 때만 storage 기록. session이 없으면 기록 가능    |
 | 장애        | JSON 손상/fromJSON 실패는 복원 포기, storage quota/비활성은 메모리로 계속 동작      |
 
-읽기 시 메모리를 우선하고 touchedAt을 갱신한다. Markdown frame은 제목과 본문이 함께 움직이는 `.editor-markdown-scroll`을 공용 surface에 scroll owner로 전달하므로 본문 안쪽 CodeMirror의 `scrollDOM`이 아니라 문서 전체의 세로·가로 위치를 저장하고 복원한다. Code 문서는 기본적으로 CodeMirror `scrollDOM`을 쓴다. discard는 메모리 key를 즉시 삭제한 뒤 setTimeout(0)에서도 지워 unmount의 마지막 dirty 기록을 제거한다. 영속 cache 전체를 삭제하는 명령은 아니다.
+읽기 시 메모리를 우선하고 touchedAt을 갱신한다. Markdown frame은 제목과 본문이 함께 움직이는 `[data-editor-markdown-scroll]`을 공용 surface에 scroll owner로 전달하므로 본문 안쪽 CodeMirror의 `scrollDOM`이 아니라 문서 전체의 세로·가로 위치를 저장하고 복원한다. Code 문서는 기본적으로 CodeMirror `scrollDOM`을 쓴다. discard는 메모리 key를 즉시 삭제한 뒤 setTimeout(0)에서도 지워 unmount의 마지막 dirty 기록을 제거한다. 영속 cache 전체를 삭제하는 명령은 아니다.
 
 ## Desktop code 모드
 

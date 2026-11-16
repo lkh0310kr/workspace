@@ -1,4 +1,5 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react'
+import styles from './markdownDocument.module.css'
 
 interface Props {
   inputRef: RefObject<HTMLInputElement | null>
@@ -29,18 +30,19 @@ export function EditorMarkdownTitleInput({
   }
 
   return (
-    <div className="md-title-edit">
+    <div className={styles['md-title-edit']} data-editor-markdown-title-edit="">
       <input
         ref={inputRef}
         aria-label="Markdown document title"
-        className={`editor-markdown-title md-title-input${error ? ' error' : ''}`}
+        className={`${styles['editor-markdown-title']} ${styles['md-title-input']}${error ? ` ${styles.error}` : ''}`}
+        data-editor-markdown-title=""
         value={value}
         onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
         onBlur={onCommit}
         onKeyDown={onKeyDown}
       />
       {error && (
-        <div className="md-title-error" role="alert">
+        <div className={styles['md-title-error']} role="alert">
           {error}
         </div>
       )}
