@@ -1,6 +1,6 @@
 import { dialog } from 'electron'
 import { autoUpdater } from 'electron-updater'
-import { appendStartupLog, isPackagedApp } from './startupLog'
+import { appendStartupLog, isPackagedApp } from '../../startupLog'
 
 let initialized = false
 let checkInProgress = false

@@ -554,7 +554,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "c24f8772269358b6697af7ad95d0b5a8fef8c641dfca8c38f1657b40ab950994"
+          "sha256": "c70f16f4fbb496103dd211c99a6c071d8c3af7d4db5f1feacece41fcd9666504"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -565,12 +565,12 @@
           "sha256": "455b5215ab647eded2c9939ec9309723f57fbe7e3870c9917bdf62bd9041f059"
         },
         {
-          "path": "apps/desktop/src/main/shortcuts/relayAppShortcuts.test.ts",
+          "path": "apps/desktop/src/main/platform/shortcuts/relayAppShortcuts.test.ts",
           "sha256": "329fdfeb2c8ac12a88fe17acacda4a46f530d1eea8c876da879a51298d39593c"
         },
         {
-          "path": "apps/desktop/src/main/shortcuts/relayAppShortcuts.ts",
-          "sha256": "12cc1a25910fdb89c521fd71803188f49386e867ee26f264a185bdbe697608a9"
+          "path": "apps/desktop/src/main/platform/shortcuts/relayAppShortcuts.ts",
+          "sha256": "37325bd105324dd50786cba367559bcdc262b35255484de79ed36c2b0f9749e2"
         },
         {
           "path": "apps/desktop/src/preload/browserApi.ts",
@@ -721,7 +721,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "c24f8772269358b6697af7ad95d0b5a8fef8c641dfca8c38f1657b40ab950994"
+          "sha256": "c70f16f4fbb496103dd211c99a6c071d8c3af7d4db5f1feacece41fcd9666504"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",

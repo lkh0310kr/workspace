@@ -1,8 +1,8 @@
 import './platform/protocol/protocolSchemes'
-import './imeEnv'
+import './platform/ime/imeEnv'
 import { installMainStartupLogging, appendStartupLog, isPackagedApp } from './startupLog'
-import { ensureLinuxImeDaemon } from './imeEnv'
-import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './shortcuts/relayAppShortcuts'
+import { ensureLinuxImeDaemon } from './platform/ime/imeEnv'
+import { relayGuestWebviewShortcuts, relayHostAppShortcuts } from './platform/shortcuts/relayAppShortcuts'
 
 import { app, shell, BrowserWindow, Menu, clipboard, ipcMain } from 'electron'
 import { join } from 'path'
@@ -29,7 +29,7 @@ import {
 } from './platform/wslPaths'
 import { applyBrowserGpuSwitches } from './browser/browserGpuEnv'
 import { shouldIgnoreWatcherPath } from './workspace/filesystemWatcherIgnore'
-import { revealWslWindow, installWslWindowLifecycle } from './wslWindow'
+import { revealWslWindow, installWslWindowLifecycle } from './platform/window/wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook } from './agent/usage/usage'
 import { setupBrowserSession } from './browser/browserSession'
@@ -55,9 +55,9 @@ import {
 import { createWorkspaceAfterAgentHookServer } from './agent/workspaceAgentHookStartup'
 import { resolveMacOptionTerminalBytes } from './terminal/terminalMacOptionShortcuts'
 import { disposeCadViewers } from './content/cadViewer'
-import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
+import { reinforceExistingWindowFocus } from './platform/window/focusExistingWindow'
 import { installWindowsPathRegistryChangeListener } from './pty/windows-path-registry-change'
-import { checkForUpdatesByUser, initializeAutoUpdates } from './autoUpdate'
+import { checkForUpdatesByUser, initializeAutoUpdates } from './platform/update/autoUpdate'
 
 // WSLg + Windows DPI: must run before ready / BrowserWindow (see wslPaths).
 applyWslDpiScaleFix((name, value) => {

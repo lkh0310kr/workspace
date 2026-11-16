@@ -3,15 +3,15 @@ import { cpus, freemem, homedir, hostname, platform, release, totalmem, uptime }
 import { statfsSync } from 'node:fs'
 import { assertClipboardImageDimensionsWithinLimit } from '../../../shared/clipboard-image'
 import type { UsageMeterSettings } from '../../../shared/usage-meter-settings'
-import { saveClipboardImageBufferAsTempFile } from '../../clipboard/clipboardImageTempFile'
+import { saveClipboardImageBufferAsTempFile } from '../clipboard/clipboardImageTempFile'
 import { appendAppLog, appendConsoleLog, appendNdjsonLog, getLogsDir } from '../../debugLogSink'
 import { appendLayoutLog } from '../../layoutDebugLog'
 import { appendTerminalLog } from '../../terminal/terminalDebugLog'
 import { claudeRateLimitStatus, cursorUsageStatus, codexRateLimitStatus } from '../../agent/usage/usage'
 import { loadUsageMeterSettings, saveUsageMeterSettings } from '../../agent/usage/usageMeterConfig'
-import { pickDirectory, pickMediaFile } from '../../nativeDialogs'
+import { pickDirectory, pickMediaFile } from '../dialogs/nativeDialogs'
 import { isWsl } from '../wslPaths'
-import { toggleWslWindowMaximize } from '../../wslWindow'
+import { toggleWslWindowMaximize } from '../window/wslWindow'
 
 export function registerSystemCapabilityIpc(getMainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('hostname', () => hostname())

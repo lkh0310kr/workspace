@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-vi.mock('./platform/wslPaths', () => ({
+vi.mock('../wslPaths', () => ({
   isWsl: vi.fn(() => true),
   readWindowsWorkingArea: vi.fn(() => ({ x: 0, y: 0, width: 1536, height: 816 }))
 }))

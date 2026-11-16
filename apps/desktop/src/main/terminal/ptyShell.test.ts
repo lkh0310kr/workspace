@@ -17,7 +17,7 @@ vi.mock('../platform/wslPaths', () => ({
 }))
 
 import { isWsl, resolveWslLinuxPathFromWindowsRoot } from '../platform/wslPaths'
-import * as fallbackChain from '../windows/windows-shell-fallback-chain'
+import * as fallbackChain from '../platform/windows/windows-shell-fallback-chain'
 import { resolvePtySpawn, resolvePtySpawnAttempts, resolveWslExecutable } from './ptyShell'
 
 const WINDOWS_POWERSHELL_ATTEMPT = {

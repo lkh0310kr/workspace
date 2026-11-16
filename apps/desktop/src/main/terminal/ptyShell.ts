@@ -9,9 +9,9 @@ import {
 import {
   getWindowsCmdPath,
   resolveWindowsPowerShellExecutablePath
-} from '../windows/windows-powershell-executable'
-import { resolveWindowsShellLaunchArgs } from '../windows/windows-shell-args'
-import { buildWindowsPowerShellSpawnAttempts } from '../windows/windows-shell-fallback-chain'
+} from '../platform/windows/windows-powershell-executable'
+import { resolveWindowsShellLaunchArgs } from '../platform/windows/windows-shell-args'
+import { buildWindowsPowerShellSpawnAttempts } from '../platform/windows/windows-shell-fallback-chain'
 
 export interface PtySpawnSpec {
   file: string

@@ -4,7 +4,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { promisify } from 'node:util'
-import { isWsl, windowsPathToWsl, wslPathToWindows } from './platform/wslPaths'
+import { isWsl, windowsPathToWsl, wslPathToWindows } from '../wslPaths'
 
 const execFileAsync = promisify(execFile)
 const CSC = 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe'
@@ -42,7 +42,7 @@ function dialogParent(win: BrowserWindow | null | undefined): BrowserWindow | un
 }
 
 function scriptsDir(): string {
-  return path.join(__dirname, '../../scripts')
+  return path.join(__dirname, '../../../../scripts')
 }
 
 function wacpLibDir(): string {

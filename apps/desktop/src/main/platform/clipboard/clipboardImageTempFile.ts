@@ -2,7 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { app } from 'electron'
-import { assertClipboardImageByteLengthWithinLimit } from '../../shared/clipboard-image'
+import { assertClipboardImageByteLengthWithinLimit } from '../../../shared/clipboard-image'
 
 export async function saveClipboardImageBufferAsTempFile(buffer: Buffer): Promise<string> {
   assertClipboardImageByteLengthWithinLimit(buffer.byteLength)

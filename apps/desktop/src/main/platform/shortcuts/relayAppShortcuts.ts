@@ -1,5 +1,5 @@
 import type { Event, Input } from 'electron'
-import { isImeToggleKey } from '../imeEnv'
+import { isImeToggleKey } from '../ime/imeEnv'
 
 export type ShortcutSend = (channel: string, ...args: unknown[]) => void
 
