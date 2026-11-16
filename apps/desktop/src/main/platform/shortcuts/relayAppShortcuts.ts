@@ -187,7 +187,7 @@ function isEditorSidebarShortcutInput(input: Input): boolean {
   )
 }
 
-/** Browser guest keeps Editor shortcuts in its own page; app shell and Browser commands are relayed. */
+/** Browser guest consumes Editor sidebar shortcuts; app shell and Browser commands are relayed. */
 export function relayGuestWebviewShortcuts(
   event: Event,
   input: Input,
@@ -203,6 +203,11 @@ export function relayGuestWebviewShortcuts(
   if (input.type !== 'keyDown') return
   if (isModifierPress(input)) {
     send('shortcut:modifier-pressed')
+    return
+  }
+
+  if (isEditorSidebarShortcutInput(input)) {
+    event.preventDefault()
     return
   }
 

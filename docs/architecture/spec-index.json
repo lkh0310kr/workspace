@@ -566,11 +566,11 @@
         },
         {
           "path": "apps/desktop/src/main/platform/shortcuts/relayAppShortcuts.test.ts",
-          "sha256": "329fdfeb2c8ac12a88fe17acacda4a46f530d1eea8c876da879a51298d39593c"
+          "sha256": "9ad72a3791cc0e4ab8f49551d9c3b29293bd5da7a0dc77c5bb16862fb219b233"
         },
         {
           "path": "apps/desktop/src/main/platform/shortcuts/relayAppShortcuts.ts",
-          "sha256": "37325bd105324dd50786cba367559bcdc262b35255484de79ed36c2b0f9749e2"
+          "sha256": "cec54d46d7af6b5a5ddbec0cd096a3e2314392d1114512b0e75b6a4c1bdc18ac"
         },
         {
           "path": "apps/desktop/src/preload/browserApi.ts",

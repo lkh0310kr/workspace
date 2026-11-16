@@ -202,11 +202,20 @@ describe('relayHostAppShortcuts', () => {
 
 describe('relayGuestWebviewShortcuts', () => {
   it.each([
-    ['Cmd+P', keyDown('KeyP', { meta: true })],
     ['Cmd+Shift+F', keyDown('KeyF', { meta: true, shift: true })],
-    ['Cmd+\\', { ...keyDown('Backslash', { meta: true }), key: '₩' }],
+    ['Cmd+\\', { ...keyDown('Backslash', { meta: true }), key: '₩' }]
+  ])('consumes Editor sidebar shortcut %s in the browser guest', (_name, input) => {
+    const event = mockEvent()
+    const send = vi.fn()
+    relayGuestWebviewShortcuts(event as never, input as never, send, vi.fn(), 42)
+    expect(event.preventDefault).toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['Cmd+P', keyDown('KeyP', { meta: true })],
     ['Cmd+F', keyDown('KeyF', { meta: true })]
-  ])('leaves Editor shortcut %s in the browser guest', (_name, input) => {
+  ])('leaves Browser page shortcut %s in the guest', (_name, input) => {
     const event = mockEvent()
     const send = vi.fn()
     relayGuestWebviewShortcuts(event as never, input as never, send, vi.fn(), 42)
