@@ -1,4 +1,4 @@
-import { interactionCoordinator } from './InteractionCoordinator'
+import { interactionCoordinator } from '../../../interaction/InteractionCoordinator'
 
 /**
  * Block or hide webviews while drag overlays are active. Popovers use portal

@@ -581,8 +581,8 @@
           "sha256": "b0307b17c642a031ff0e71b292c527e11dbc4e6d16043eb544b73a508aee2714"
         },
         {
-          "path": "apps/desktop/src/renderer/src/interaction/overlayBarrier.ts",
-          "sha256": "b94a80464ff4d1e57d7598b94a1c058c215a96739a3a4208c2e367dff7f1d120"
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/overlayBarrier.ts",
+          "sha256": "ff50bad54f094c5deab13ba84189ba2fa70571999f69188e0f7d7b139ccfa95b"
         },
         {
           "path": "apps/desktop/src/renderer/src/adapters/browser/runtime/browserDownloads.ts",
@@ -764,7 +764,7 @@
           "sha256": "3ee5d231dcfaf33ca4d8a32b00431a0d517efa53f523c10ec139aac5ed240aa9"
         },
         {
-          "path": "apps/desktop/src/renderer/src/interaction/embedPolicy.ts",
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/embedPolicy.ts",
           "sha256": "decbc88640a02cc213f87e0e9bbdb33004beb73c7d3e632a02f96241219ca19c"
         },
         {
@@ -785,7 +785,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/PaneGroup.tsx",
-          "sha256": "9844d137546bb513e5c74fc86a0a9cf9f5f5ab3d8b822676db4c43e5713d60fb"
+          "sha256": "36a0bd9a76ba53e0e7f9458a6dd1eed217f993a14bc36d8c87f2f68eb23a6cc1"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/workspaceLayoutModels.ts",
@@ -881,7 +881,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutRef.ts",
-          "sha256": "7aad9929d43a2f56e8d8de5da0a90d90c4db18dda06ff4ce4df988ed3a78d3bd"
+          "sha256": "caa54abd0d0d669a1b863a910f91304d3db3edbd4c4cb5891f7382f100766dd7"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.test.ts",
@@ -909,11 +909,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/tabDrag.ts",
-          "sha256": "c6e807d187d4a79722a1fb35da26aa822e67645b061ad438f67732a2b04f341f"
+          "sha256": "77f32d66b9dac5bd8d2a00969db5ab0c0f5c56a2032b1bdd0bf2250b74e57409"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/paneKindRegistry.ts",
-          "sha256": "31039ab60dec4960c9192ca26b9bc56f992027cdad1caf3d6218346b4943aa30"
+          "sha256": "77f4b93726362a70325382284b8e80b8794ebbdd31d3e874a9b39c780e4a3dce"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/builtinPaneKinds.ts",
@@ -974,6 +974,30 @@
         {
           "path": "apps/desktop/src/renderer/src/adapters/ui/index.ts",
           "sha256": "5994ab33a275565cd693c4b682f1943b79903779b0035c2b3b2faedd7047ee87"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/dragSession.ts",
+          "sha256": "fab60f614e1a10dc7f9d357828f6acf869babb56572cab49be982c080021bee6"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/dragSession.test.ts",
+          "sha256": "5ba9f8c25f0362341981bd85ca0be57ad6a16f55fc521f1a7fb073edb4bff075"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/embedPolicy.test.ts",
+          "sha256": "75f831f8664f27a9d3649a467fa40bacb80beb7ee77e4399ce3816887d2d80ef"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/wslg-pointer-drag.ts",
+          "sha256": "02e64442ebcdc29c26520109b970309a29788e32ddfac73011e73e72f5e67039"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/pane-system/interaction/wslg-pointer-drag.test.ts",
+          "sha256": "2bdd1446c806e5e5bbdfc9fa23cb50ade441cade4362eac1366537413be79a74"
+        },
+        {
+          "path": "apps/desktop/src/renderer/src/features/diagnostics/interactionDebugLog.ts",
+          "sha256": "81e66eb5ebd33182cbe242c055403aa6935a777d709850cbb7e317534214f60f"
         }
       ]
     },

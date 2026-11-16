@@ -10,4 +10,4 @@ export {
   endTabChipDrag as endTabDrag,
   getTabChipDrag as getTabDrag,
   startTabChipDrag as startTabDrag
-} from '../../../interaction/dragSession'
+} from '../interaction/dragSession'

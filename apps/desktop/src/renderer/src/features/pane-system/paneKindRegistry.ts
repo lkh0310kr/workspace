@@ -31,7 +31,7 @@ export interface PaneRenderContext {
   /** The whole workspace tab (and thus this pane) is the one currently on
    * screen — false while switched away to a different workspace tab. */
   paneVisible: boolean
-  /** paneVisible && active, precomputed (embedPolicy.ts) — the CSS-level
+  /** paneVisible && active, precomputed (interaction/embedPolicy.ts) — the CSS-level
    * "should this chip's content actually paint" signal, distinct from
    * `active` because every tab's content stays mounted at once (see
    * PaneGroup.tsx's header comment) and only visibility is toggled. */

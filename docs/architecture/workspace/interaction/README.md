@@ -14,7 +14,7 @@
 | 활성 + overlay/portal 없음               | true          | true              |
 | 미등록 orphan guest                      | false         | false             |
 
-BrowserInteractionController reconcile은 등록 guest에 display:flex/none, pointerEvents:auto/none, inert를 적용한다. orphan은 teardown 중 남은 DOM이어도 숨긴다. viewport shell의 paintable/active 스타일과 guest 정책은 별도 계층이다. 일반 content 스타일은 [embedPolicy](../../../../apps/desktop/src/renderer/src/interaction/embedPolicy.ts)가 visibility와 pointerEvents를 `paneVisible && chipActive`로 결정한다.
+BrowserInteractionController reconcile은 등록 guest에 display:flex/none, pointerEvents:auto/none, inert를 적용한다. orphan은 teardown 중 남은 DOM이어도 숨긴다. viewport shell의 paintable/active 스타일과 guest 정책은 별도 계층이다. 일반 content 스타일은 [embedPolicy](../../../../apps/desktop/src/renderer/src/features/pane-system/interaction/embedPolicy.ts)가 visibility와 pointerEvents를 `paneVisible && chipActive`로 결정한다.
 
 ## Overlay·portal 수명
 
@@ -46,4 +46,4 @@ snapshot은 active workspace·overlay count/sources·portal·feature metric·최
 
 INT-01 활성 guest 위 portal을 열면 페이지는 보이되 클릭하지 못한다. INT-02 drag block 해제 직후 reconcile이 입력을 복구한다. INT-03 같은 pane browser chip은 하나만 활성이다. INT-04 orphan guest가 terminal 위에서 입력을 가로채지 않는다. INT-05 workspace 전환 중 renderer/guest focus가 stale ID를 대상으로 삼지 않는다. INT-06 중첩 block은 각 소유자가 같은 source로 해제한다.
 
-shell overlay·workspace snapshot과 Browser guest 상호작용의 자동 근거는 [Browser controller 테스트](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.test.ts), 표시 결정의 순수 정책은 [Browser policy 테스트](../../../../packages/browser/src/browserWebviewPolicy.test.ts)다. embedPolicy·workspaceScope·dragSession도 별도 테스트한다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.
+shell overlay·workspace snapshot과 Browser guest 상호작용의 자동 근거는 [Browser controller 테스트](../../../../apps/desktop/src/renderer/src/adapters/browser/runtime/browserInteractionController.test.ts), 표시 결정의 순수 정책은 [Browser policy 테스트](../../../../packages/browser/src/browserWebviewPolicy.test.ts)다. PaneSystem의 embedPolicy·dragSession은 해당 interaction 폴더 테스트에서, Workspace scope는 Workspace runtime 테스트에서 다룬다. OS native focus의 전체 동작은 실제 Electron 환경에서 추가 검증한다.

@@ -5,7 +5,7 @@ Desktop 앱의 문서 색인이다. Electron Main/preload/renderer와 앱 adapte
 | 영역 | 기준 문서 | 소유 책임 |
 | --- | --- | --- |
 | layout | [Workspace·pane 상태](./layout/README.md) | model·activation·preview·mutation·저장 |
-| interaction | [표시·focus·overlay](./interaction/README.md) | guest 입력/표시·portal·drag 정책 |
+| interaction | [표시·focus·overlay](./interaction/README.md) | guest 입력/표시·portal 조정 |
 | runtime | [시작·종료](./runtime/README.md) | Main/renderer 초기화·restore·quit |
 | IPC | [Bridge 계약 지도](./ipc/README.md) | invoke/send/event·권한·수명 |
 | persistence | [저장과 복구](./persistence/README.md) | layout·terminal·cache·credentials 저장 경계 |

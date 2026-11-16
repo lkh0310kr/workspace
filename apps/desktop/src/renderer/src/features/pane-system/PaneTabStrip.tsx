@@ -18,7 +18,7 @@ import {
   paneTabLabel
 } from './paneKindRegistry'
 import { getTabDrag, startTabDrag, endTabDrag, type TabDragPayload } from './layout/tabDrag'
-import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from '../../interaction/dragSession'
+import { beginDragOverlay, DRAG_OVERLAY, endDragOverlay } from './interaction/dragSession'
 import { onWorkspaceDismissPortals } from '../../workspacePortalDismiss'
 import { startPaneDrag, finishPaneDrag } from './layout/layoutRef'
 import { layoutLog } from './layout/layoutDebugLog'
