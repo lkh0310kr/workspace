@@ -130,6 +130,7 @@ describe('SearchPanel input focus', () => {
     const renderPanel = (focusRequest: number): ReactElement =>
       createElement(SearchPanel, {
         tabId: 1,
+        rootPath: '/workspace',
         focusRequest,
         onJumpToResult: vi.fn(),
         onClose: vi.fn()
@@ -162,6 +163,7 @@ describe('SearchPanel input focus', () => {
       root?.render(
         createElement(SearchPanel, {
           tabId: 1,
+          rootPath: '/workspace',
           focusRequest: 0,
           onJumpToResult: vi.fn(),
           onClose: vi.fn()
@@ -217,6 +219,7 @@ describe('SearchPanel input focus', () => {
     const renderPanel = (tabId: number): ReactElement =>
       createElement(SearchPanel, {
         tabId,
+        rootPath: '/workspace',
         focusRequest: 0,
         onJumpToResult: vi.fn(),
         onClose: vi.fn()
@@ -262,6 +265,7 @@ describe('SearchPanel input focus', () => {
       root?.render(
         createElement(SearchPanel, {
           tabId: 1,
+          rootPath: '/workspace',
           focusRequest: 0,
           onJumpToResult: vi.fn(),
           onClose: vi.fn()
@@ -324,6 +328,7 @@ describe('SearchPanel input focus', () => {
       root?.render(
         createElement(SearchPanel, {
           tabId: 1,
+          rootPath: '/workspace',
           focusRequest: 0,
           onJumpToResult: vi.fn(),
           onClose: vi.fn()
@@ -368,6 +373,7 @@ describe('SearchPanel input focus', () => {
       root?.render(
         createElement(SearchPanel, {
           tabId: 1,
+          rootPath: '/workspace',
           focusRequest: 0,
           onJumpToResult: vi.fn(),
           onClose: vi.fn()

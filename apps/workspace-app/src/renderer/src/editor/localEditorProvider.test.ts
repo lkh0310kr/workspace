@@ -153,7 +153,7 @@ describe('local editor document sessions', () => {
     session: EditorDocumentSession
   }> {
     disk.set(fileKey(7, 'notes/a.md'), initialContent)
-    const lease = acquireLocalEditorProvider(7)
+    const lease = acquireLocalEditorProvider(7, '/workspace-a')
     release = lease.release
     const rootItems = await lease.provider.listChildren(null)
     const notes = rootItems.find((item) => item.path === 'notes')
@@ -210,8 +210,22 @@ describe('local editor document sessions', () => {
 
     const nextSnapshot = session.snapshot()
     const clean = await session.save()
-    expect(io.writeFileIfUnchanged).toHaveBeenNthCalledWith(1, 7, 'notes/a.md', 'A', 'B')
-    expect(io.writeFileIfUnchanged).toHaveBeenNthCalledWith(2, 7, 'notes/a.md', 'B', 'C')
+    expect(io.writeFileIfUnchanged).toHaveBeenNthCalledWith(
+      1,
+      7,
+      'notes/a.md',
+      'A',
+      'B',
+      '/workspace-a'
+    )
+    expect(io.writeFileIfUnchanged).toHaveBeenNthCalledWith(
+      2,
+      7,
+      'notes/a.md',
+      'B',
+      'C',
+      '/workspace-a'
+    )
     expect(clean).toMatchObject({ content: { type: 'text', text: 'C' }, savePhase: 'clean' })
     expect(clean.revision).not.toBe(nextSnapshot.revision)
   })
@@ -227,6 +241,23 @@ describe('local editor document sessions', () => {
     expect(session.snapshot()).toMatchObject({
       content: { type: 'text', text: 'local' },
       savePhase: 'conflict'
+    })
+  })
+
+  it('ignores watcher reads rejected after the tab root switches', async () => {
+    const { session } = await openMarkdown('root A content')
+    io.readFile.mockRejectedValueOnce(
+      new Error('Workspace root changed; retry the operation in the current workspace.')
+    )
+
+    io.changed?.(['notes/a.md'])
+    await vi.waitFor(() => expect(io.readFile).toHaveBeenCalledTimes(2))
+    await Promise.resolve()
+
+    expect(io.readFile).toHaveBeenLastCalledWith(7, 'notes/a.md', '/workspace-a')
+    expect(session.snapshot()).toMatchObject({
+      content: { type: 'text', text: 'root A content' },
+      savePhase: 'clean'
     })
   })
 
@@ -255,6 +286,7 @@ describe('local editor document sessions', () => {
     const initial = session.snapshot()
 
     await lease.provider.rename?.(note, 'renamed.md')
+    expect(io.renamePath).toHaveBeenCalledWith(7, 'notes/a.md', 'notes/renamed.md', '/workspace-a')
     expect(session.item).toMatchObject({ path: 'notes/renamed.md', name: 'renamed.md' })
 
     await session.replaceText('B', initial.revision)
@@ -267,7 +299,7 @@ describe('local editor document sessions', () => {
   })
 
   it('loads assets as read-only previews', async () => {
-    const lease = acquireLocalEditorProvider(8)
+    const lease = acquireLocalEditorProvider(8, '/workspace')
     release = lease.release
     const rootItems = await lease.provider.listChildren(null)
     const image = rootItems.find((item) => item.path === 'image.png')
@@ -286,7 +318,7 @@ describe('local editor document sessions', () => {
   })
 
   it('cancels content search and removes both IPC listeners on abort', async () => {
-    const lease = acquireLocalEditorProvider(7)
+    const lease = acquireLocalEditorProvider(7, '/workspace')
     release = lease.release
     const offResult = vi.fn()
     const offDone = vi.fn()
@@ -356,5 +388,17 @@ describe('local editor document sessions', () => {
     expect(replaced).toBe(false)
     expect(disk.get(fileKey(7, 'notes/a.md'))).toBe('needle')
     expect(io.writeFileIfUnchanged).not.toHaveBeenCalled()
+  })
+
+  it('keeps provider identity and cached item IDs separate across roots of one tab', () => {
+    const first = acquireLocalEditorProvider(7, '/workspace-a')
+    const second = acquireLocalEditorProvider(7, '/workspace-b')
+    release = () => {
+      first.release()
+      second.release()
+    }
+
+    expect(second.provider).not.toBe(first.provider)
+    expect(second.provider.id).not.toBe(first.provider.id)
   })
 })

@@ -217,31 +217,48 @@ export interface WorkspaceApi {
     onUpdated: (cb: (state: WorkspaceState) => void) => () => void
   }
   fs: {
-    listDir: (tabId: number, rel: string) => Promise<DirEntry[]>
-    readFile: (tabId: number, rel: string) => Promise<string | null>
+    listDir: (tabId: number, rel: string, expectedRootPath?: string) => Promise<DirEntry[]>
+    readFile: (tabId: number, rel: string, expectedRootPath?: string) => Promise<string | null>
     readFileBinaryPreview: (
       tabId: number,
       rel: string
     ) => Promise<{ content: string; mimeType: string } | null>
-    writeFile: (tabId: number, rel: string, content: string) => Promise<void>
+    writeFile: (
+      tabId: number,
+      rel: string,
+      content: string,
+      expectedRootPath?: string
+    ) => Promise<void>
     writeFileIfUnchanged: (
       tabId: number,
       rel: string,
       expected: string,
-      content: string
+      content: string,
+      expectedRootPath?: string
     ) => Promise<boolean>
-    createDir: (tabId: number, rel: string) => Promise<void>
-    deletePath: (tabId: number, rel: string) => Promise<void>
-    renamePath: (tabId: number, fromRel: string, toRel: string) => Promise<void>
+    createDir: (tabId: number, rel: string, expectedRootPath?: string) => Promise<void>
+    deletePath: (tabId: number, rel: string, expectedRootPath?: string) => Promise<void>
+    renamePath: (
+      tabId: number,
+      fromRel: string,
+      toRel: string,
+      expectedRootPath?: string
+    ) => Promise<void>
     onChanged: (cb: (paths: string[]) => void) => () => void
-    searchInFiles: (requestId: string, tabId: number, query: string, opts: SearchOptions) => void
+    searchInFiles: (
+      requestId: string,
+      tabId: number,
+      query: string,
+      opts: SearchOptions,
+      expectedRootPath?: string
+    ) => void
     searchCancel: (requestId: string) => void
     onSearchResult: (cb: (requestId: string, result: SearchFileResult) => void) => () => void
     onSearchDone: (cb: (requestId: string, error?: string) => void) => () => void
-    listAllFiles: (tabId: number) => Promise<string[]>
+    listAllFiles: (tabId: number, expectedRootPath?: string) => Promise<string[]>
   }
   media: {
-    getUrl: (tabId: number, rel: string) => Promise<string | null>
+    getUrl: (tabId: number, rel: string, expectedRootPath?: string) => Promise<string | null>
     getUrlAbsolute: (absolutePath: string) => Promise<string>
   }
   model3d: {

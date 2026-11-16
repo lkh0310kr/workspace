@@ -22,6 +22,7 @@ import { useFileContentSearch } from './useFileContentSearch'
 // sidebar region in place of TreeView (Cmd+Shift+F), not a separate window.
 interface Props {
   tabId: number
+  rootPath: string
   focusRequest: number
   onJumpToResult: (path: string, kind: 'code' | 'markdown' | 'viewer', line: number) => void
   onClose: () => void
@@ -42,11 +43,15 @@ function highlightLine(lineText: string, ranges: EditorSearchMatch['ranges']): R
 
 export function SearchPanel({
   tabId,
+  rootPath,
   focusRequest,
   onJumpToResult,
   onClose
 }: Props): React.JSX.Element {
-  const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
+  const providerLease = useMemo(
+    () => acquireLocalEditorProvider(tabId, rootPath),
+    [tabId, rootPath]
+  )
   const provider: EditorProvider = providerLease.provider
   const supportsContentSearch = editorSupportsSearch(provider, 'contents')
   const [query, setQuery] = useState('')

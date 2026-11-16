@@ -23,6 +23,7 @@ export class LocalDocumentSession implements EditorDocumentSession {
   constructor(
     public item: EditorTreeItem,
     private tabId: number,
+    private rootPath: string,
     private onClose: () => void,
     private itemKindForPath: ItemKindForPath
   ) {}
@@ -33,7 +34,7 @@ export class LocalDocumentSession implements EditorDocumentSession {
 
   async load(): Promise<void> {
     if (this.item.kind === 'asset') {
-      const url = await getMediaUrl(this.tabId, this.item.path)
+      const url = await getMediaUrl(this.tabId, this.item.path, this.rootPath)
       if (!url) throw new Error('Could not preview this file')
       this.previewUrl = url
       this.mediaType = mediaTypeFor(this.item.path)
@@ -42,7 +43,7 @@ export class LocalDocumentSession implements EditorDocumentSession {
       this.emit()
       return
     }
-    const value = await readFile(this.tabId, this.item.path)
+    const value = await readFile(this.tabId, this.item.path, this.rootPath)
     if (value === null) throw new EditorProviderError('notFound', 'Document no longer exists')
     this.value = value
     this.baseValue = value
@@ -104,7 +105,8 @@ export class LocalDocumentSession implements EditorDocumentSession {
         this.tabId,
         this.item.path,
         expectedValue,
-        savedValue
+        savedValue,
+        this.rootPath
       )
       if (!written) {
         this.markConflict('The file changed on disk before this save could be applied.')
@@ -135,7 +137,7 @@ export class LocalDocumentSession implements EditorDocumentSession {
 
   externalChange(paths: string[]): void {
     if (!paths.includes(this.item.path)) return
-    void readFile(this.tabId, this.item.path)
+    void readFile(this.tabId, this.item.path, this.rootPath)
       .then((diskValue) => {
         if (this.closed) return
         if (this.phase === 'conflict') return
@@ -167,6 +169,7 @@ export class LocalDocumentSession implements EditorDocumentSession {
       })
       .catch((error) => {
         if (this.closed) return
+        if (error instanceof Error && error.message.startsWith('Workspace root changed;')) return
         this.phase = 'error'
         this.message =
           error instanceof Error ? error.message : 'Could not check the file after a change'

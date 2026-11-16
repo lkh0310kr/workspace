@@ -110,7 +110,10 @@ export function EditorContent({
   jumpToLine,
   onJumpConsumed
 }: Props) {
-  const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
+  const editorProviderLease = useMemo(
+    () => acquireLocalEditorProvider(tabId, rootPath),
+    [tabId, rootPath]
+  )
   const editorProvider = editorProviderLease.provider
   const loadBreadcrumbChildren = useCallback(
     async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {

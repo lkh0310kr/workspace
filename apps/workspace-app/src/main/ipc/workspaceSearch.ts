@@ -8,10 +8,19 @@ export function registerWorkspaceSearchIpc(getWorkspace: () => Workspace): void 
 
   ipcMain.on(
     'fs:search-in-files',
-    (event, requestId: string, tabId: number, query: string, options: SearchOptions) => {
+    (
+      event,
+      requestId: string,
+      tabId: number,
+      query: string,
+      options: SearchOptions,
+      expectedRootPath?: string
+    ) => {
       activeSearches.get(requestId)?.cancel()
       try {
-        const handle = getWorkspace().searchInFiles(
+        const workspace = getWorkspace()
+        if (expectedRootPath !== undefined) workspace.assertTabRoot(tabId, expectedRootPath)
+        const handle = workspace.searchInFiles(
           tabId,
           query,
           options,

@@ -21,6 +21,7 @@ import type { AssetOpenRequest, ImportJob, SceneManifest } from '../shared/model
 import { routeAssetOpen } from './model3d/assetRouter'
 import { importJobQueue } from './model3d/importJobQueue'
 import { openCadViewerFile as openCadViewerFile_ } from './cadViewer'
+import { assertExpectedWorkspaceRoot } from './workspaceRootGuard'
 
 // Direct port of crates/workspace-core/src/workspace.rs.
 
@@ -418,6 +419,10 @@ export class Workspace {
     const root = this.tabs.find((t) => t.id === tabId)?.rootPath
     if (!root) throw new Error('tab not found')
     return root
+  }
+
+  assertTabRoot(tabId: number, expectedRootPath?: string): void {
+    assertExpectedWorkspaceRoot(this.tabRoot(tabId), expectedRootPath)
   }
 
   private isTerminalReferenced(terminalId: number): boolean {

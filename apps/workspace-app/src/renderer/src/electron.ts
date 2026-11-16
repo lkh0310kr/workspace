@@ -93,8 +93,12 @@ export async function spawnTerminal(cols = 120, rows = 40, tabId?: number): Prom
   return window.api.pty.spawn(cols, rows, tabId)
 }
 
-export async function getMediaUrl(tabId: number, path: string): Promise<string | null> {
-  return window.api.media.getUrl(tabId, path)
+export async function getMediaUrl(
+  tabId: number,
+  path: string,
+  expectedRootPath?: string
+): Promise<string | null> {
+  return window.api.media.getUrl(tabId, path, expectedRootPath)
 }
 
 export async function getMediaUrlAbsolute(absolutePath: string): Promise<string> {

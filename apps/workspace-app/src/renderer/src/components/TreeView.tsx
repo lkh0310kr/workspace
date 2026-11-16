@@ -145,7 +145,10 @@ export function TreeView({
   onPathRenamed,
   onPathDeleted
 }: Props) {
-  const editorProviderLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
+  const editorProviderLease = useMemo(
+    () => acquireLocalEditorProvider(tabId, rootPath),
+    [tabId, rootPath]
+  )
   const editorProvider = editorProviderLease.provider
   const canCreateFile = editorSupportsOperation(editorProvider, 'createFile')
   const canCreateDirectory = editorSupportsOperation(editorProvider, 'createDirectory')

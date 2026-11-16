@@ -247,6 +247,9 @@ export default function App() {
       {quickOpenOpen && !homeActive && (
         <QuickOpen
           tabId={visibleWorkspaceTabId}
+          rootPath={
+            workspace?.tabs.find((tab) => tab.id === visibleWorkspaceTabId)?.root_path ?? ''
+          }
           onOpenFile={(path, kind) => {
             const model = storeGetModel(visibleWorkspaceTabId)
             if (model)

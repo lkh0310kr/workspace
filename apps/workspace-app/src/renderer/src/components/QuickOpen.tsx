@@ -10,13 +10,17 @@ import {
 // Popover.tsx (nothing to anchor to; it's summoned from anywhere).
 interface Props {
   tabId: number
+  rootPath: string
   onOpenFile: (path: string, kind: 'code' | 'markdown' | 'viewer') => void
   onClose: () => void
 }
 
-export function QuickOpen({ tabId, onOpenFile, onClose }: Props) {
+export function QuickOpen({ tabId, rootPath, onOpenFile, onClose }: Props) {
   const [query, setQuery] = useState('')
-  const providerLease = useMemo(() => acquireLocalEditorProvider(tabId), [tabId])
+  const providerLease = useMemo(
+    () => acquireLocalEditorProvider(tabId, rootPath),
+    [tabId, rootPath]
+  )
   const provider = providerLease.provider
   const supportsNameSearch = editorSupportsSearch(provider, 'names')
   const {

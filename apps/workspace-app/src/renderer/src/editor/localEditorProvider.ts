@@ -32,9 +32,11 @@ type PendingQuickOpenSearch = {
   abort?: () => void
 }
 
-const filePathsCache = new Map<number, Promise<string[]>>()
-const filePathRevisions = new Map<number, number>()
-const workerIndexedTabs = new Set<number>()
+const filePathsCache = new Map<string, Promise<string[]>>()
+const filePathRevisions = new Map<string, number>()
+const workerIndexedTabs = new Set<string>()
+const workerTabIds = new Map<string, number>()
+let nextWorkerTabId = 0
 const pendingQuickOpenSearches = new Map<number, PendingQuickOpenSearch>()
 let quickOpenWorker: Worker | null = null
 let nextQuickOpenRequestId = 0
@@ -64,38 +66,55 @@ function getQuickOpenWorker(): Worker {
   return worker
 }
 
-function invalidateQuickOpenFileList(tabId: number): void {
-  filePathsCache.delete(tabId)
-  filePathRevisions.set(tabId, (filePathRevisions.get(tabId) ?? 0) + 1)
-  workerIndexedTabs.delete(tabId)
-  quickOpenWorker?.postMessage({ type: 'remove-files', tabId })
+function providerScope(tabId: number, rootPath: string): string {
+  return JSON.stringify([tabId, rootPath])
+}
+
+function workerTabIdFor(scope: string): number {
+  let id = workerTabIds.get(scope)
+  if (id === undefined) {
+    id = ++nextWorkerTabId
+    workerTabIds.set(scope, id)
+  }
+  return id
+}
+
+function invalidateQuickOpenFileList(tabId: number, rootPath: string): void {
+  const scope = providerScope(tabId, rootPath)
+  filePathsCache.delete(scope)
+  filePathRevisions.set(scope, (filePathRevisions.get(scope) ?? 0) + 1)
+  workerIndexedTabs.delete(scope)
+  quickOpenWorker?.postMessage({ type: 'remove-files', tabId: workerTabIdFor(scope) })
 }
 
 async function searchQuickOpenPaths(
   tabId: number,
+  rootPath: string,
   query: string,
   limit: number,
   signal?: AbortSignal
 ): Promise<string[]> {
   abortIfNeeded(signal)
-  const filePathRevision = filePathRevisions.get(tabId) ?? 0
-  let pathsPromise = filePathsCache.get(tabId)
+  const scope = providerScope(tabId, rootPath)
+  const workerTabId = workerTabIdFor(scope)
+  const filePathRevision = filePathRevisions.get(scope) ?? 0
+  let pathsPromise = filePathsCache.get(scope)
   if (!pathsPromise) {
-    pathsPromise = window.api.fs.listAllFiles(tabId)
-    filePathsCache.set(tabId, pathsPromise)
+    pathsPromise = window.api.fs.listAllFiles(tabId, rootPath)
+    filePathsCache.set(scope, pathsPromise)
     void pathsPromise.catch(() => {
-      if (filePathsCache.get(tabId) === pathsPromise) filePathsCache.delete(tabId)
+      if (filePathsCache.get(scope) === pathsPromise) filePathsCache.delete(scope)
     })
   }
   const paths = await pathsPromise
   abortIfNeeded(signal)
-  if (filePathRevision !== (filePathRevisions.get(tabId) ?? 0)) {
-    return searchQuickOpenPaths(tabId, query, limit, signal)
+  if (filePathRevision !== (filePathRevisions.get(scope) ?? 0)) {
+    return searchQuickOpenPaths(tabId, rootPath, query, limit, signal)
   }
   const worker = getQuickOpenWorker()
-  if (!workerIndexedTabs.has(tabId)) {
-    worker.postMessage({ type: 'set-files', tabId, paths })
-    workerIndexedTabs.add(tabId)
+  if (!workerIndexedTabs.has(scope)) {
+    worker.postMessage({ type: 'set-files', tabId: workerTabId, paths })
+    workerIndexedTabs.add(scope)
   }
 
   const requestId = ++nextQuickOpenRequestId
@@ -111,7 +130,7 @@ async function searchQuickOpenPaths(
       return
     }
     signal?.addEventListener('abort', pending.abort, { once: true })
-    worker.postMessage({ type: 'search', requestId, tabId, query, limit })
+    worker.postMessage({ type: 'search', requestId, tabId: workerTabId, query, limit })
   })
 }
 
@@ -196,11 +215,11 @@ function abortIfNeeded(signal?: AbortSignal): void {
 }
 
 /** Workspace filesystem adapter. Electron IPC remains behind the renderer shim. */
-function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
-  const id = `workspace:${tabId}`
+function buildLocalEditorProvider(tabId: number, rootPath: string): LocalEditorProvider {
+  const id = `workspace:${tabId}:${rootPath}`
   const pathByItemId = new Map<string, string>()
   const itemIdByPath = new Map<string, string>()
-  const itemIdStorageKey = `workspace:editor-item-ids:${tabId}`
+  const itemIdStorageKey = `workspace:editor-item-ids:${tabId}:${rootPath}`
   try {
     const saved = JSON.parse(localStorage.getItem(itemIdStorageKey) ?? '{}') as Record<
       string,
@@ -257,7 +276,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   }
 
   const unsubscribeFiles = onFileChanged((changedPaths) => {
-    invalidateQuickOpenFileList(tabId)
+    invalidateQuickOpenFileList(tabId, rootPath)
     if (changedPaths.length === 0 || changedPaths.every((path) => !path)) {
       for (const session of sessions) session.externalChange([session.item.path])
       for (const listener of listeners) listener([null])
@@ -278,7 +297,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       abortIfNeeded(signal)
       const parentPath = parentId === null ? '' : pathByItemId.get(parentId)
       if (parentPath === undefined) return []
-      const entries = await listDir(tabId, parentPath)
+      const entries = await listDir(tabId, parentPath, rootPath)
       abortIfNeeded(signal)
       const items = entries.map((entry) => ({
         ...itemFor(entry.path, entry.is_dir, entry.name),
@@ -301,7 +320,13 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       const path = pathByItemId.get(ref.itemId)
       if (path === undefined) throw new EditorProviderError('notFound', 'Document no longer exists')
       const item = itemFor(path, false)
-      const session = new LocalDocumentSession(item, tabId, () => sessions.delete(session), kindFor)
+      const session = new LocalDocumentSession(
+        item,
+        tabId,
+        rootPath,
+        () => sessions.delete(session),
+        kindFor
+      )
       sessions.add(session)
       try {
         await session.load()
@@ -315,8 +340,8 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
     async search(query, options, signal, onResult) {
       if (options.target === 'names') {
         const paths = options.fuzzy
-          ? await searchQuickOpenPaths(tabId, query, options.limit ?? 100, signal)
-          : (await window.api.fs.listAllFiles(tabId)).filter(
+          ? await searchQuickOpenPaths(tabId, rootPath, query, options.limit ?? 100, signal)
+          : (await window.api.fs.listAllFiles(tabId, rootPath)).filter(
               (path) => findMatch(path.split('/').at(-1) ?? '', query, options) >= 0
             )
         abortIfNeeded(signal)
@@ -377,11 +402,17 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         }
         signal?.addEventListener('abort', abort, { once: true })
         try {
-          searchInFiles(requestId, tabId, query, {
-            caseSensitive: options.caseSensitive,
-            regex: options.regex,
-            wholeWord: options.wholeWord
-          })
+          searchInFiles(
+            requestId,
+            tabId,
+            query,
+            {
+              caseSensitive: options.caseSensitive,
+              regex: options.regex,
+              wholeWord: options.wholeWord
+            },
+            rootPath
+          )
         } catch (error) {
           settled = true
           cleanup()
@@ -396,13 +427,13 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (path === undefined) throw new EditorProviderError('notFound', 'Item no longer exists')
       const openSession = [...sessions].find((session) => session.item.itemId === ref.itemId)
       if (openSession && openSession.snapshot().savePhase !== 'clean') return false
-      const current = await readFile(tabId, path)
+      const current = await readFile(tabId, path, rootPath)
       if (current == null) return false
       const matcher = replaceRegex(query, options)
       const currentCount = [...current.matchAll(matcher)].length
       if (currentCount !== expectedMatchCount) return false
       const next = current.replace(matcher, replacement)
-      if (next !== current && !(await writeFileIfUnchanged(tabId, path, current, next)))
+      if (next !== current && !(await writeFileIfUnchanged(tabId, path, current, next, rootPath)))
         return false
       return true
     },
@@ -411,9 +442,9 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (parentPath === undefined)
         throw new EditorProviderError('notFound', 'Parent directory no longer exists')
       const path = [parentPath, name].filter(Boolean).join('/')
-      if (kind === 'directory') await createDir(tabId, path)
-      else await writeFile(tabId, path, '')
-      invalidateQuickOpenFileList(tabId)
+      if (kind === 'directory') await createDir(tabId, path, rootPath)
+      else await writeFile(tabId, path, '', rootPath)
+      invalidateQuickOpenFileList(tabId, rootPath)
       const item = itemFor(path, kind === 'directory', name)
       persistItemIds()
       return item
@@ -423,11 +454,11 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         throw new EditorProviderError('notFound', 'Item belongs to a different provider')
       const from = pathByItemId.get(ref.itemId)
       if (from === undefined) throw new EditorProviderError('notFound', 'Item no longer exists')
-      const oldEntries = await listDir(tabId, parentOf(from) ?? '')
+      const oldEntries = await listDir(tabId, parentOf(from) ?? '', rootPath)
       const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false
       const to = [parentOf(from) ?? '', name].filter(Boolean).join('/')
-      await renamePath(tabId, from, to)
-      invalidateQuickOpenFileList(tabId)
+      await renamePath(tabId, from, to, rootPath)
+      invalidateQuickOpenFileList(tabId, rootPath)
       const affected = [...pathByItemId.entries()].filter(
         ([, path]) => path === from || (isDirectory && path.startsWith(`${from}/`))
       )
@@ -460,7 +491,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       // Validate all identities before the first filesystem mutation so a stale
       // selection cannot produce a partially deleted batch.
       for (const path of paths) {
-        const parentEntries = await listDir(tabId, parentOf(path) ?? '')
+        const parentEntries = await listDir(tabId, parentOf(path) ?? '', rootPath)
         if (!parentEntries.some((entry) => entry.path === path)) {
           throw new EditorProviderError('notFound', 'Item no longer exists')
         }
@@ -469,7 +500,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         (path) => !paths.some((candidate) => candidate !== path && path.startsWith(`${candidate}/`))
       )
       for (const path of roots) {
-        await deletePath(tabId, path)
+        await deletePath(tabId, path, rootPath)
         const affected = [...pathByItemId.entries()].filter(
           ([, candidate]) => candidate === path || candidate.startsWith(`${path}/`)
         )
@@ -478,7 +509,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
           itemIdByPath.delete(candidate)
         }
       }
-      invalidateQuickOpenFileList(tabId)
+      invalidateQuickOpenFileList(tabId, rootPath)
       persistItemIds()
     },
     async move(refs, parentId) {
@@ -486,7 +517,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       if (targetDir === undefined)
         throw new EditorProviderError('notFound', 'Destination directory no longer exists')
       if (targetDir) {
-        const targetParentEntries = await listDir(tabId, parentOf(targetDir) ?? '')
+        const targetParentEntries = await listDir(tabId, parentOf(targetDir) ?? '', rootPath)
         if (!targetParentEntries.some((entry) => entry.path === targetDir && entry.is_dir)) {
           throw new EditorProviderError('notFound', 'Destination directory no longer exists')
         }
@@ -499,7 +530,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         return from
       })
       for (const from of sources) {
-        const oldEntries = await listDir(tabId, parentOf(from) ?? '')
+        const oldEntries = await listDir(tabId, parentOf(from) ?? '', rootPath)
         const sourceEntry = oldEntries.find((entry) => entry.path === from)
         if (!sourceEntry) throw new EditorProviderError('notFound', 'Item no longer exists')
       }
@@ -511,10 +542,10 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
         const name = from.split('/').at(-1) ?? from
         const to = [targetDir, name].filter(Boolean).join('/')
         if (from === to || to.startsWith(`${from}/`)) continue
-        const oldEntries = await listDir(tabId, parentOf(from) ?? '')
+        const oldEntries = await listDir(tabId, parentOf(from) ?? '', rootPath)
         const isDirectory = oldEntries.find((entry) => entry.path === from)?.is_dir ?? false
-        await renamePath(tabId, from, to)
-        invalidateQuickOpenFileList(tabId)
+        await renamePath(tabId, from, to, rootPath)
+        invalidateQuickOpenFileList(tabId, rootPath)
         const affected = [...pathByItemId.entries()].filter(
           ([, path]) => path === from || path.startsWith(`${from}/`)
         )
@@ -539,7 +570,7 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
       }
     },
     dispose() {
-      invalidateQuickOpenFileList(tabId)
+      invalidateQuickOpenFileList(tabId, rootPath)
       unsubscribeFiles()
       listeners.clear()
       for (const session of [...sessions]) void session.close()
@@ -550,17 +581,21 @@ function buildLocalEditorProvider(tabId: number): LocalEditorProvider {
   return withEditorProviderErrors(provider)
 }
 
-const providerPool = new Map<number, { provider: LocalEditorProvider; references: number }>()
+const providerPool = new Map<string, { provider: LocalEditorProvider; references: number }>()
 
 /** Share one provider identity across the explorer and editor panes for a workspace tab. */
-export function acquireLocalEditorProvider(tabId: number): {
+export function acquireLocalEditorProvider(
+  tabId: number,
+  rootPath: string
+): {
   provider: LocalEditorProvider
   release: () => void
 } {
-  let entry = providerPool.get(tabId)
+  const key = JSON.stringify([tabId, rootPath])
+  let entry = providerPool.get(key)
   if (!entry) {
-    entry = { provider: buildLocalEditorProvider(tabId), references: 0 }
-    providerPool.set(tabId, entry)
+    entry = { provider: buildLocalEditorProvider(tabId, rootPath), references: 0 }
+    providerPool.set(key, entry)
   }
   entry.references++
   let released = false
@@ -569,11 +604,11 @@ export function acquireLocalEditorProvider(tabId: number): {
     release: () => {
       if (released) return
       released = true
-      const current = providerPool.get(tabId)
+      const current = providerPool.get(key)
       if (!current || current !== entry) return
       current.references--
       if (current.references <= 0) {
-        providerPool.delete(tabId)
+        providerPool.delete(key)
         current.provider.dispose()
       }
     }

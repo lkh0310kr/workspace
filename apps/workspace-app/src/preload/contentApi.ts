@@ -26,36 +26,54 @@ export const contentApi: Pick<
     }
   },
   fs: {
-    listDir: (tabId: number, rel: string) => ipcRenderer.invoke('fs:list-dir', tabId, rel),
-    readFile: (tabId: number, rel: string): Promise<string> =>
-      ipcRenderer.invoke('fs:read-file', tabId, rel),
+    listDir: (tabId: number, rel: string, expectedRootPath?: string) =>
+      ipcRenderer.invoke('fs:list-dir', tabId, rel, expectedRootPath),
+    readFile: (tabId: number, rel: string, expectedRootPath?: string): Promise<string> =>
+      ipcRenderer.invoke('fs:read-file', tabId, rel, expectedRootPath),
     readFileBinaryPreview: (
       tabId: number,
       rel: string
     ): Promise<{ content: string; mimeType: string } | null> =>
       ipcRenderer.invoke('fs:read-file-binary-preview', tabId, rel),
-    writeFile: (tabId: number, rel: string, content: string): Promise<void> =>
-      ipcRenderer.invoke('fs:write-file', tabId, rel, content),
+    writeFile: (
+      tabId: number,
+      rel: string,
+      content: string,
+      expectedRootPath?: string
+    ): Promise<void> => ipcRenderer.invoke('fs:write-file', tabId, rel, content, expectedRootPath),
     writeFileIfUnchanged: (
       tabId: number,
       rel: string,
       expected: string,
-      content: string
+      content: string,
+      expectedRootPath?: string
     ): Promise<boolean> =>
-      ipcRenderer.invoke('fs:write-file-if-unchanged', tabId, rel, expected, content),
-    createDir: (tabId: number, rel: string): Promise<void> =>
-      ipcRenderer.invoke('fs:create-dir', tabId, rel),
-    deletePath: (tabId: number, rel: string): Promise<void> =>
-      ipcRenderer.invoke('fs:delete-path', tabId, rel),
-    renamePath: (tabId: number, fromRel: string, toRel: string): Promise<void> =>
-      ipcRenderer.invoke('fs:rename-path', tabId, fromRel, toRel),
+      ipcRenderer.invoke(
+        'fs:write-file-if-unchanged',
+        tabId,
+        rel,
+        expected,
+        content,
+        expectedRootPath
+      ),
+    createDir: (tabId: number, rel: string, expectedRootPath?: string): Promise<void> =>
+      ipcRenderer.invoke('fs:create-dir', tabId, rel, expectedRootPath),
+    deletePath: (tabId: number, rel: string, expectedRootPath?: string): Promise<void> =>
+      ipcRenderer.invoke('fs:delete-path', tabId, rel, expectedRootPath),
+    renamePath: (
+      tabId: number,
+      fromRel: string,
+      toRel: string,
+      expectedRootPath?: string
+    ): Promise<void> =>
+      ipcRenderer.invoke('fs:rename-path', tabId, fromRel, toRel, expectedRootPath),
     onChanged: (cb: (paths: string[]) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, paths: string[]): void => cb(paths ?? [])
       ipcRenderer.on('fs:changed', listener)
       return () => ipcRenderer.removeListener('fs:changed', listener)
     },
-    searchInFiles: (requestId, tabId, query, opts): void =>
-      ipcRenderer.send('fs:search-in-files', requestId, tabId, query, opts),
+    searchInFiles: (requestId, tabId, query, opts, expectedRootPath): void =>
+      ipcRenderer.send('fs:search-in-files', requestId, tabId, query, opts, expectedRootPath),
     searchCancel: (requestId: string): void => ipcRenderer.send('fs:search-cancel', requestId),
     onSearchResult: (cb) => {
       const listener = (
@@ -75,12 +93,12 @@ export const contentApi: Pick<
       ipcRenderer.on('fs:search-done', listener)
       return () => ipcRenderer.removeListener('fs:search-done', listener)
     },
-    listAllFiles: (tabId: number): Promise<string[]> =>
-      ipcRenderer.invoke('fs:list-all-files', tabId)
+    listAllFiles: (tabId: number, expectedRootPath?: string): Promise<string[]> =>
+      ipcRenderer.invoke('fs:list-all-files', tabId, expectedRootPath)
   },
   media: {
-    getUrl: (tabId: number, rel: string): Promise<string | null> =>
-      ipcRenderer.invoke('media:get-url', tabId, rel),
+    getUrl: (tabId: number, rel: string, expectedRootPath?: string): Promise<string | null> =>
+      ipcRenderer.invoke('media:get-url', tabId, rel, expectedRootPath),
     getUrlAbsolute: (absolutePath: string): Promise<string> =>
       ipcRenderer.invoke('media:get-url-absolute', absolutePath)
   },

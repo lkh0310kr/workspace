@@ -171,6 +171,7 @@ export function WorkspaceExplorerSidebar({
             {sidebarMode === 'search' && (
               <SearchPanel
                 tabId={workspaceTabId}
+                rootPath={rootPath}
                 focusRequest={searchFocusRequest}
                 onJumpToResult={(path, kind, line) => onOpenFile(path, kind, line)}
                 onClose={() => setSidebarMode('explorer')}

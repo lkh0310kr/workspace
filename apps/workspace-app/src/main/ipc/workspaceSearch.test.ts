@@ -75,6 +75,46 @@ describe('workspace content-search IPC', () => {
     expect(new Set(ipcHarness.registrationOrder).size).toBe(ipcHarness.registrationOrder.length)
   })
 
+  it('rejects a mutation pinned to the old root before calling the workspace filesystem method', () => {
+    let currentRoot = '/workspace-a'
+    const renamePath = vi.fn()
+    const assertTabRoot = vi.fn((_tabId: number, expectedRootPath?: string) => {
+      if (expectedRootPath !== undefined && expectedRootPath !== currentRoot) {
+        throw new Error('Workspace root changed; retry the operation in the current workspace.')
+      }
+    })
+    const workspace = { assertTabRoot, renamePath }
+    registerWorkspaceIpc(() => workspace as unknown as Workspace, vi.fn())
+
+    // Simulate a root switch after provider preflight and before its mutation request.
+    currentRoot = '/workspace-b'
+    expect(() =>
+      handlerFor('fs:rename-path')(createEvent(), 7, 'notes/a.md', 'notes/b.md', '/workspace-a')
+    ).toThrow('Workspace root changed; retry the operation in the current workspace.')
+    expect(assertTabRoot).toHaveBeenCalledWith(7, '/workspace-a')
+    expect(renamePath).not.toHaveBeenCalled()
+  })
+
+  it('rejects a mutation pinned to the old root before calling the workspace filesystem method', () => {
+    let currentRoot = '/workspace-a'
+    const renamePath = vi.fn()
+    const assertTabRoot = vi.fn((_tabId: number, expectedRootPath?: string) => {
+      if (expectedRootPath !== undefined && expectedRootPath !== currentRoot) {
+        throw new Error('Workspace root changed; retry the operation in the current workspace.')
+      }
+    })
+    const workspace = { assertTabRoot, renamePath }
+    registerWorkspaceIpc(() => workspace as unknown as Workspace, vi.fn())
+
+    // Simulates a root switch after provider preflight completed and before its IPC mutation.
+    currentRoot = '/workspace-b'
+    expect(() =>
+      handlerFor('fs:rename-path')(createEvent(), 7, 'notes/a.md', 'notes/b.md', '/workspace-a')
+    ).toThrow('Workspace root changed; retry the operation in the current workspace.')
+    expect(assertTabRoot).toHaveBeenCalledWith(7, '/workspace-a')
+    expect(renamePath).not.toHaveBeenCalled()
+  })
+
   it('cancels a replaced request and removes a request when explicitly cancelled', () => {
     const firstCancel = vi.fn()
     const secondCancel = vi.fn()
