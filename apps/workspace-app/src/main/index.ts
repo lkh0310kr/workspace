@@ -51,10 +51,10 @@ import {
 } from './terminalOscTitleBroadcast'
 import { installAgentStatusHooks } from './agentHooks'
 import {
-  getWorkspaceAgentHookPort,
   setWorkspaceAgentHookBroadcastTarget,
   startWorkspaceAgentHookServer
 } from './workspaceAgentHookServer'
+import { createWorkspaceAfterAgentHookServer } from './workspaceAgentHookStartup'
 import { resolveMacOptionTerminalBytes } from './terminalMacOptionShortcuts'
 import { disposeCadViewers } from './cadViewer'
 import { reinforceExistingWindowFocus } from './window/focusExistingWindow'
@@ -532,7 +532,7 @@ function buildAppMenu(): Menu {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (!gotSingleInstanceLock) return
   appendStartupLog('app_when_ready_begin')
   installMainConsoleFileLogging()
@@ -650,20 +650,22 @@ app.whenReady().then(() => {
     visible: mainWindowRef?.isVisible() ?? null
   })
 
-  workspace = snapshot
-    ? Workspace.fromSnapshot(defaultRoot, snapshot)
-    : Workspace.withRoot(defaultRoot)
-  workspace.onTerminalPtyOutput = observeTerminalPtyOutput
-  workspace.onTerminalSpawned = notifyTerminalPtySpawned
   setTerminalOscTitleBroadcastTarget(() => mainWindowRef?.webContents ?? null)
   setWorkspaceAgentHookBroadcastTarget(() => mainWindowRef?.webContents ?? null)
-  void startWorkspaceAgentHookServer().then((port) => {
-    appendStartupLog('workspace_agent_hook_server', { port })
-    workspace!.agentHookStatusUrl = () => {
-      const p = getWorkspaceAgentHookPort()
-      return p ? `http://127.0.0.1:${p}/status` : null
-    }
-  })
+  workspace = await createWorkspaceAfterAgentHookServer(
+    startWorkspaceAgentHookServer,
+    (getAgentHookStatusUrl) =>
+      snapshot
+        ? Workspace.fromSnapshot(defaultRoot, snapshot, getAgentHookStatusUrl)
+        : Workspace.withRoot(defaultRoot, getAgentHookStatusUrl),
+    (port) => appendStartupLog('workspace_agent_hook_server', { port }),
+    (error) =>
+      appendStartupLog('workspace_agent_hook_server_failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
+  )
+  workspace.onTerminalPtyOutput = observeTerminalPtyOutput
+  workspace.onTerminalSpawned = notifyTerminalPtySpawned
   for (const terminalId of workspace.allReferencedTerminalIds()) {
     notifyTerminalPtySpawned(terminalId)
   }

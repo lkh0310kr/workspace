@@ -60,8 +60,12 @@ export class Workspace {
     this.defaultRootPath = rootPath
   }
 
-  static withRoot(rootPath: string): Workspace {
+  static withRoot(
+    rootPath: string,
+    agentHookStatusUrl: (() => string | null) | null = null
+  ): Workspace {
     const ws = new Workspace(rootPath)
+    ws.agentHookStatusUrl = agentHookStatusUrl
     ws.addTab()
     return ws
   }
@@ -73,10 +77,15 @@ export class Workspace {
    * app is running; across a full app restart, each terminal instead
    * On full app restart, scrollback is restored from serialized xterm
    * buffers saved at quit (see terminal-sessions.electron.json). */
-  static fromSnapshot(rootPath: string, snapshot: WorkspaceState): Workspace {
-    if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath)
+  static fromSnapshot(
+    rootPath: string,
+    snapshot: WorkspaceState,
+    agentHookStatusUrl: (() => string | null) | null = null
+  ): Workspace {
+    if (snapshot.tabs.length === 0) return Workspace.withRoot(rootPath, agentHookStatusUrl)
 
     const ws = new Workspace(rootPath)
+    ws.agentHookStatusUrl = agentHookStatusUrl
     let nextTabId = 0
     let nextTerminalId = 0
 
