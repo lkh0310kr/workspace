@@ -66,15 +66,14 @@ export function projectEditorTreeRows<T>(
 export function flattenEditorTree<T extends EditorTreeBranchEntry>(
   branches: ReadonlyMap<string, readonly T[]>,
   expanded: ReadonlySet<string>,
-  root = ''
+  root = '',
+  compare: (a: T, b: T) => number = (a, b) =>
+    Number(b.directory) - Number(a.directory) ||
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 ): EditorVisibleTreeRow<T>[] {
   const rows: EditorVisibleTreeRow<T>[] = []
   const visit = (parent: string, depth: number, ancestors: ReadonlySet<string>) => {
-    const children = [...(branches.get(parent) ?? [])].sort(
-      (a, b) =>
-        Number(b.directory) - Number(a.directory) ||
-        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    )
+    const children = [...(branches.get(parent) ?? [])].sort(compare)
     for (const item of children) {
       rows.push({ item, depth })
       if (item.directory && expanded.has(item.path) && !ancestors.has(item.path)) {

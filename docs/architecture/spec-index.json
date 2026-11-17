@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "d83bedd67bb69171c09b9ab3f61c3c852e77b09188bfd7a9a9363e4b76972c64"
+          "sha256": "5e434c846300d1c3978ac1797c80d86f6ecb47824923ad0d3d2af8c43549ab19"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -267,7 +267,7 @@
         },
         {
           "path": "packages/editor/src/tree/treeModel.ts",
-          "sha256": "b1843d97c3b56b2fcbc5ddb05eee01e837e7e5742f54da7206fecee8c3126408"
+          "sha256": "cad25d1587ce25728385f7eafa1a1458f4281aa97244b2a8f1f059f13898378b"
         },
         {
           "path": "packages/editor/src/tree/treeNavigation.ts",
@@ -563,7 +563,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "d83bedd67bb69171c09b9ab3f61c3c852e77b09188bfd7a9a9363e4b76972c64"
+          "sha256": "5e434c846300d1c3978ac1797c80d86f6ecb47824923ad0d3d2af8c43549ab19"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",

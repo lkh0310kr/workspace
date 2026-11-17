@@ -443,7 +443,6 @@ export function TreeView({
               (entry) =>
                 !matchesHiddenPattern(entry.name, workspaceEditorSettings.settings.hiddenFiles)
             )
-            .sort((a, b) => Number(pinnedPathSet.has(b.path)) - Number(pinnedPathSet.has(a.path)))
             .map((entry) => ({
               ...entry,
               name: entry.name,
@@ -451,7 +450,12 @@ export function TreeView({
             }))
         ])
       ),
-      treeExpanded
+      treeExpanded,
+      '',
+      (a, b) =>
+        Number(pinnedPathSet.has(b.path)) - Number(pinnedPathSet.has(a.path)) ||
+        Number(b.directory) - Number(a.directory) ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     ).map(({ item, depth }) => ({ entry: item, depth }))
   }, [dirs, pinnedPathSet, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
 
@@ -1015,11 +1019,7 @@ export function TreeView({
     items.push({ type: 'separator' })
     items.push({
       type: 'button',
-      label: !workspaceEditorSettings.loaded
-        ? '설정을 불러오는 중…'
-        : pinnedPathSet.has(menu.entry.path)
-          ? '고정 해제'
-          : '고정',
+      label: pinnedPathSet.has(menu.entry.path) ? 'Unpin' : 'Pin',
       disabled: !workspaceEditorSettings.loaded,
       onClick: () => togglePinned(menu.entry!)
     })
