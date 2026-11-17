@@ -726,7 +726,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "acdb97ed870f991f73fe73ce6a715c10fc79a6ab7804d79a8a10774c06fb676c"
+          "sha256": "1cb9fe760abd89e7ca56d6eef97906f7af367e9c5a27e2480fca233d013e1b43"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -905,7 +905,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "acdb97ed870f991f73fe73ce6a715c10fc79a6ab7804d79a8a10774c06fb676c"
+          "sha256": "1cb9fe760abd89e7ca56d6eef97906f7af367e9c5a27e2480fca233d013e1b43"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",

@@ -587,6 +587,20 @@ app.whenReady().then(async () => {
       })
       return { action: 'deny' }
     })
+    contents.on('context-menu', (event, params) => {
+      if (params.mediaType !== 'image' || !params.srcURL) return
+      event.preventDefault()
+      const menu = Menu.buildFromTemplate([
+        {
+          label: 'Save Image',
+          click: () => {
+            if (!contents.isDestroyed()) contents.downloadURL(params.srcURL)
+          }
+        }
+      ])
+      const window = mainWindowRef
+      menu.popup({ window: window && !window.isDestroyed() ? window : undefined })
+    })
     // Guest WebContents focus/blur — renderer DOM focus events on the
     // <webview> host element are unreliable (see activeBrowserWebview.ts),
     // but the guest process's own WebContents always fires these.
