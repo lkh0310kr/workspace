@@ -1,4 +1,4 @@
-import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
+import { agentStatusStore, runtimeTerminalTitlesStore } from '@workspace/terminal'
 import { getTerminalAgentPaneBinding } from '@workspace/terminal/agent'
 import {
   applyTitleDerivedAgentStatus,
@@ -13,8 +13,8 @@ export function installTerminalAgentStatusBridge(): () => void {
     window.api.terminal.onOscTitle(({ terminalId, rawTitle, normalizedTitle }) => {
       const binding = getTerminalAgentPaneBinding(terminalId)
       if (!binding) return
-      useAgentStatusStore.getState().registerLiveTerminal(terminalId)
-      useRuntimeTerminalTitlesStore
+      agentStatusStore.getState().registerLiveTerminal(terminalId)
+      runtimeTerminalTitlesStore
         .getState()
         .setRuntimePaneTitle(binding.workspaceTabId, binding.paneTabId, normalizedTitle)
       applyTitleDerivedAgentStatus({
@@ -28,7 +28,7 @@ export function installTerminalAgentStatusBridge(): () => void {
 
   disposers.push(
     window.api.terminal.onPtySpawned(({ terminalId }) => {
-      useAgentStatusStore.getState().registerLiveTerminal(terminalId)
+      agentStatusStore.getState().registerLiveTerminal(terminalId)
     })
   )
 

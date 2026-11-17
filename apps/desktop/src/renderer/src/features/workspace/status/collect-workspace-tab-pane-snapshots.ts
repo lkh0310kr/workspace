@@ -1,7 +1,7 @@
 import type { Model, TabNode } from 'flexlayout-react'
 import { readPaneGroupConfig } from '../../pane-system/layout/layoutSession'
 import type { WorkspaceTerminalPaneSnapshot } from './workspace-tab-status'
-import { useAgentStatusStore } from '@workspace/terminal'
+import { agentStatusStore } from '@workspace/terminal'
 
 export function collectWorkspaceTabPaneSnapshots(
   model: Model,
@@ -30,5 +30,5 @@ export function collectWorkspaceTabPaneSnapshots(
 }
 
 export function readLiveTerminalIds(): Set<number> {
-  return useAgentStatusStore.getState().liveTerminalIds
+  return agentStatusStore.getState().liveTerminalIds
 }

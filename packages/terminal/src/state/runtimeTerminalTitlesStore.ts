@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 
 type State = {
   titlesByWorkspaceTab: Record<number, Record<string, string>>
@@ -10,7 +10,7 @@ type Actions = {
   clearWorkspaceTab: (workspaceTabId: number) => void
 }
 
-export const useRuntimeTerminalTitlesStore = create<State & Actions>((set) => ({
+export const runtimeTerminalTitlesStore = createStore<State & Actions>()((set) => ({
   titlesByWorkspaceTab: {},
   revision: 0,
 

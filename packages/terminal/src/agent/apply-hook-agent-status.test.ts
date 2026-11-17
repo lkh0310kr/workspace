@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { useAgentStatusStore } from '../state/agentStatusStore'
+import { agentStatusStore } from '../state/agentStatusStore'
 import { applyHookAgentStatus, clearHookAgentStatus } from './apply-hook-agent-status'
 
 describe('applyHookAgentStatus', () => {
   beforeEach(() => {
-    useAgentStatusStore.setState({
+    agentStatusStore.setState({
       agentStatusByPaneKey: {},
       retainedAgentsByPaneKey: {},
       agentStatusEpoch: 0,
@@ -19,7 +19,7 @@ describe('applyHookAgentStatus', () => {
       prompt: 'approve?',
       agentType: 'claude'
     })
-    const entry = useAgentStatusStore.getState().agentStatusByPaneKey['3:tab-terminal-1']
+    const entry = agentStatusStore.getState().agentStatusByPaneKey['3:tab-terminal-1']
     expect(entry?.state).toBe('blocked')
     expect(entry?.titleDerived).toBeFalsy()
   })
@@ -27,6 +27,6 @@ describe('applyHookAgentStatus', () => {
   it('clears hook rows', () => {
     applyHookAgentStatus({ paneKey: '1:a', state: 'working' })
     clearHookAgentStatus('1:a')
-    expect(useAgentStatusStore.getState().agentStatusByPaneKey['1:a']).toBeUndefined()
+    expect(agentStatusStore.getState().agentStatusByPaneKey['1:a']).toBeUndefined()
   })
 })

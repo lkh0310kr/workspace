@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
+import { useStore } from 'zustand'
 import type { Model } from 'flexlayout-react'
-import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
+import { agentStatusStore, runtimeTerminalTitlesStore } from '@workspace/terminal'
 import { collectWorkspaceTabPaneSnapshots } from './status/collect-workspace-tab-pane-snapshots'
 import { selectWorkspaceAgentActivitySummary } from './status/workspace-agent-activity-summary'
 import { resolveWorkspaceTabStatus, type WorkspaceTabStatus } from './status/workspace-tab-status'
@@ -11,9 +12,9 @@ export function computeWorkspaceTabActivityStatus(
 ): WorkspaceTabStatus | null {
   const model = getModel(workspaceTabId)
   if (!model) return null
-  const agentState = useAgentStatusStore.getState()
+  const agentState = agentStatusStore.getState()
   const runtimeTitles =
-    useRuntimeTerminalTitlesStore.getState().titlesByWorkspaceTab[workspaceTabId] ?? {}
+    runtimeTerminalTitlesStore.getState().titlesByWorkspaceTab[workspaceTabId] ?? {}
   const { terminals, browserPaneCount } = collectWorkspaceTabPaneSnapshots(
     model,
     agentState.liveTerminalIds
@@ -59,8 +60,8 @@ export function useWorkspaceTabActivityStatus(
   getModel: (tabId: number) => Model | undefined,
   layoutRevision: number
 ): WorkspaceTabStatus | null {
-  const agentEpoch = useAgentStatusStore((s) => s.agentStatusEpoch)
-  const titlesRevision = useRuntimeTerminalTitlesStore((s) => s.revision)
+  const agentEpoch = useStore(agentStatusStore, (s) => s.agentStatusEpoch)
+  const titlesRevision = useStore(runtimeTerminalTitlesStore, (s) => s.revision)
 
   return useMemo(
     () => computeWorkspaceTabActivityStatus(workspaceTabId, getModel),

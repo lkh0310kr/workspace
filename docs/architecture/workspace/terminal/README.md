@@ -30,7 +30,7 @@ Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit�
 
 ## 렌더링·입력·환경
 
-Agent status IPC payload 타입과 store 반영 정책은 Terminal package가 소유한다. Preload listener와 Electron channel 연결은 Desktop 경계에 둔다.
+Agent status IPC payload 타입과 store 반영 정책은 Terminal package가 소유한다. Agent 상태와 runtime terminal title store는 `zustand/vanilla` 기반이어서 Main과 renderer에서 공유해도 React 런타임을 요구하지 않는다. React 컴포넌트 구독은 Desktop renderer에서만 `zustand`의 `useStore`로 연결한다. Preload listener와 Electron channel 연결은 Desktop 경계에 둔다.
 
 Terminal ID와 workspace pane identity 연결 registry도 Terminal package의 agent slice가 소유한다. Desktop pane/layout adapter가 mount·layout 상태를 반영한다.
 

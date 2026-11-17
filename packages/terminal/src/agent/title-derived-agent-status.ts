@@ -1,4 +1,4 @@
-import { useAgentStatusStore, agentPaneKey, getFreshHookAgentStatus } from '../state/agentStatusStore'
+import { agentStatusStore, agentPaneKey, getFreshHookAgentStatus } from '../state/agentStatusStore'
 import type { AgentStatusPayload } from './agent-status-types'
 import type { AgentStatus } from './agent-title-core'
 import { detectAgentStatusFromTitle } from './agent-title-status'
@@ -29,11 +29,11 @@ export function applyTitleDerivedAgentStatus(args: {
   if (getFreshHookAgentStatus(paneKey)) return
   const titleStatus = detectAgentStatusFromTitle(args.rawTitle)
   if (!titleStatus) {
-    useAgentStatusStore.getState().dropAgentStatus(paneKey)
+    agentStatusStore.getState().dropAgentStatus(paneKey)
     return
   }
   const payload = mapTitleStatusToPayload(titleStatus, args.rawTitle, args.terminalAgent)
-  useAgentStatusStore.getState().setAgentStatus(paneKey, payload, {
+  agentStatusStore.getState().setAgentStatus(paneKey, payload, {
     workspaceTabId: args.workspaceTabId,
     terminalTitle: args.rawTitle,
     titleDerived: true
@@ -49,12 +49,12 @@ export function applyTitleIdleTransition(args: {
   const paneKey = agentPaneKey(args.workspaceTabId, args.paneTabId)
   if (getFreshHookAgentStatus(paneKey)) return
   const payload = mapTitleStatusToPayload('idle', args.title, args.terminalAgent)
-  useAgentStatusStore.getState().setAgentStatus(paneKey, payload, {
+  agentStatusStore.getState().setAgentStatus(paneKey, payload, {
     workspaceTabId: args.workspaceTabId,
     terminalTitle: args.title,
     titleDerived: true
   })
-  useAgentStatusStore.getState().retainAgentDone(paneKey, args.workspaceTabId)
+  agentStatusStore.getState().retainAgentDone(paneKey, args.workspaceTabId)
 }
 
 export function clearTitleDerivedOnAgentExit(args: {
@@ -63,5 +63,5 @@ export function clearTitleDerivedOnAgentExit(args: {
 }): void {
   const paneKey = agentPaneKey(args.workspaceTabId, args.paneTabId)
   if (getFreshHookAgentStatus(paneKey)) return
-  useAgentStatusStore.getState().dropAgentStatus(paneKey)
+  agentStatusStore.getState().dropAgentStatus(paneKey)
 }

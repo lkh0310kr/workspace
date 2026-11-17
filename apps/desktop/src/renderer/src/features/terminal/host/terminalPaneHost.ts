@@ -1,5 +1,5 @@
 import type { TerminalPaneHost } from '@workspace/terminal'
-import { agentPaneKey, useAgentStatusStore } from '@workspace/terminal'
+import { agentPaneKey, agentStatusStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from '@workspace/terminal/agent'
 import { writeClipboardText } from '@renderer/adapters/platform/nativeClipboard'
 import { connectPanePty } from './runtime/connectPanePty'
@@ -79,14 +79,14 @@ export const desktopTerminalPaneHost: TerminalPaneHost = {
   },
   unregisterAgentPane: (terminalId) => window.api.agentStatus.unregisterTerminalPane(terminalId),
   registerLiveTerminal: (terminalId) =>
-    useAgentStatusStore.getState().registerLiveTerminal(terminalId),
+    agentStatusStore.getState().registerLiveTerminal(terminalId),
   writeClipboardText,
   ensureAgentWorking: (workspaceTabId, paneTabId, terminalAgent) => {
     if (!terminalAgent) return
     const paneKey = agentPaneKey(workspaceTabId, paneTabId)
-    const existing = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey]
+    const existing = agentStatusStore.getState().agentStatusByPaneKey[paneKey]
     if (existing?.state === 'working') return
-    useAgentStatusStore
+    agentStatusStore
       .getState()
       .setAgentStatus(
         paneKey,

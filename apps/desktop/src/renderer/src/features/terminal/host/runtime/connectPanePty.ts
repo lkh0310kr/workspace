@@ -16,7 +16,7 @@ import {
   applyTitleIdleTransition,
   clearTitleDerivedOnAgentExit
 } from '@workspace/terminal/agent'
-import { useRuntimeTerminalTitlesStore } from '@workspace/terminal'
+import { runtimeTerminalTitlesStore } from '@workspace/terminal'
 import {
   markTerminalBracketedPasteInterrupted,
   observeTerminalBracketedPasteModeOutput
@@ -48,7 +48,7 @@ export function connectPanePty(
       ? createPtyOutputTitleObserver({
           onTitleChange: (normalized, raw) => {
             if (options?.workspaceTabId !== undefined && options.paneTabId) {
-              useRuntimeTerminalTitlesStore
+              runtimeTerminalTitlesStore
                 .getState()
                 .setRuntimePaneTitle(options.workspaceTabId, options.paneTabId, normalized)
               applyTitleDerivedAgentStatus({

@@ -1,6 +1,6 @@
 import type { Model } from 'flexlayout-react'
 import { collectTerminalPaneTabs } from '@renderer/features/terminal/host/runtime/collectTerminalPaneTabs'
-import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
+import { agentStatusStore, runtimeTerminalTitlesStore } from '@workspace/terminal'
 import { registerTerminalAgentPane } from '@workspace/terminal/agent'
 import { buildAgentStatusPaneKey } from '@workspace/terminal/agent'
 import { applyTitleDerivedAgentStatus } from '@workspace/terminal/agent'
@@ -26,10 +26,10 @@ export function syncAgentPaneRegistryFromLayouts(
         terminalId,
         buildAgentStatusPaneKey(tab.id, pane.id)
       )
-      useAgentStatusStore.getState().registerLiveTerminal(terminalId)
+      agentStatusStore.getState().registerLiveTerminal(terminalId)
       const title = pane.title?.trim()
       if (title) {
-        useRuntimeTerminalTitlesStore.getState().setRuntimePaneTitle(tab.id, pane.id, title)
+        runtimeTerminalTitlesStore.getState().setRuntimePaneTitle(tab.id, pane.id, title)
         applyTitleDerivedAgentStatus({
           workspaceTabId: tab.id,
           paneTabId: pane.id,

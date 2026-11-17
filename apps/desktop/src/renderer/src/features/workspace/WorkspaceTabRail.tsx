@@ -8,6 +8,7 @@ import {
   type DragEvent,
   type MouseEvent
 } from 'react'
+import { useStore } from 'zustand'
 import type { Model } from 'flexlayout-react'
 import type { TabInfo } from './runtime/workspaceApi'
 import {
@@ -22,7 +23,7 @@ import { switchToHome, switchToWorkspaceTab } from './navigationApi'
 import { ContextMenu, type ContextMenuItem } from '@renderer/adapters/ui'
 import { WorkspaceTabStatusIndicator } from './WorkspaceTabStatusIndicator'
 import { computeWorkspaceTabActivityStatus } from './useWorkspaceTabActivityStatus'
-import { useAgentStatusStore, useRuntimeTerminalTitlesStore } from '@workspace/terminal'
+import { agentStatusStore, runtimeTerminalTitlesStore } from '@workspace/terminal'
 import { WorkbenchIcon } from '@renderer/adapters/ui'
 
 interface Props {
@@ -161,8 +162,8 @@ export function WorkspaceTabRail({
     [tabs]
   )
 
-  const agentEpoch = useAgentStatusStore((s) => s.agentStatusEpoch)
-  const titlesRevision = useRuntimeTerminalTitlesStore((s) => s.revision)
+  const agentEpoch = useStore(agentStatusStore, (s) => s.agentStatusEpoch)
+  const titlesRevision = useStore(runtimeTerminalTitlesStore, (s) => s.revision)
   const tabStatusById = useMemo(() => {
     const out = new Map<number, ReturnType<typeof computeWorkspaceTabActivityStatus>>()
     for (const tab of tabs) {

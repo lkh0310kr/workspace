@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 import type { AgentStatusEntry, AgentStatusPayload } from '../agent/agent-status-types'
 import {
   isExplicitAgentStatusFresh,
@@ -67,7 +67,7 @@ function bumpEntry(
   }
 }
 
-export const useAgentStatusStore = create<State & Actions>((set, get) => ({
+export const agentStatusStore = createStore<State & Actions>()((set, get) => ({
   agentStatusByPaneKey: {},
   retainedAgentsByPaneKey: {},
   agentStatusEpoch: 0,
@@ -130,7 +130,7 @@ export const useAgentStatusStore = create<State & Actions>((set, get) => ({
 }))
 
 export function getFreshHookAgentStatus(paneKey: string): AgentStatusEntry | null {
-  const entry = useAgentStatusStore.getState().agentStatusByPaneKey[paneKey]
+  const entry = agentStatusStore.getState().agentStatusByPaneKey[paneKey]
   if (!entry || entry.titleDerived) return null
   if (!isExplicitAgentStatusFresh(entry, Date.now(), AGENT_STATUS_STALE_AFTER_MS)) return null
   return entry

@@ -1,10 +1,10 @@
 import type { AgentStatusIpcPayload } from './agent-status-ipc'
 import { parseAgentStatusPaneIdentity } from './agent-status-pane-key'
-import { useAgentStatusStore } from '../state/agentStatusStore'
+import { agentStatusStore } from '../state/agentStatusStore'
 
 export function applyHookAgentStatus(event: AgentStatusIpcPayload): void {
   const identity = parseAgentStatusPaneIdentity(event.paneKey)
-  useAgentStatusStore.getState().setAgentStatus(
+  agentStatusStore.getState().setAgentStatus(
     event.paneKey,
     {
       state: event.state,
@@ -22,5 +22,5 @@ export function applyHookAgentStatus(event: AgentStatusIpcPayload): void {
 }
 
 export function clearHookAgentStatus(paneKey: string): void {
-  useAgentStatusStore.getState().dropAgentStatus(paneKey)
+  agentStatusStore.getState().dropAgentStatus(paneKey)
 }

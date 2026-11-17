@@ -16,9 +16,9 @@ export {
 export {
   agentPaneKey,
   getFreshHookAgentStatus,
-  useAgentStatusStore
+  agentStatusStore
 } from './state/agentStatusStore'
-export { useRuntimeTerminalTitlesStore } from './state/runtimeTerminalTitlesStore'
+export { runtimeTerminalTitlesStore } from './state/runtimeTerminalTitlesStore'
 export { AgentIcon, AGENT_CATALOG, getAgentLabel } from './agent/ui/agent-catalog'
 export type { AgentCatalogEntry } from './agent/ui/agent-catalog'
 export {
