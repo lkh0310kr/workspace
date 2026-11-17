@@ -1,0 +1,3 @@
+interface:
+  display_name: "Repo-wide Refactor"
+  short_description: "전체 코드베이스를 탐색하고 서브에이전트로 단계별 리팩터링"
