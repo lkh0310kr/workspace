@@ -141,7 +141,6 @@ export interface WorkspaceApi {
       cb: (payload: { direction: 'in' | 'out'; webContentsId: number }) => void
     ) => () => void
     onClosePaneTab: (cb: () => void) => () => void
-    onOpenSettings: (cb: () => void) => () => void
     onNewWorkspaceTab: (cb: () => void) => () => void
     onShortcutModifierReleased: (cb: () => void) => () => void
     onShortcutModifierPressed: (cb: () => void) => () => void

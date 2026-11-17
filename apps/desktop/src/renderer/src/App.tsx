@@ -9,7 +9,7 @@ import {
 } from '../../shared/usage-meter-settings'
 import { ErrorLogPanel, InteractionDebugPanel } from './features/diagnostics'
 import { collectBrowserWebviews } from './features/browser/host/runtime/browserInteractionDiagnostics'
-import { EditorToastViewport, QuickOpen } from './features/editor'
+import { EditorSettingsDialog, EditorToastViewport, QuickOpen } from './features/editor'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
 import { SettingsDialog } from './features/workspace'
 import { HomeView } from '@workspace/home'
@@ -96,7 +96,9 @@ export default function App() {
     setSettingsTarget,
     appSettingsAnchor,
     setAppSettingsAnchor,
-    appSettingsButtonRef,
+    editorSettingsTarget,
+    setEditorSettingsTarget,
+    settingsButtonRef,
     themePreference,
     setThemePreference,
     toggleAppSettings,
@@ -124,9 +126,28 @@ export default function App() {
       ? resolveActivePaneTab(readPaneGroupConfig(focusedPaneNodeTab as TabNode))
       : undefined
   const editorPaneActive =
-    focusedPaneItem?.kind === 'code' ||
-    focusedPaneItem?.kind === 'markdown' ||
-    focusedPaneItem?.kind === 'viewer'
+    !homeActive &&
+    (focusedPaneItem?.kind === 'code' ||
+      focusedPaneItem?.kind === 'markdown' ||
+      focusedPaneItem?.kind === 'viewer')
+  const visibleWorkspaceRootPath =
+    workspace?.tabs.find((tab) => tab.id === visibleWorkspaceTabId)?.root_path ?? ''
+  useEffect(() => {
+    if (!editorSettingsTarget) return
+    if (
+      !editorPaneActive ||
+      editorSettingsTarget.tabId !== visibleWorkspaceTabId ||
+      editorSettingsTarget.rootPath !== visibleWorkspaceRootPath
+    ) {
+      setEditorSettingsTarget(null)
+    }
+  }, [
+    editorPaneActive,
+    editorSettingsTarget,
+    setEditorSettingsTarget,
+    visibleWorkspaceRootPath,
+    visibleWorkspaceTabId
+  ])
   useEffect(() => window.api.shortcuts.setEditorPaneActive(editorPaneActive), [editorPaneActive])
   const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const openQuickOpenForFocusedPane = useCallback(() => {
@@ -161,7 +182,7 @@ export default function App() {
     activeTabId,
     getModel: storeGetModel,
     bumpLayout,
-    appSettingsOpen: appSettingsAnchor !== null,
+    appSettingsOpen: appSettingsAnchor !== null || editorSettingsTarget !== null,
     settingsTarget,
     dismissShellPortals: dismissPortals
   })
@@ -207,9 +228,25 @@ export default function App() {
   return (
     <div className={`app-root${htmlFullscreen ? ' html-fullscreen' : ''}`}>
       <AppTitlebar
-        appSettingsOpen={appSettingsAnchor !== null}
-        appSettingsButtonRef={appSettingsButtonRef}
-        onToggleAppSettings={(anchor) => toggleAppSettings(anchor)}
+        settingsOpen={appSettingsAnchor !== null || editorSettingsTarget !== null}
+        settingsButtonRef={settingsButtonRef}
+        onToggleSettings={(anchor) => {
+          if (editorPaneActive) {
+            setAppSettingsAnchor(null)
+            setEditorSettingsTarget((current) =>
+              current
+                ? null
+                : {
+                    tabId: visibleWorkspaceTabId,
+                    rootPath: visibleWorkspaceRootPath,
+                    anchorRect: anchor
+                  }
+            )
+            return
+          }
+          setEditorSettingsTarget(null)
+          toggleAppSettings(anchor)
+        }}
         workspaceTabs={workspace.tabs}
         activeWorkspaceTabId={visibleWorkspaceTabId}
         homeActive={homeActive}
@@ -245,13 +282,19 @@ export default function App() {
             onUsageMeterSettingsChange={handleUsageMeterSettingsChange}
           />
         )}
+        {editorSettingsTarget && (
+          <EditorSettingsDialog
+            anchorRect={editorSettingsTarget.anchorRect}
+            onClose={() => setEditorSettingsTarget(null)}
+            tabId={editorSettingsTarget.tabId}
+            rootPath={editorSettingsTarget.rootPath}
+          />
+        )}
       </div>
       {quickOpenOpen && !homeActive && (
         <QuickOpen
           tabId={visibleWorkspaceTabId}
-          rootPath={
-            workspace?.tabs.find((tab) => tab.id === visibleWorkspaceTabId)?.root_path ?? ''
-          }
+          rootPath={visibleWorkspaceRootPath}
           onOpenFile={(path, kind) => {
             const model = storeGetModel(visibleWorkspaceTabId)
             if (model)

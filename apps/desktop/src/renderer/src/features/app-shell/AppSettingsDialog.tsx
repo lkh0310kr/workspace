@@ -1,6 +1,5 @@
 import { Popover } from '@renderer/adapters/ui'
 import { ThemePreference } from '../../theme'
-import { EditorSettingsSection } from '@renderer/features/editor'
 import { UsageMeterSettingsSection } from '@renderer/features/agent-usage'
 import type { UsageMeterSettings } from '../../../../shared/usage-meter-settings'
 
@@ -55,7 +54,6 @@ export function AppSettingsDialog({
         settings={usageMeterSettings}
         onChange={onUsageMeterSettingsChange}
       />
-      <EditorSettingsSection />
     </Popover>
   )
 }

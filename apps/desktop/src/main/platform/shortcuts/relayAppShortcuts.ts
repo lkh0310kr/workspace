@@ -85,10 +85,6 @@ function relaySharedRendererShortcuts(
     event.preventDefault()
     send('shortcut:close-pane-tab')
   }
-  if (input.code === 'Comma' && (input.control || input.meta)) {
-    event.preventDefault()
-    send('shortcut:open-settings')
-  }
   if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {
     event.preventDefault()
     send('shortcut:home')

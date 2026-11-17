@@ -36,7 +36,7 @@ import '@workspace/editor/editor-pane-chrome.css'
 import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 import { LanguageDescription, indentUnit } from '@codemirror/language'
 import { languages as languageData } from '@codemirror/language-data'
-import { getStoredAutoSave, subscribeAutoSave } from '../state/autosave'
+import { useWorkspaceEditorSettings } from '../state/workspaceEditorSettings'
 import { pastePlainTextCommand } from '../input/editorPlainPaste'
 import {
   clearFocusedEditorView,
@@ -118,6 +118,7 @@ export function EditorContent({
     [tabId, rootPath]
   )
   const editorProvider = editorProviderLease.provider
+  const workspaceEditorSettings = useWorkspaceEditorSettings(tabId, rootPath)
   const loadBreadcrumbChildren = useCallback(
     async (directoryPath: string): Promise<EditorBreadcrumbEntry[]> => {
       const parent = await resolveEditorTreeDirectory(editorProvider, directoryPath)
@@ -154,7 +155,7 @@ export function EditorContent({
     path: string
     key: string
   } | null>(null)
-  const [autoSave, setAutoSave] = useState(getStoredAutoSave)
+  const autoSave = workspaceEditorSettings.settings.autoSave
   const autoSaveRef = useRef(autoSave)
   autoSaveRef.current = autoSave
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -305,8 +306,6 @@ export function EditorContent({
       setDirtyState(false)
     }
   }, [documentSnapshot, setDirtyState])
-
-  useEffect(() => subscribeAutoSave(setAutoSave), [])
 
   const saveNow = useCallback(
     (view: EditorView, path: string, options?: { flushSync?: boolean }) => {

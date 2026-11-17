@@ -7,8 +7,3 @@ export function onHomeShortcut(handler: () => void): () => void {
 export function onClosePaneTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onClosePaneTab(handler)
 }
-
-/** Main relays Cmd/Ctrl+, before the renderer can toggle the settings popover twice. */
-export function onOpenSettingsShortcut(handler: () => void): () => void {
-  return window.api.shortcuts.onOpenSettings(handler)
-}

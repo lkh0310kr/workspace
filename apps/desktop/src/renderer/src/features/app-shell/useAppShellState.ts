@@ -1,38 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ThemePreference } from '../../theme'
 import { getStoredThemePreference } from '../../theme'
-import { onOpenSettingsShortcut } from './shellShortcuts'
 import { onNewWorkspaceTabShortcut } from '../workspace/runtime/workspaceShortcuts'
 import { addTab } from '../workspace'
 
 export type WorkspaceSettingsTarget = { tabId: number; anchorRect: DOMRect }
+export type EditorSettingsTarget = { tabId: number; rootPath: string; anchorRect: DOMRect }
 
 export function useAppShellState() {
   const [settingsTarget, setSettingsTarget] = useState<WorkspaceSettingsTarget | null>(null)
   const [appSettingsAnchor, setAppSettingsAnchor] = useState<DOMRect | null>(null)
-  const appSettingsButtonRef = useRef<HTMLButtonElement>(null)
+  const [editorSettingsTarget, setEditorSettingsTarget] = useState<EditorSettingsTarget | null>(
+    null
+  )
+  const settingsButtonRef = useRef<HTMLButtonElement>(null)
   const lastNewTabShortcutAt = useRef(0)
   const [themePreference, setThemePreference] = useState<ThemePreference>(getStoredThemePreference)
 
   const toggleAppSettings = useCallback((anchor?: DOMRect | null) => {
     setAppSettingsAnchor((open) => {
       if (open) return null
-      return anchor ?? appSettingsButtonRef.current?.getBoundingClientRect() ?? null
+      return anchor ?? settingsButtonRef.current?.getBoundingClientRect() ?? null
     })
   }, [])
 
   const dismissPortals = useCallback(() => {
     setAppSettingsAnchor(null)
+    setEditorSettingsTarget(null)
     setSettingsTarget(null)
   }, [])
 
-  // Cmd/Ctrl+, is handled in the main process (before-input-event) and relayed
-  // via shortcut:open-settings — do not also listen in the renderer or the
-  // popover toggles open then immediately closed on one keypress.
-  useEffect(() => onOpenSettingsShortcut(() => toggleAppSettings()), [toggleAppSettings])
-
-  // Cmd/Ctrl+N — same "new tab" action as WorkspaceTabRail's "+" button,
-  // relayed the same way as Cmd+, above.
+  // Cmd/Ctrl+N — same "new tab" action as WorkspaceTabRail's "+" button.
   useEffect(
     () =>
       onNewWorkspaceTabShortcut(() => {
@@ -51,7 +49,9 @@ export function useAppShellState() {
     setSettingsTarget,
     appSettingsAnchor,
     setAppSettingsAnchor,
-    appSettingsButtonRef,
+    editorSettingsTarget,
+    setEditorSettingsTarget,
+    settingsButtonRef,
     themePreference,
     setThemePreference,
     toggleAppSettings,

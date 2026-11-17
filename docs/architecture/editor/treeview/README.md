@@ -18,17 +18,19 @@ Desktop Editor는 공유 `packages/editor`의 `@workspace/editor/tree` 기능 sl
 - 파일 이름 변경·생성은 row 안에서 입력하며 Enter로 완료하고 Escape로 취소한다.
 - 파일 이동과 폴더 생성은 local provider의 검증된 경로를 사용한다.
 - 숨김 파일과 `.gitignore` 판정은 서로 다른 상태로 표시한다. 무시 파일도 Editor tree에서 탐색하고 열 수 있다.
+- 숨김 파일 표시 여부는 workspace별 Editor 설정 `.workspace/settings.json`의 `editor.showHiddenFiles`로 제어한다. 기본값은 기존 동작과 같이 표시이며, 끄면 이름이 `.`으로 시작하는 항목을 TreeView에서 숨긴다. `.gitignore` 항목과 Quick Open·파일 내용 검색에는 영향을 주지 않는다.
 - Markdown suffix 표시 정책은 host가 명시하고 본문 제목 규칙과 분리한다.
 
 ## 수락 시나리오
 
-| ID | 입력/행동 | 기대 결과 |
-| --- | --- | --- |
-| TREE-01 | 폴더 확장과 접기를 반복 | visible rows와 disclosure state가 일치한다. |
-| TREE-02 | 키보드로 목록 밖 행으로 이동 | focus 행이 viewport 안으로 이동한다. |
-| TREE-03 | 선택 파일 변경 후 다른 pane을 갔다 돌아옴 | focus·선택·scroll 상태가 해당 workspace에 맞게 복원된다. |
-| TREE-04 | 새 파일/폴더 생성 후 Escape 또는 Enter | Escape는 입력을 취소하고 Enter는 filesystem에 반영한다. |
-| TREE-05 | 파일 rename 또는 move | 실제 filesystem 변경 뒤 tree path와 열린 문서 identity가 갱신된다. |
-| TREE-06 | `.gitignore` 대상과 무시되지 않는 항목 표시 | 무시 여부만 muted style로 구분하고 탐색 기능은 유지한다. |
+| ID      | 입력/행동                                   | 기대 결과                                                                                                                                                    |
+| ------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TREE-01 | 폴더 확장과 접기를 반복                     | visible rows와 disclosure state가 일치한다.                                                                                                                  |
+| TREE-02 | 키보드로 목록 밖 행으로 이동                | focus 행이 viewport 안으로 이동한다.                                                                                                                         |
+| TREE-03 | 선택 파일 변경 후 다른 pane을 갔다 돌아옴   | focus·선택·scroll 상태가 해당 workspace에 맞게 복원된다.                                                                                                     |
+| TREE-04 | 새 파일/폴더 생성 후 Escape 또는 Enter      | Escape는 입력을 취소하고 Enter는 filesystem에 반영한다.                                                                                                      |
+| TREE-05 | 파일 rename 또는 move                       | 실제 filesystem 변경 뒤 tree path와 열린 문서 identity가 갱신된다.                                                                                           |
+| TREE-06 | `.gitignore` 대상과 무시되지 않는 항목 표시 | 무시 여부만 muted style로 구분하고 탐색 기능은 유지한다.                                                                                                     |
+| TREE-07 | Editor 설정에서 숨김 파일 표시를 끄고 켬    | dotfile과 dot-directory가 TreeView에서만 숨겨졌다 복구되고, 다른 목록과 검색은 변하지 않는다. 설정은 해당 workspace의 `.workspace/settings.json`에 저장된다. |
 
 근거는 `TreeView.test.ts`, `editorTreeProjection.test.ts`, `editorTreeReload.test.ts`, `TreeView.scroll.test.ts`, `EditorSidebar.shortcut.test.ts`와 `scripts/check-editor-tree-contract.mjs`다. 실제 Electron drag/drop과 OS별 focus 동작은 별도 수동 확인 대상이다.

@@ -22,7 +22,8 @@ Dev profile과 packaged profile은 Workspace snapshot, Chromium storage와 userD
 | Editor item identity | localStorage `workspace:editor-item-ids:<tabId>` | path→stable item ID; rename/move 때 remap |
 | Editor view 상태 | localStorage `editor:view-state:<identity>`와 memory cache | clean 문서만 저장 cache로 유지 |
 | Editor tree 확장·scroll·root | workspace/pane scoped localStorage keys | root 불일치 시 초기 상태 |
-| theme·autosave | Renderer localStorage | preference와 실제 적용 수명은 각 module 소유 |
+| theme | Renderer localStorage | preference와 실제 적용 수명은 각 module 소유 |
+| Editor workspace 설정 | `<workspaceRoot>/.workspace/settings.json` | autoSave·showHiddenFiles; workspace별로 읽고 Editor 설정창에서 저장 |
 
 JSON 이름과 storage prefix는 schema version을 대신하지 않는다. Main persistence 파일은 temp+rename을 모두 사용하지 않으므로 power loss에서도 항상 atomic하다고 가정하지 않는다.
 

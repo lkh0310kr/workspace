@@ -1,14 +1,12 @@
-import { useState } from 'react'
-import { getStoredAutoSave, setStoredAutoSave } from '../state/autosave'
+import type { WorkspaceEditorSettings } from '../state/workspaceEditorSettings'
 
-export function EditorSettingsSection() {
-  const [autoSave, setAutoSave] = useState(getStoredAutoSave)
+interface Props {
+  settings: WorkspaceEditorSettings
+  disabled?: boolean
+  onChange: (next: WorkspaceEditorSettings) => void
+}
 
-  const changeAutoSave = (enabled: boolean) => {
-    setStoredAutoSave(enabled)
-    setAutoSave(enabled)
-  }
-
+export function EditorSettingsSection({ settings, disabled = false, onChange }: Props) {
   return (
     <>
       <div className="settings-section-title">Editing</div>
@@ -19,20 +17,33 @@ export function EditorSettingsSection() {
         <div className="settings-theme-options">
           <button
             type="button"
-            className={`settings-theme-option${!autoSave ? ' active' : ''}`}
-            onClick={() => changeAutoSave(false)}
+            className={`settings-theme-option${!settings.autoSave ? ' active' : ''}`}
+            disabled={disabled}
+            onClick={() => onChange({ ...settings, autoSave: false })}
           >
             Manual (Cmd+S)
           </button>
           <button
             type="button"
-            className={`settings-theme-option${autoSave ? ' active' : ''}`}
-            onClick={() => changeAutoSave(true)}
+            className={`settings-theme-option${settings.autoSave ? ' active' : ''}`}
+            disabled={disabled}
+            onClick={() => onChange({ ...settings, autoSave: true })}
           >
             Auto-save
           </button>
         </div>
       </div>
+      <label className="settings-row editor-hidden-files-setting">
+        <span className="settings-row-label">Show hidden files in the Editor tree</span>
+        <input
+          type="checkbox"
+          checked={settings.showHiddenFiles}
+          disabled={disabled}
+          onChange={(event) =>
+            onChange({ ...settings, showHiddenFiles: event.currentTarget.checked })
+          }
+        />
+      </label>
     </>
   )
 }

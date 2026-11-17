@@ -51,6 +51,7 @@ import {
   type EditorTreeViewItem
 } from '@workspace/editor'
 import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
+import { useWorkspaceEditorSettings } from '../state/workspaceEditorSettings'
 
 interface Props {
   tabId: number
@@ -112,6 +113,10 @@ function joinPath(dir: string, name: string): string {
   return dir ? `${dir}/${name}` : name
 }
 
+function isHiddenPath(path: string): boolean {
+  return path.split('/').some((part) => part.startsWith('.'))
+}
+
 function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
   const row = treeEl?.querySelector<HTMLElement>(
     `[data-tree-path="${entry.path.replace(/"/g, '\\"')}"]`
@@ -151,6 +156,7 @@ export function TreeView({
     [tabId, rootPath]
   )
   const editorProvider = editorProviderLease.provider
+  const workspaceEditorSettings = useWorkspaceEditorSettings(tabId, rootPath)
   const canCreateFile = editorSupportsOperation(editorProvider, 'createFile')
   const canCreateDirectory = editorSupportsOperation(editorProvider, 'createDirectory')
   const canRename = editorSupportsOperation(editorProvider, 'rename')
@@ -187,6 +193,13 @@ export function TreeView({
   const scrollAnchorRef = useRef<{ path: string; index: number; offset: number } | null>(null)
   const previousFlatListRef = useRef<Array<{ entry: DirEntry; depth: number }> | null>(null)
   const previousAnchorScopeRef = useRef(`${editorTreeStateKey}:${tabId}:${rootPath}`)
+  const treeExpanded = useMemo(
+    () =>
+      workspaceEditorSettings.settings.showHiddenFiles
+        ? expanded
+        : new Set([...expanded].filter((path) => !isHiddenPath(path))),
+    [expanded, workspaceEditorSettings.settings.showHiddenFiles]
+  )
 
   useLayoutEffect(() => {
     rootPathRef.current = rootPath
@@ -312,16 +325,16 @@ export function TreeView({
       const fullReload = parentPaths.includes('')
       if (fullReload) {
         loadDir('')
-        for (const path of expanded) loadDir(path)
+        for (const path of treeExpanded) loadDir(path)
         return
       }
       const toReload = new Set<string>()
       for (const p of parentPaths) {
-        for (const d of editorTreeDirsToReloadForChange(p, expanded)) toReload.add(d)
+        for (const d of editorTreeDirsToReloadForChange(p, treeExpanded)) toReload.add(d)
       }
       for (const d of toReload) loadDir(d)
     })
-  }, [editorProvider, loadDir, expanded])
+  }, [editorProvider, loadDir, treeExpanded])
 
   useEffect(() => {
     const clearDrag = () => setDragOverPath(null)
@@ -372,16 +385,21 @@ export function TreeView({
       new Map(
         [...dirs].map(([path, state]) => [
           path,
-          state.entries.map((entry) => ({
-            ...entry,
-            name: entry.name,
-            directory: entry.is_dir
-          }))
+          state.entries
+            .filter(
+              (entry) =>
+                workspaceEditorSettings.settings.showHiddenFiles || !entry.name.startsWith('.')
+            )
+            .map((entry) => ({
+              ...entry,
+              name: entry.name,
+              directory: entry.is_dir
+            }))
         ])
       ),
-      expanded
+      treeExpanded
     ).map(({ item, depth }) => ({ entry: item, depth }))
-  }, [dirs, expanded])
+  }, [dirs, treeExpanded, workspaceEditorSettings.settings.showHiddenFiles])
 
   useEffect(() => {
     const pending = pendingScrollRestoreRef.current
@@ -392,7 +410,7 @@ export function TreeView({
       !dirs.get('')?.loaded
     )
       return
-    if ([...expanded].some((path) => !dirs.get(path)?.loaded)) return
+    if ([...treeExpanded].some((path) => !dirs.get(path)?.loaded)) return
     const el = scrollContainerRef?.current
     if (!el || el.clientHeight <= 0) return
     const restoredTop = resolveEditorTreeScrollTop(
@@ -411,7 +429,7 @@ export function TreeView({
       : null
   }, [
     dirs,
-    expanded,
+    treeExpanded,
     editorTreeActive,
     editorTreeStateKey,
     flatList,

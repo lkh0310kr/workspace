@@ -53,8 +53,7 @@ input {
   border-bottom: 1px solid var(--border);
   position: relative;
   z-index: 200;
-  /* Drag only on .titlebar-spacer / platform chrome — whole-strip drag
-     mis-hit-tests on some hosts. macOS/Windows still drag via gutter. */
+  /* Drag only on the spacer and platform chrome. */
   -webkit-app-region: no-drag;
 }
 
@@ -77,6 +76,76 @@ input {
   min-width: 0;
   height: 100%;
   -webkit-app-region: drag;
+}
+
+.titlebar-settings-button {
+  -webkit-app-region: no-drag;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin: 0 8px;
+}
+
+.titlebar-settings-button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.titlebar-settings-button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.editor-settings-root {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-hidden-files-setting {
+  margin-top: 12px;
+}
+
+.editor-hidden-files-setting input {
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.editor-settings-dialog button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.settings-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #c85a5a;
+  font-size: 11px;
+}
+
+.settings-load-error button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.editor-settings-path {
+  margin-top: 10px;
+  color: var(--text-faint);
 }
 
 .titlebar-window-controls {
@@ -110,30 +179,6 @@ input {
 .titlebar-window-btn-close:hover {
   background: #c42b1c;
   color: #fff;
-}
-
-.titlebar-sidebar-toggle {
-  -webkit-app-region: no-drag;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-}
-
-.titlebar-sidebar-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text-muted);
-}
-
-.titlebar-sidebar-toggle.active {
-  color: var(--text);
 }
 
 .app-shell {
@@ -174,8 +219,4 @@ input {
 
 .loading-stuck button:hover {
   background: var(--bg-hover);
-}
-
-.titlebar-sidebar-toggle {
-  border-radius: var(--radius-sm);
 }

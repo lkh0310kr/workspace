@@ -94,11 +94,6 @@ export const browserApi = {
       ipcRenderer.on('shortcut:close-pane-tab', listener)
       return () => ipcRenderer.removeListener('shortcut:close-pane-tab', listener)
     },
-    onOpenSettings: (cb: () => void): (() => void) => {
-      const listener = (): void => cb()
-      ipcRenderer.on('shortcut:open-settings', listener)
-      return () => ipcRenderer.removeListener('shortcut:open-settings', listener)
-    },
     onNewWorkspaceTab: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('shortcut:new-workspace-tab', listener)
