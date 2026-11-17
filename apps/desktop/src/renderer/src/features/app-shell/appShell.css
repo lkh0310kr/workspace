@@ -27,6 +27,11 @@ input {
   background: var(--bg-base);
 }
 
+.workspace-editor-tree-pane [data-editor-tree-row]:has([data-editor-pin]) > span:last-child {
+  margin-inline-start: 0;
+  color: var(--text-muted);
+}
+
 /* Overlay title bar (see tauri.conf.json titleBarStyle) leaves the traffic
    lights floating over the web content with no native bar underneath — this
    strip reserves that height so content doesn't render under them, stays

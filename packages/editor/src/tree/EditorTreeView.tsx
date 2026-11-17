@@ -31,7 +31,6 @@ export interface EditorTreeViewItem {
   cut?: boolean
   isIgnored?: boolean
   dropTarget?: boolean
-  dropPosition?: 'before' | 'after'
   tabIndex?: number
   trailingStatus?: ReactNode
   trailingStatusLabel?: string
@@ -63,9 +62,8 @@ export interface EditorTreeViewProps {
   onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void
   onScroll?: (scrollTop: number) => void
   onClearSelection?: () => void
-  onSetDropTarget?: (path: string | null, position?: 'before' | 'after' | 'inside') => void
+  onSetDropTarget?: (path: string | null) => void
   onDropItems?: (paths: string[], destination: string) => void
-  onReorderItems?: (paths: string[], targetPath: string, position: 'before' | 'after') => void
   onFocusPath?: (path: string) => void
   onDragStart?: (
     item: EditorTreeViewItem,
@@ -131,7 +129,6 @@ export function EditorTreeView({
   onClearSelection,
   onSetDropTarget,
   onDropItems,
-  onReorderItems,
   onFocusPath,
   onDragStart,
   onContextMenu,
@@ -228,7 +225,6 @@ export function EditorTreeView({
             cut={item.cut}
             isIgnored={item.isIgnored}
             dropTarget={item.dropTarget}
-            dropPosition={item.dropPosition}
             tabIndex={item.tabIndex ?? -1}
             showGuides={item.showGuides}
             onFocus={() => onFocusPath?.(item.path)}
@@ -240,15 +236,7 @@ export function EditorTreeView({
                     event.preventDefault()
                     event.stopPropagation()
                     event.dataTransfer.dropEffect = 'move'
-                    const rect = event.currentTarget.getBoundingClientRect()
-                    const ratio = (event.clientY - rect.top) / Math.max(rect.height, 1)
-                    const position =
-                      item.expandable && ratio >= 0.25 && ratio <= 0.75
-                        ? 'inside'
-                        : ratio < 0.5
-                          ? 'before'
-                          : 'after'
-                    onSetDropTarget?.(item.path, position)
+                    onSetDropTarget?.(item.expandable ? item.path : parentPath(item.path))
                   }
                 : undefined
             }
@@ -264,26 +252,7 @@ export function EditorTreeView({
               canMove
                 ? (event) => {
                     if (!acceptsTreeDrag(event)) return
-                    const rect = event.currentTarget.getBoundingClientRect()
-                    const ratio = (event.clientY - rect.top) / Math.max(rect.height, 1)
-                    const position =
-                      item.expandable && ratio >= 0.25 && ratio <= 0.75
-                        ? 'inside'
-                        : ratio < 0.5
-                          ? 'before'
-                          : 'after'
-                    if (position !== 'inside' && onReorderItems) {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      onSetDropTarget?.(null)
-                      onReorderItems(
-                        parsePaths(event.dataTransfer.getData(dragMimeType)),
-                        item.path,
-                        position
-                      )
-                    } else {
-                      drop(event, item.expandable ? item.path : parentPath(item.path))
-                    }
+                    drop(event, item.expandable ? item.path : parentPath(item.path))
                   }
                 : undefined
             }

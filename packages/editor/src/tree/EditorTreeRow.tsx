@@ -38,7 +38,6 @@ export interface EditorTreeRowProps {
   cut?: boolean
   isIgnored?: boolean
   dropTarget?: boolean
-  dropPosition?: 'before' | 'after'
   tabIndex?: number
   showGuides?: boolean
   onClick?: MouseEventHandler<HTMLButtonElement>
@@ -73,7 +72,6 @@ export function EditorTreeRow({
   cut = false,
   isIgnored = false,
   dropTarget = false,
-  dropPosition,
   tabIndex = -1,
   showGuides = false,
   onClick,
@@ -161,7 +159,6 @@ export function EditorTreeRow({
       data-editor-tree-row=""
       data-git-ignored={isIgnored ? '' : undefined}
       data-selected={selected || multiSelected ? '' : undefined}
-      data-drop-position={dropPosition}
       data-tree-path={path}
       data-editor-item-id={id}
       aria-selected={selected || multiSelected}

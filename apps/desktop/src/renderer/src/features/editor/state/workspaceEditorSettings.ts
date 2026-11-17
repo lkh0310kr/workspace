@@ -5,7 +5,7 @@ export interface WorkspaceEditorSettings {
   autoSave: boolean
   hiddenFiles: string[]
   hideMarkdownExtension: boolean
-  treeOrder: string[]
+  pinnedPaths: string[]
 }
 
 interface Snapshot {
@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS: WorkspaceEditorSettings = {
   autoSave: false,
   hiddenFiles: [],
   hideMarkdownExtension: false,
-  treeOrder: []
+  pinnedPaths: []
 }
 const snapshots = new Map<string, Snapshot>()
 const listeners = new Map<string, Set<() => void>>()
@@ -78,8 +78,8 @@ function parseSettings(
     const hiddenFiles = Array.isArray(record.hiddenFiles)
       ? record.hiddenFiles.filter((item): item is string => typeof item === 'string')
       : []
-    const treeOrder = Array.isArray(record.treeOrder)
-      ? record.treeOrder.filter((item): item is string => typeof item === 'string')
+    const pinnedPaths = Array.isArray(record.pinnedPaths)
+      ? record.pinnedPaths.filter((item): item is string => typeof item === 'string')
       : []
     return {
       autoSave: typeof record.autoSave === 'boolean' ? record.autoSave : fallback.autoSave,
@@ -88,7 +88,7 @@ function parseSettings(
         typeof record.hideMarkdownExtension === 'boolean'
           ? record.hideMarkdownExtension
           : DEFAULT_SETTINGS.hideMarkdownExtension,
-      treeOrder
+      pinnedPaths
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -160,7 +160,7 @@ export async function updateWorkspaceEditorSettings(
           ...new Set(settings.hiddenFiles.map((pattern) => pattern.trim()).filter(Boolean))
         ],
         hideMarkdownExtension: settings.hideMarkdownExtension === true,
-        treeOrder: [...new Set(settings.treeOrder.map((path) => path.trim()).filter(Boolean))]
+        pinnedPaths: [...new Set(settings.pinnedPaths.map((path) => path.trim()).filter(Boolean))]
       }
       snapshots.set(rootPath, { settings: normalized, loaded: true, error: null })
       notify(rootPath)
