@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type DragEvent,
-  type ReactNode,
   type RefObject
 } from 'react'
 import { revealItemInDir } from '../../../adapters/platform/nativeShell'
@@ -53,7 +52,7 @@ import {
 } from '@workspace/editor'
 import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 import {
-  saveWorkspaceEditorSettings,
+  updateWorkspaceEditorSettings,
   useWorkspaceEditorSettings
 } from '../state/workspaceEditorSettings'
 
@@ -79,6 +78,12 @@ interface DirState {
 
 interface EditorDirEntry extends DirEntry {
   editorItemId: string
+}
+
+interface OrderedTreeEntry {
+  path: string
+  name: string
+  directory: boolean
 }
 
 interface MenuState {
@@ -132,6 +137,27 @@ function isHiddenPath(path: string, patterns: string[]): boolean {
   return path.split('/').some((part) => matchesHiddenPattern(part, patterns))
 }
 
+function compareTreeEntries(
+  a: OrderedTreeEntry,
+  b: OrderedTreeEntry,
+  orderIndex: ReadonlyMap<string, number>
+): number {
+  const aIndex = orderIndex.get(a.path)
+  const bIndex = orderIndex.get(b.path)
+  if (aIndex !== undefined && bIndex !== undefined && aIndex !== bIndex) return aIndex - bIndex
+  if (aIndex !== undefined && bIndex === undefined) return -1
+  if (aIndex === undefined && bIndex !== undefined) return 1
+  return (
+    Number(b.directory) - Number(a.directory) ||
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  )
+}
+
+function sortTreeEntries<T extends OrderedTreeEntry>(entries: readonly T[], order: string[]): T[] {
+  const orderIndex = new Map(order.map((path, index) => [path, index]))
+  return [...entries].sort((a, b) => compareTreeEntries(a, b, orderIndex))
+}
+
 function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
   const row = treeEl?.querySelector<HTMLElement>(
     `[data-tree-path="${entry.path.replace(/"/g, '\\"')}"]`
@@ -172,8 +198,11 @@ export function TreeView({
   )
   const editorProvider = editorProviderLease.provider
   const workspaceEditorSettings = useWorkspaceEditorSettings(tabId, rootPath)
-  const pinnedPaths = workspaceEditorSettings.settings.pinnedPaths
-  const pinnedPathSet = useMemo(() => new Set(pinnedPaths), [pinnedPaths])
+  const treeOrder = workspaceEditorSettings.settings.treeOrder
+  const treeOrderIndex = useMemo(
+    () => new Map(treeOrder.map((path, index) => [path, index])),
+    [treeOrder]
+  )
   const canCreateFile = editorSupportsOperation(editorProvider, 'createFile')
   const canCreateDirectory = editorSupportsOperation(editorProvider, 'createDirectory')
   const canRename = editorSupportsOperation(editorProvider, 'rename')
@@ -187,6 +216,9 @@ export function TreeView({
     () => new Set(loadEditorTreeState(editorTreeStateKey, rootPath).expanded)
   )
   const [menu, setMenu] = useState<MenuState | null>(null)
+  const [dragOverPosition, setDragOverPosition] = useState<'before' | 'after' | 'inside' | null>(
+    null
+  )
   const [inlineEdit, setInlineEdit] = useState<
     | { mode: 'create'; kind: 'file' | 'folder'; dir: string; name: string }
     | { mode: 'rename'; entry: DirEntry; name: string }
@@ -387,35 +419,20 @@ export function TreeView({
     [onOpenFile, revealAncestors]
   )
 
-  const savePinnedPaths = (nextPinnedPaths: string[]) => {
-    void saveWorkspaceEditorSettings(tabId, rootPath, {
-      ...workspaceEditorSettings.settings,
-      pinnedPaths: nextPinnedPaths
-    }).catch((error: unknown) => window.alert(`고정 상태를 저장하지 못했습니다: ${String(error)}`))
-  }
-
-  const togglePinned = (entry: DirEntry) => {
-    setMenu(null)
-    const wasPinned = pinnedPathSet.has(entry.path)
-    const nextPinnedPaths = wasPinned
-      ? pinnedPaths.filter((path) => path !== entry.path)
-      : [...pinnedPaths, entry.path]
-    savePinnedPaths(nextPinnedPaths)
-    if (!wasPinned) {
-      setScrollTop(0)
-      if (scrollContainerRef?.current) scrollContainerRef.current.scrollTop = 0
-    }
-  }
-
-  const updatePinnedPaths = (transform: (path: string) => string | null) => {
-    const nextPinnedPaths = [
-      ...new Set(pinnedPaths.map(transform).filter((path): path is string => path !== null))
-    ]
-    if (
-      nextPinnedPaths.length !== pinnedPaths.length ||
-      nextPinnedPaths.some((path, index) => path !== pinnedPaths[index])
-    ) {
-      savePinnedPaths(nextPinnedPaths)
+  const updateTreeOrder = async (transform: (paths: string[]) => string[]) => {
+    try {
+      await updateWorkspaceEditorSettings(tabId, rootPath, (current) => {
+        const treeOrder = [...new Set(transform(current.treeOrder))]
+        if (
+          treeOrder.length === current.treeOrder.length &&
+          treeOrder.every((path, index) => path === current.treeOrder[index])
+        ) {
+          return current
+        }
+        return { ...current, treeOrder }
+      })
+    } catch (error) {
+      window.alert(`파일 순서를 저장하지 못했습니다: ${String(error)}`)
     }
   }
 
@@ -452,12 +469,9 @@ export function TreeView({
       ),
       treeExpanded,
       '',
-      (a, b) =>
-        Number(pinnedPathSet.has(b.path)) - Number(pinnedPathSet.has(a.path)) ||
-        Number(b.directory) - Number(a.directory) ||
-        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      (a, b) => compareTreeEntries(a, b, treeOrderIndex)
     ).map(({ item, depth }) => ({ entry: item, depth }))
-  }, [dirs, pinnedPathSet, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
+  }, [dirs, treeOrderIndex, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
 
   useEffect(() => {
     const pending = pendingScrollRestoreRef.current
@@ -574,27 +588,12 @@ export function TreeView({
             : classifyFile(entry.name) === 'code'
               ? 'code'
               : 'asset'
-        const pinned = pinnedPathSet.has(entry.path)
-        const trailingStatus: ReactNode = pinned ? (
-          <svg data-editor-pin="" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
-            <path
-              d="m9.7 1.8 4.5 4.5-2 .6-1.4 2.6-2.4-2.4-4.1 5.8-.8-.8 5.8-4.1-2.4-2.4 2.6-1.4.2-1.8Z"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.2"
-            />
-          </svg>
-        ) : undefined
         return {
           id: entry.editorItemId,
           path: entry.path,
           name: editorTreeItemLabel(entry.name, detected, {
             showMarkdownExtension: !workspaceEditorSettings.settings.hideMarkdownExtension
           }),
-          trailingStatus,
-          trailingStatusLabel: pinned ? '고정됨' : undefined,
           kind: detected,
           depth,
           expandable: entry.is_dir,
@@ -603,7 +602,12 @@ export function TreeView({
           selected: selected.has(entry.path),
           multiSelected: selected.size > 1 && selected.has(entry.path),
           isIgnored: entry.is_ignored ?? false,
-          dropTarget: dragOverPath === entry.path,
+          dropTarget: dragOverPath === entry.path && dragOverPosition === 'inside',
+          dropPosition:
+            dragOverPath === entry.path &&
+            (dragOverPosition === 'before' || dragOverPosition === 'after')
+              ? dragOverPosition
+              : undefined,
           showGuides: true,
           tabIndex:
             (keyboardFocusPath ??
@@ -769,10 +773,12 @@ export function TreeView({
             throw new Error('Renaming is not supported by this provider')
           await editorProvider.rename!(ref, name)
           const renamedPath = joinPath(dirOf(edit.entry.path), name)
-          updatePinnedPaths((path) =>
-            path === edit.entry.path || path.startsWith(`${edit.entry.path}/`)
-              ? `${renamedPath}${path.slice(edit.entry.path.length)}`
-              : path
+          await updateTreeOrder((paths) =>
+            paths.map((path) =>
+              path === edit.entry.path || path.startsWith(`${edit.entry.path}/`)
+                ? `${renamedPath}${path.slice(edit.entry.path.length)}`
+                : path
+            )
           )
           onPathRenamed?.(edit.entry.path, renamedPath)
           refresh(dirOf(edit.entry.path))
@@ -833,10 +839,11 @@ export function TreeView({
       }
     }
     if (deleted.length === 0) return
-    updatePinnedPaths((path) =>
-      deleted.some((deletedPath) => path === deletedPath || path.startsWith(`${deletedPath}/`))
-        ? null
-        : path
+    await updateTreeOrder((paths) =>
+      paths.filter(
+        (path) =>
+          !deleted.some((deletedPath) => path === deletedPath || path.startsWith(`${deletedPath}/`))
+      )
     )
     for (const d of new Set(deleted.map(dirOf))) refresh(d)
     const remaining = paths.filter((path) => !deleted.includes(path))
@@ -874,11 +881,12 @@ export function TreeView({
     revealItemInDir(`${rootPath.replace(/\/+$/, '')}/${entry.path}`).catch(console.error)
   }
 
-  const moveEntries = async (paths: string[], targetDir: string) => {
-    if (!canMove) return
+  const moveEntries = async (paths: string[], targetDir: string): Promise<string[]> => {
+    if (!canMove) return []
     paths = selectionRootPaths(paths)
     const moved: string[] = []
     const movedPaths = new Map<string, string>()
+    let destinationParentId: string | null | undefined
     for (const p of paths) {
       if (dirOf(p) === targetDir) continue
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue
@@ -891,6 +899,7 @@ export function TreeView({
           targetDir,
           'Destination directory no longer exists'
         )
+        destinationParentId = parent?.itemId ?? null
         if (!editorSupportsOperation(editorProvider, 'move'))
           throw new Error('Moving is not supported by this provider')
         await editorProvider.move!([ref], parent?.itemId ?? null)
@@ -902,15 +911,78 @@ export function TreeView({
       movedPaths.set(p, to)
       onPathRenamed?.(p, to)
     }
-    if (moved.length === 0) return
-    updatePinnedPaths((path) => {
-      for (const [from, to] of movedPaths) {
-        if (path === from || path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`
-      }
-      return path
+    if (moved.length === 0) return []
+    const rewrittenPaths = (paths: string[]) =>
+      paths.map((path) => {
+        for (const [from, to] of movedPaths) {
+          if (path === from || path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`
+        }
+        return path
+      })
+    let destinationEntries: OrderedTreeEntry[] | null = null
+    try {
+      const items = await editorProvider.listChildren(destinationParentId ?? null)
+      destinationEntries = items.map((item) => ({
+        path: item.path,
+        name: item.name,
+        directory: item.kind === 'directory'
+      }))
+    } catch (error) {
+      console.error('Could not refresh destination order after moving tree entries', error)
+    }
+    await updateTreeOrder((paths) => {
+      const rewritten = rewrittenPaths(paths)
+      if (!destinationEntries) return rewritten
+      const movedToPaths = [...movedPaths.values()]
+      const withoutIncomingRanks = rewritten.filter((path) => !movedToPaths.includes(path))
+      const destinationOrder = sortTreeEntries(destinationEntries, withoutIncomingRanks).map(
+        (entry) => entry.path
+      )
+      return [
+        ...withoutIncomingRanks.filter((path) => dirOf(path) !== targetDir),
+        ...destinationOrder
+      ]
     })
     for (const d of new Set([...moved.map(dirOf), targetDir])) refresh(d)
     setSelected((prev) => new Set([...prev].filter((path) => !moved.includes(path))))
+    return [...movedPaths.values()]
+  }
+
+  const reorderEntries = async (
+    paths: string[],
+    targetPath: string,
+    position: 'before' | 'after'
+  ) => {
+    let sourcePaths = selectionRootPaths(paths)
+    const targetParent = dirOf(targetPath)
+    if (sourcePaths.includes(targetPath)) return
+    const alreadyInTarget = sourcePaths.filter((path) => dirOf(path) === targetParent)
+    const fromOtherFolders = sourcePaths.filter((path) => dirOf(path) !== targetParent)
+    if (fromOtherFolders.length > 0) {
+      const movedPaths = await moveEntries(fromOtherFolders, targetParent)
+      sourcePaths = [...alreadyInTarget, ...movedPaths]
+    }
+    if (sourcePaths.length === 0) return
+
+    const directoryEntries = dirs.get(targetParent)?.entries ?? []
+    await updateTreeOrder((currentOrder) => {
+      const siblingOrder = sortTreeEntries(
+        directoryEntries.map((entry) => ({ ...entry, directory: entry.is_dir })),
+        currentOrder
+      ).map((entry) => entry.path)
+      for (const path of sourcePaths) {
+        if (!siblingOrder.includes(path)) siblingOrder.push(path)
+      }
+
+      const moving = new Set(sourcePaths)
+      const movingOrder = siblingOrder.filter((path) => moving.has(path))
+      const nextSiblings = siblingOrder.filter((path) => !moving.has(path))
+      const targetIndex = nextSiblings.indexOf(targetPath)
+      if (targetIndex < 0 || movingOrder.length === 0) return currentOrder
+      nextSiblings.splice(targetIndex + (position === 'after' ? 1 : 0), 0, ...movingOrder)
+
+      return [...currentOrder.filter((path) => dirOf(path) !== targetParent), ...nextSiblings]
+    })
   }
 
   const onEntryDragStart = (e: DragEvent, entry: DirEntry) => {
@@ -1017,12 +1089,6 @@ export function TreeView({
     if (!menu.entry) return items
 
     items.push({ type: 'separator' })
-    items.push({
-      type: 'button',
-      label: pinnedPathSet.has(menu.entry.path) ? 'Unpin' : 'Pin',
-      disabled: !workspaceEditorSettings.loaded,
-      onClick: () => togglePinned(menu.entry!)
-    })
     if (canRename && selected.size <= 1) {
       items.push({
         type: 'button',
@@ -1065,9 +1131,6 @@ export function TreeView({
     canCreateDirectory,
     canRename,
     canDelete,
-    pinnedPathSet,
-    workspaceEditorSettings.loaded,
-    togglePinned,
     beginInlineCreate,
     beginInlineRename
   ])
@@ -1102,8 +1165,13 @@ export function TreeView({
           canMultiSelect,
           dragMimeType: TREE_DRAG_MIME,
           onClearSelection: treeSelection.clear,
-          onSetDropTarget: setDragOverPath,
+          onSetDropTarget: (path, position = 'inside') => {
+            setDragOverPath(path)
+            setDragOverPosition(path ? position : null)
+          },
           onDropItems: (paths, destination) => void moveEntries(paths, destination),
+          onReorderItems: (paths, targetPath, position) =>
+            void reorderEntries(paths, targetPath, position),
           onFocusPath: treeSelection.setFocusedPath,
           onKeyDown: (event) => {
             if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return

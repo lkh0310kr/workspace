@@ -465,11 +465,6 @@ input {
   cursor: default;
 }
 
-.workspace-editor-tree-pane [data-editor-tree-row]:has([data-editor-pin]) > span:last-child {
-  margin-inline-start: 0;
-  color: var(--text-muted);
-}
-
 .editor-settings-hint {
   padding-top: 12px;
   border-top: 1px solid var(--border);

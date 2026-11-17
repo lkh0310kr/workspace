@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "5e434c846300d1c3978ac1797c80d86f6ecb47824923ad0d3d2af8c43549ab19"
+          "sha256": "9b87d1f9c34e122562e85b40f7b766fdfb2adb43da4d0e41b7e49f9874f66c66"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -187,11 +187,11 @@
         },
         {
           "path": "packages/editor/src/tree/EditorTreeRow.tsx",
-          "sha256": "abba1633f448eeae04eb7a6cf10d973b6f756c23f869c589a15a740001fc5c99"
+          "sha256": "822e424e517f5ac7acf977b2652363dcadbea682eb2154147c0fcfd831db1386"
         },
         {
           "path": "packages/editor/src/tree/EditorTreeView.tsx",
-          "sha256": "a19c2a8bf48a5ddaae05f3388b88569dd53c93cc8c74465cbf7dc2d6e360a093"
+          "sha256": "14a7d0d467b1816200f027774b8123972d74b9270e8dcb92fbc55fddc511d05b"
         },
         {
           "path": "packages/editor/src/tree/EditorTreeVirtualList.tsx",
@@ -259,7 +259,7 @@
         },
         {
           "path": "packages/editor/src/tree/treeView.module.css",
-          "sha256": "ac48fc67628ed63eb740ebcd9410e4bf35ae461855e9e578b47028ccf4f11d22"
+          "sha256": "9e90e0ab0642582e479bf4c7b691dea8a6ee50871d30b412f4f86bd75b241e22"
         },
         {
           "path": "packages/editor/src/tree/tree.css",
@@ -563,7 +563,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "5e434c846300d1c3978ac1797c80d86f6ecb47824923ad0d3d2af8c43549ab19"
+          "sha256": "9b87d1f9c34e122562e85b40f7b766fdfb2adb43da4d0e41b7e49f9874f66c66"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
@@ -1257,7 +1257,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
-          "sha256": "27cee974dc6ec2b47314252187fc3c5c15175889a8181c3b7bba354e244bff2c"
+          "sha256": "e60f53f61d607c76b79b81b5d48cc29101e2fc7fc4ab860d07bdeeaaab339dcf"
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",

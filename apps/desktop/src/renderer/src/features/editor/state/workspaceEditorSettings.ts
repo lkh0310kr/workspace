@@ -5,7 +5,7 @@ export interface WorkspaceEditorSettings {
   autoSave: boolean
   hiddenFiles: string[]
   hideMarkdownExtension: boolean
-  pinnedPaths: string[]
+  treeOrder: string[]
 }
 
 interface Snapshot {
@@ -19,11 +19,12 @@ const DEFAULT_SETTINGS: WorkspaceEditorSettings = {
   autoSave: false,
   hiddenFiles: [],
   hideMarkdownExtension: false,
-  pinnedPaths: []
+  treeOrder: []
 }
 const snapshots = new Map<string, Snapshot>()
 const listeners = new Map<string, Set<() => void>>()
 const loads = new Map<string, Promise<void>>()
+const saves = new Map<string, Promise<WorkspaceEditorSettings>>()
 
 function legacyAutoSave(): boolean {
   return getStoredAutoSave()
@@ -77,8 +78,8 @@ function parseSettings(
     const hiddenFiles = Array.isArray(record.hiddenFiles)
       ? record.hiddenFiles.filter((item): item is string => typeof item === 'string')
       : []
-    const pinnedPaths = Array.isArray(record.pinnedPaths)
-      ? record.pinnedPaths.filter((item): item is string => typeof item === 'string')
+    const treeOrder = Array.isArray(record.treeOrder)
+      ? record.treeOrder.filter((item): item is string => typeof item === 'string')
       : []
     return {
       autoSave: typeof record.autoSave === 'boolean' ? record.autoSave : fallback.autoSave,
@@ -87,7 +88,7 @@ function parseSettings(
         typeof record.hideMarkdownExtension === 'boolean'
           ? record.hideMarkdownExtension
           : DEFAULT_SETTINGS.hideMarkdownExtension,
-      pinnedPaths
+      treeOrder
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -133,18 +134,54 @@ export async function saveWorkspaceEditorSettings(
   rootPath: string,
   settings: WorkspaceEditorSettings
 ): Promise<void> {
-  const normalized = {
-    autoSave: settings.autoSave === true,
-    hiddenFiles: [
-      ...new Set(settings.hiddenFiles.map((pattern) => pattern.trim()).filter(Boolean))
-    ],
-    hideMarkdownExtension: settings.hideMarkdownExtension === true,
-    pinnedPaths: [...new Set(settings.pinnedPaths.map((path) => path.trim()).filter(Boolean))]
+  await updateWorkspaceEditorSettings(tabId, rootPath, () => settings)
+}
+
+export async function updateWorkspaceEditorSettings(
+  tabId: number,
+  rootPath: string,
+  update: (current: WorkspaceEditorSettings) => WorkspaceEditorSettings
+): Promise<WorkspaceEditorSettings> {
+  await loadWorkspaceEditorSettings(tabId, rootPath)
+  if (!getSnapshot(rootPath).loaded) {
+    throw new Error(getSnapshot(rootPath).error ?? 'Workspace settings are not available')
   }
-  const content = `${JSON.stringify({ editor: normalized }, null, 2)}\n`
-  await window.api.fs.writeFile(tabId, SETTINGS_PATH, content, rootPath)
-  snapshots.set(rootPath, { settings: normalized, loaded: true, error: null })
-  notify(rootPath)
+
+  const previousSave = saves.get(rootPath) ?? Promise.resolve(getSnapshot(rootPath).settings)
+  const save = previousSave
+    .catch(() => getSnapshot(rootPath).settings)
+    .then(async () => {
+      const previousSnapshot = getSnapshot(rootPath)
+      const settings = update(previousSnapshot.settings)
+      if (settings === previousSnapshot.settings) return settings
+      const normalized = {
+        autoSave: settings.autoSave === true,
+        hiddenFiles: [
+          ...new Set(settings.hiddenFiles.map((pattern) => pattern.trim()).filter(Boolean))
+        ],
+        hideMarkdownExtension: settings.hideMarkdownExtension === true,
+        treeOrder: [...new Set(settings.treeOrder.map((path) => path.trim()).filter(Boolean))]
+      }
+      snapshots.set(rootPath, { settings: normalized, loaded: true, error: null })
+      notify(rootPath)
+      const content = `${JSON.stringify({ editor: normalized }, null, 2)}\n`
+      try {
+        await window.api.fs.writeFile(tabId, SETTINGS_PATH, content, rootPath)
+      } catch (error) {
+        if (getSnapshot(rootPath).settings === normalized) {
+          snapshots.set(rootPath, previousSnapshot)
+          notify(rootPath)
+        }
+        throw error
+      }
+      return normalized
+    })
+  saves.set(rootPath, save)
+  try {
+    return await save
+  } finally {
+    if (saves.get(rootPath) === save) saves.delete(rootPath)
+  }
 }
 
 export function useWorkspaceEditorSettings(tabId: number, rootPath: string): Snapshot {

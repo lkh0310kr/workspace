@@ -23,6 +23,25 @@ button.item {
   font-weight: 500;
 }
 
+button.item[data-drop-position='before']::before,
+button.item[data-drop-position='after']::after {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 4px 8px;
+  height: 2px;
+  background: var(--accent);
+  content: '';
+  pointer-events: none;
+}
+
+button.item[data-drop-position='before']::before {
+  top: 0;
+}
+
+button.item[data-drop-position='after']::after {
+  bottom: 0;
+}
+
 .pane {
   display: flex;
   width: 100%;
