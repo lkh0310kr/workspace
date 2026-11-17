@@ -96,11 +96,11 @@
 
 ## 진행 체크포인트
 
-- 마지막 완료 배치: Desktop에서 Main/renderer/preload/shared의 저위험·경계형 리팩터링 및 ADAPT-03 저장 경합 수정
+- 마지막 작업 배치: T-062/T-063에서 Pane System 상태·모델 소유권을 분리했고, T-064 Diagnostics→Browser 직접 import를 capability 주입으로 바꿨다. T-065 Editor 책임 slice 분리에 이어 T-066에서 Pane System layout action을 tab mutation·pane move/split 모듈로 나눴다. Desktop typecheck와 architecture index 검사는 통과했다.
 - 검토 영역 / 현재 범위: 9 / 9 (정적 검토 완료; runtime·통합 검증 한계와 후속 위험 별도 기록)
-- 채택 작업 검증 완료 / 채택 작업 전체: 43 / 43 (T-001~T-039 완료)
+- 채택 작업 검증 완료 / 채택 작업 전체: 63 / 65 (T-001~T-039, T-041~T-052, T-053~T-061, T-064~T-066 검증 완료; T-062~T-063 진행 중)
 - 문서 인덱스: 삭제된 `docs/guides/REFACTOR.md`는 복구하지 않고 guides README를 스펙 기반 개발 규칙으로 연결; architecture digest/link 검사 통과
-- 상태: 전체 범위 정적 검토 완료; 43개 채택 작업 검증; T-035 root-switch, T-036 Home route allowlist, T-037 Editor exports, T-038 OAuth login casing, T-039 Vault retry 계약 검증 완료
+- 상태: 전체 범위 정적 검토 완료; 63개 채택 작업 검증; T-035 root-switch, T-036 Home route allowlist, T-037 Editor exports, T-038 OAuth login casing, T-039 Vault retry, T-043 Electron PTY continuity 계약 검증 완료. T-062~T-063의 pane 동작·저장 수락 검증은 미실행 상태
 - 추가 검증: T-002c syncBridge 25파일/31테스트 통과; T-003 editor session 4파일/11테스트·typecheck 통과; usage helper 3테스트 통과; OSC reply 6테스트 통과; preload ESLint/typecheck 및 루트 `npm run check` 통과
 - T-018 Google Drive SHA-256 helper 단일화 커밋 `f7cfaf46`; focused 28 tests, `npm run pkms:web:typecheck`, `npm run check` 통과. ESLint의 `workspaceRepository.ts` 반환형 위반 1개는 기준선에도 존재함을 확인했다. T-019 parentPath 중복을 domain helper로 단일화하고 삭제 자손·이웃 보존 및 동일 목록 참조 테스트를 추가, 커밋 `327cc25c`; focused 2 tests, 앱 typecheck 및 root check 통과. T-020 workspace tab hotkey hook을 canonical navigation owner에 직접 연결하고 mapping·범위 밖 index·listener cleanup 테스트를 추가, 커밋 `8b186ac0`; focused 2 tests, app typecheck, root check, changed-file ESLint/Prettier 통과. notarization 및 Linux build gate 불일치는 정책/릴리스 경계라 동작 변경을 보류한다. 사용자의 제외 범위와 기존 사용자 파일은 보존한다.
 - T-021 agent activity summary selector cache의 freshness 만료 재계산을 보장하고 집중 테스트 3개와 앱 typecheck를 통과했다. Selector 재호출 시 신선도를 복구하며, 시간 경과만으로 UI를 자동 갱신하는 동작은 문서 계약에 없어 추가하지 않았다.
@@ -138,7 +138,37 @@
 동작 보존 불변식은 [Pane·기능 모듈화 스펙](../docs/architecture/pane-modularization.md)에 정의했다. Browser와 Terminal 사이 직접 의존 제거가 공용 focus host의 첫 번째 교차 기능 변경이다. Home은 현재 pane이 아니므로 pane registry로 바꾸지 않는다.
 
 - T-040: 기존 결과와 lifecycle 불변식을 문서화하고 feature coupling을 확인했다.
-- T-041 완료: Home code를 `features/home`으로 옮기고 system summary host 함수를 주입한다. 기존 Home refresh lifecycle test, Desktop typecheck, feature/focus/guest focused tests, production build와 spec index 검사를 통과했다. Workspace bootstrap/navigation은 유지했다. 실제 Home UI 스크린샷 비교는 하지 않았다.
-- T-042 진행 중: Browser↔Terminal 직접 focus 호출을 shared keyboard-surface broker로 바꾸고 Browser 화면/overlay를 `features/browser` 및 pane-kind `renderOverlay` 계약으로 이동했다. BrowserContent의 coordinator·guest registry·hide focus·guest focus·new-tab event 접근은 주입형 `BrowserPaneHost` 뒤로 옮겼다. Browser guest registry park/focus tests와 Desktop typecheck/build를 확인했다. Electron pane switch/close runtime acceptance와 Browser의 남은 guest creation/navigation helper 경계 확인은 아직 남았다.
-- T-043 진행 중: Terminal view를 `features/terminal`로 옮기고 `TerminalPaneHost`를 통해 platform·focus·agent status·clipboard·PTY attach capability를 주입한다. `visible/active`는 표시·fit·input 경로에만 쓰며 PTY attachment dispose effect의 의존성에 포함하지 않는다. Input handlers·theme·pane-manager는 아직 view를 직접 import한다. selection 변경 때 process가 유지되는 Electron acceptance는 아직 실행하지 않았다.
-- T-044 대기: 세 기능을 mock host capability로 독립 mount할 harness와 shell/sibling import 경계를 만든다. PTY/guest process lifetime은 selection/visibility와 분리된 owner를 유지해야 한다.
+- T-041 완료: Home UI·system summary host contract를 `packages/home`으로 옮겼다. 후속으로 Home route 활성 상태 store도 package에 넣어 Desktop navigation·interaction scope가 공개 API를 사용하게 했다. 기존 refresh 동작과 Workspace bootstrap/navigation은 유지했다.
+- T-042 완료: Browser↔Terminal 직접 focus 호출을 shared keyboard-surface broker로 바꾸고 Browser pane view, overlay slot, controls, focus hooks, guest recovery policy, `BrowserWebviewPort`, CSS와 `BrowserPaneHost` 계약을 `packages/browser`로 옮겼다. Desktop adapter 한 곳에서 Electron webview type을 package port로 변환해 guest creation, persistent registry, downloads, InteractionCoordinator, history/portal IPC를 연결한다. Browser slice 8개 파일/34 tests, Desktop typecheck, root check, feature boundary와 architecture index 검사가 통과했고 Electron에서 Browser guest pane 전환·복귀·닫기를 확인했다.
+- T-043 완료: Terminal view·theme·xterm override style과 pane-manager를 `packages/terminal`로 옮기고 `TerminalPaneHost`를 통해 platform·theme·focus·agent status·clipboard·input handler·PTY attach capability를 주입했다. `visible/active`는 표시·fit·focus 경로에만 쓰며 PTY attachment dispose effect의 의존성에 포함하지 않는다. Workspace의 마지막 PTY layout 참조 판정을 `main/workspace/terminalReferences.ts`로 추출하고 3개 contract tests를 추가했다. Terminal package 35 files/294 tests, root check 23 tests, Desktop typecheck와 Electron workspace 전환 continuity acceptance가 통과했다. 설치된 앱에서 전환 후 PTY 명령 완료 출력이 유지되는 것을 확인했다. 앞선 dev 앱 시도는 xterm 및 stale helper 경로 문제로 판정 근거로 사용하지 않았다.
+- T-044 완료: Home·Browser·Terminal 독립 mock harness에서 Home summary, Browser mock navigation, Terminal prompt/input echo와 pane 전환 후 상태 보존을 확인했다. feature boundary, root check 23 tests, Home 2·Browser 34·Terminal 294 package tests 및 architecture index 검사도 통과했다. Browser guest의 Electron pane 전환·닫기와 Terminal workspace 간 PTY 연속성을 각각 수동 확인했다.
+
+
+## Package 수직 slice 체크포인트
+
+- T-045 완료: Browser 주소 입력 UI, URL 정규화, 방문 기록, 제안 정책을 `packages/browser`로 이동하고 address bar의 portal 등록을 host capability로 주입했다. Browser guest recovery policy도 package에 있으며 Electron guest lifecycle·persistent registry·downloads IPC는 Desktop adapter에 남아 있다.
+- T-046 완료: Terminal 검색 UI·검색 정책·스타일을 `packages/terminal`로 이동하고 xterm search addon, theme decorations, portal 등록을 Desktop host에서 주입한다. PTY attach/dispose lifecycle은 변경하지 않았다.
+- Browser·Terminal pane/view와 feature 전용 정책 코드는 각 package에 있다. Electron guest와 PTY IPC/수명 adapter는 Desktop에 남기는 경계로 확정했다. 독립 mock mount와 실제 Electron 전환 acceptance는 아직 남아 있다.
+
+- T-047 완료: browser overlay viewport manager와 slot 구독 hook, navigation-state 정책·테스트를 `packages/browser`로 이동하고 전용 CSS module로 viewport 스타일을 소유한다. InteractionCoordinator, persistent guest registry, BrowserContent는 Desktop integration으로 남아 있다.
+
+- T-048 완료: pane-manager 93개 파일과 terminal-only renderer helpers/policies를 `packages/terminal`로 옮겼다. PTY connect/dispose effect와 Main/preload IPC Desktop-owned로 유지했으며 `visible/active`를 process lifecycle dependency에 추가하지 않았다.
+
+- T-049 완료: 공용 Popover와 outside-pointer policy를 `packages/ui`로 옮기고 Desktop compatibility wrapper에서 InteractionCoordinator portal capability를 제공한다. Browser package가 UI package를 직접 사용할 수 있는 기반을 만들었다.
+- T-050 완료: 공용 ContextMenu와 접근성 MenuList를 `packages/ui`로 옮기고 portal/icon rendering을 Desktop adapter로 주입했다. Editor는 기존 `EditorMenuList` API를 호환 별칭으로 유지하며 shell→Editor package 의존을 제거했다. Typecheck, Desktop build, architecture index 검사를 통과했다.
+- T-051 완료: pane/layout host와 workspace navigation, app shell, diagnostics, agent usage 및 Editor toast UI를 소유 기능 경로로 재배치했다. 미사용 `ScrollRegion`, `TextPrompt`와 stale TextPrompt CSS, 참조되지 않는 중복 `ClaudeUsageStatusBar`를 제거했다. Home의 `.scroll-region` CSS는 HomeView에서 계속 사용하므로 유지했다. Desktop typecheck/build, feature package boundary와 architecture/spec index 검사가 통과했다. 테스트는 실행하지 않았다.
+
+- T-052 완료: EditorFileViewer UI·상태·Blob lifecycle과 viewer CSS를 `packages/editor`에 두고 Desktop IPC/file APIs 및 EPUB/CAD/3D renderer를 host adapter로 주입했다. Desktop typecheck, feature boundary, architecture digest/link 검사와 `EditorFileViewer.path-change.test.tsx` 1개가 통과했다. Electron에서도 crush.png에서 kilo.png로 경로를 바꿔 표시하는 것을 확인했다.
+- T-053 완료: Browser·Terminal·Home의 Desktop host adapter를 각각 `features/<기능>/host/`로 이동하고 전용 global layer였던 최상위 `adapters/{browser,terminal,home}`를 제거했다. 공용 `adapters/{diagnostics,platform,ui}`는 공유 경계이므로 유지했다. Desktop typecheck/build 및 architecture index 검사 통과.
+- T-054 완료: Foliate vendored source와 ambient module type을 Editor viewer slice로 옮기고 Main/renderer imports를 갱신했다. Desktop typecheck/build, architecture source digest/link 검사가 통과했다.
+- T-055 완료: Workspace layout host/tab rail stylesheet를 Workspace feature slice로 이동하고 전역 stylesheet에서 Workspace 전용 선택자를 제거했다. Editor sidebar host 스타일은 Editor CSS owner로 분리했다. Desktop typecheck/build과 architecture index 검사 통과.
+- T-056 완료: global stylesheet에서 feature별 scroll selector를 제거하고 각 consumer가 `.scroll-region`을 선언하게 했다. Diagnostics styles를 해당 feature slice로 이동하고 미사용 Quick Open styles도 제거했다. Desktop typecheck/build 및 architecture index 검사 통과.
+
+- T-057 완료: pane frame·tab strip·pane group·flexlayout CSS를 `features/pane-system/paneSystem.css`로 옮기고 global stylesheet의 pane 및 stale legacy 선택자를 제거했다. Pane modularization spec과 architecture ownership index를 갱신했으며 Desktop build와 경계 검사를 통과했다.
+- T-058 완료: App shell·Agent Usage·Editor 알림 스타일을 각 feature slice로 이동했다. app entry와 feature component에서 CSS를 불러오고 spec index를 갱신했다. Desktop typecheck/build 및 architecture 검사를 통과했다.
+- T-059 완료: Pane System의 시각 보정 규칙을 feature CSS로 옮기고 stale popover selector를 제거했다. 소비자 검색, Desktop build 및 architecture index 검사를 통과했다.
+- T-060 완료: cross-feature 설정 패널 스타일을 `@workspace/ui/settings.css`로 내보내고 package export, Vite alias, TypeScript path mapping을 맞췄다. Desktop build에서 경로를 검증했고 architecture index를 갱신했다.
+- T-061 완료: 사용처 없는 `.ui-btn` CSS를 제거하고 Pane System 전용 splitter·group token을 feature stylesheet로 이동했다. Desktop build와 architecture 검사 통과.
+- T-062 진행 중: Pane focus·layout revision·tab selection revision 상태를 `features/pane-system/state/paneSystemStore.ts`로 이동했다. Workspace store는 workspace tab과 layout persistence를 유지한다. Desktop typecheck, architecture digest/link 검사와 diff check는 통과했다. pane 동작 테스트를 실행하지 않아 작업 검증은 진행 중이다.
+- T-063 진행 중: FlexLayout model/cache/debounce/ensure/rebalance 상태를 Pane System slice에 옮겼다. Workspace runtime은 tab hydration을 비교하고 layout persistence capability를 주입한다. Desktop typecheck 통과; persistence acceptance와 index 검증이 남아 있다.
+- T-064 진행 중: Diagnostics UI의 Browser host runtime 직접 import를 App 조립 지점의 선택적 webview diagnostics capability로 대체했다. Desktop typecheck 통과; boundary 및 architecture index 검증이 남아 있다.
