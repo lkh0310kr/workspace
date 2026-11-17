@@ -917,7 +917,15 @@
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.ts",
-          "sha256": "913e3c894a1e9b6acc8f5b7114252d37aa6d05657300c7c4e35ec111deea9a92"
+          "sha256": "bfe8e55d2136560a764c8622121304fa953b6f5e1af1b71da1b976bae37d924e"
+        },
+        {
+          "path": "apps/desktop/src/main/workspace/terminalReferences.ts",
+          "sha256": "7ed024cf5dd36bfc34f8542a9ab8afeb6d6a79c858cc9c0f7dbf5d371cb8e21f"
+        },
+        {
+          "path": "apps/desktop/src/main/workspace/terminalReferences.test.ts",
+          "sha256": "71fb6f700e3ec05a4693504757a088a924af84ce8e5349bd7126307cf0019f2d"
         },
         {
           "path": "apps/desktop/src/preload/api.ts",

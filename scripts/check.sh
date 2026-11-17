@@ -19,6 +19,7 @@ echo "=== apps/desktop vitest (foundation modules) ==="
   src/shared/ebookState.test.ts \
   src/renderer/src/features/pane-system/layout/layoutSession.test.ts \
   src/renderer/src/features/pane-system/layout/layoutChipWindowDrop.test.ts \
-  src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.test.ts)
+  src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.test.ts \
+  src/main/workspace/terminalReferences.test.ts)
 
 echo "check: ok"

@@ -4,6 +4,7 @@ import type { WebContents } from 'electron'
 import { Pty } from '../terminal/pty'
 import { PtySession } from '../terminal/ptySession'
 import { defaultLayout, extractTerminalIds } from './layout'
+import { findUnreferencedTerminalIds } from './terminalReferences'
 import { salvageLayoutJson } from '../../shared/layoutSalvage'
 import {
   trimTerminalSessionBufferToByteLimit,
@@ -135,7 +136,7 @@ export class Workspace {
     if (idx === -1) throw new Error('tab not found')
 
     const [tab] = this.tabs.splice(idx, 1)
-    this.releaseTerminalsOnlyInTab(tab.layoutJson)
+    this.releaseUnreferencedTerminals(extractTerminalIds(tab.layoutJson))
 
     if (this.activeTabId === tabId) {
       const next = Math.min(idx, this.tabs.length - 1)
@@ -175,12 +176,7 @@ export class Workspace {
     tab.layoutJson = layoutJson
     const newIds = new Set(extractTerminalIds(layoutJson))
 
-    for (const id of oldIds) {
-      if (!newIds.has(id) && !this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.disposeAndDestroySession()
-        this.terminals.delete(id)
-      }
-    }
+    this.releaseUnreferencedTerminals([...oldIds].filter((id) => !newIds.has(id)))
   }
 
   spawnTerminal(cols: number, rows: number, tabId?: number): number {
@@ -425,16 +421,11 @@ export class Workspace {
     assertExpectedWorkspaceRoot(this.tabRoot(tabId), expectedRootPath)
   }
 
-  private isTerminalReferenced(terminalId: number): boolean {
-    return this.tabs.some((t) => extractTerminalIds(t.layoutJson).includes(terminalId))
-  }
-
-  private releaseTerminalsOnlyInTab(layoutJson: string): void {
-    for (const id of extractTerminalIds(layoutJson)) {
-      if (!this.isTerminalReferenced(id)) {
-        this.terminals.get(id)?.session.disposeAndDestroySession()
-        this.terminals.delete(id)
-      }
+  private releaseUnreferencedTerminals(candidateIds: Iterable<number>): void {
+    const referencedLayouts = this.tabs.map((tab) => tab.layoutJson)
+    for (const id of findUnreferencedTerminalIds(candidateIds, referencedLayouts)) {
+      this.terminals.get(id)?.session.disposeAndDestroySession()
+      this.terminals.delete(id)
     }
   }
 }

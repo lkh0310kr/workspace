@@ -21,6 +21,7 @@ Home은 현재 pane이 아니므로 Browser·Terminal과 같은 pane registry에
 
 - pane의 선택, focus, visibility는 렌더링·입력 라우팅 신호다. Terminal process 또는 Browser guest의 존재 여부를 결정하지 않는다.
 - Terminal은 현재 선택된 Workspace/pane이 바뀌어도 살아 있어야 한다. 모든 Workspace layout에서 해당 Terminal의 마지막 참조가 제거되거나 기존의 명시적 종료 동작이 실행될 때만 Main/PTY host가 종료한다. React unmount·detach·hide는 process 종료와 다르다.
+- Main의 `workspace/terminalReferences.ts`가 변경·제거되는 layout의 terminal ID와 남은 모든 Workspace layout을 비교해 파기 가능한 PTY를 판정한다. `Workspace.selectTab`은 활성 탭만 바꾸며 terminal reference를 제거하지 않는다.
 - Browser guest는 browser item identity에 속한다. Workspace/pane 전환, chip 비활성화, overlay 숨김, 재부착은 guest 파괴가 아니다. 기존 close/remove 정책이 해당 browser item을 닫을 때 destroy한다.
 - Terminal과 Browser 사이 focus 이동은 공통 host capability를 통한다. 어느 기능도 다른 기능의 DOM selector나 내부 모듈을 직접 호출하지 않는다.
 - Home의 요약 polling, refresh 중복 처리, 오류 표시, unmount 뒤 늦은 결과 무시는 유지한다. host의 system-summary capability를 주입할 수 있어도 호출 주기와 화면 결과는 바꾸지 않는다.
