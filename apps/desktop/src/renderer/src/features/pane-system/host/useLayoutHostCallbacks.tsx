@@ -20,6 +20,7 @@ import { registerLayoutController, getLayoutRefCallback } from '../layout/layout
 import { restorePendingSplitScrollStates } from '../layout/layoutSplitScrollRestore'
 import { PaneGroup } from '../group/PaneGroup'
 import { usePaneSystemStore } from '../state/paneSystemStore'
+import { useWorkspaceStore } from '../../workspace/stateApi'
 
 const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([
   Actions.ADD_TAB,
