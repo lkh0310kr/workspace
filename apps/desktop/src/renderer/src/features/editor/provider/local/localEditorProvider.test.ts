@@ -21,7 +21,7 @@ const io = vi.hoisted(() => ({
   unsubscribe: vi.fn()
 }))
 
-vi.mock('../../../electron', () => ({
+vi.mock('./localFileSystem', () => ({
   listDir: io.listDir,
   readFile: io.readFile,
   getMediaUrl: io.getMediaUrl,
@@ -40,6 +40,7 @@ vi.mock('../../../electron', () => ({
   searchInFiles: io.searchInFiles,
   cancelSearch: io.cancelSearch
 }))
+vi.mock('../../viewers/host/editorIpc', () => ({ getMediaUrl: io.getMediaUrl }))
 
 import { acquireLocalEditorProvider } from './localEditorProvider'
 

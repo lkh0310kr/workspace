@@ -11,7 +11,7 @@ const electron = vi.hoisted(() => ({
   saveEbookState: vi.fn()
 }))
 
-vi.mock('../../../electron', () => electron)
+vi.mock('./host/editorIpc', () => electron)
 vi.mock('./vendor/foliate-js/view.js', () => ({}))
 vi.mock('./vendor/foliate-js/epub.js', () => ({
   EPUB: class {

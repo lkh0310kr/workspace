@@ -9,9 +9,8 @@ import type { EditorSidebarState } from '@workspace/editor'
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
 
-
-vi.mock('./TreeView', () => ({ TreeView: () => null }))
-vi.mock('./SearchPanel', () => ({ SearchPanel: () => null }))
+vi.mock('../tree/TreeView', () => ({ TreeView: () => null }))
+vi.mock('../search/SearchPanel', () => ({ SearchPanel: () => null }))
 vi.mock('@workspace/editor', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@workspace/editor')>()),
   EditorTreeResizeHandle: () => null

@@ -7,7 +7,7 @@ import {
   resetEditorTreeState,
   saveEditorTreeScrollAnchor,
   saveEditorTreeScrollTop
-} from '@workspace/editor'
+} from '@workspace/editor/tree'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
@@ -38,7 +38,9 @@ vi.mock('../provider/local/localEditorProvider', () => ({
 
 vi.mock('@workspace/editor', async () => {
   const React = await import('react')
+  const tree = await import('@workspace/editor/tree')
   return {
+    ...tree,
     EDITOR_TREE_DRAG_MIME_TYPE: 'application/x-workspace-editor-tree-paths',
     EDITOR_TREE_ROW_HEIGHT: 27,
     EditorTreeCreateActions: () => null,
