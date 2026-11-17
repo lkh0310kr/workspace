@@ -429,24 +429,28 @@ input {
 }
 
 .editor-settings-hidden-files-form {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  justify-items: start;
+  gap: 9px;
 }
 
-.editor-settings-hidden-files-form input {
-  min-width: 0;
-  flex: 1;
+.editor-settings-hidden-files-form textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
   padding: 9px 11px;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   background: var(--bg-surface);
   color: var(--text);
   font: inherit;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
 }
 
 .editor-settings-hidden-files-form button {
-  padding: 0 14px;
+  padding: 7px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   background: var(--bg-active);
@@ -459,56 +463,6 @@ input {
 .editor-settings-hidden-files-form button:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.editor-settings-hidden-files-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  min-height: 35px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.editor-settings-hidden-files-list li:not(.editor-settings-hidden-files-empty) {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 6px 4px 9px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-surface);
-}
-
-.editor-settings-hidden-files-list code {
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
-
-.editor-settings-hidden-files-list button {
-  display: grid;
-  width: 19px;
-  height: 19px;
-  place-items: center;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-faint);
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.editor-settings-hidden-files-list button:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.editor-settings-hidden-files-empty {
-  padding: 7px 0;
-  color: var(--text-faint);
-  font-size: 10px;
 }
 
 .editor-settings-hint {

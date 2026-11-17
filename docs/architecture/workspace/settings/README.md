@@ -13,9 +13,9 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 | browser guest zoom    | item.zoomFactor, browserZoom helper의 guest factor; pane zoom과 별도                          |
 | usage 선택            | Main config usageMeters.enabled, 기본 claude; normalizer가 허용 ID와 고정 순서로 정리         |
 | Editor tree layout    | pane별 open/width/mode, root별 tree 확장/scroll                                               |
-| Editor workspace 설정 | 프로젝트 root의 `.workspace/settings.json`; 자동 저장과 숨김 파일 표시 여부                   |
+| Editor workspace 설정 | 프로젝트 root의 `.workspace/settings.json`; 자동 저장, 제외 목록, Markdown 확장자 표시        |
 
-[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. 앱 오른쪽의 기어 버튼은 전역 theme·usage 설정을 연다. Editor pane이 focus된 상태에서 `Cmd+,`를 누르면 왼쪽 탐색 메뉴가 있는 Editor 설정창을 연다. 메뉴에서 텍스트 편집기와 파일 및 폴더를 선택하고 폼 입력으로 값을 바꾸면 workspace root의 `.workspace/settings.json`에 저장한다. 숨길 파일·폴더는 이름 또는 `*` 패턴 목록으로 설정한다. 기존 `showHiddenFiles: false` 값은 `hiddenFiles: [".*"]`로 변환해 동작을 유지한다. TreeView에서만 이 목록을 적용하며 빠른 열기와 파일 내용 검색 결과는 바꾸지 않는다.
+[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. 앱 오른쪽의 기어 버튼은 전역 theme·usage 설정을 연다. Editor pane이 focus된 상태에서 `Cmd+,`를 누르면 왼쪽 탐색 메뉴가 있는 Editor 설정창을 연다. 메뉴에서 텍스트 편집기와 파일 및 폴더를 선택하고 폼 입력으로 값을 바꾸면 workspace root의 `.workspace/settings.json`에 저장한다. 숨길 파일·폴더는 여러 줄 입력란에 한 줄씩 이름 또는 `*` 패턴을 적어 `editor.hiddenFiles`에 지정하며, 기본값은 빈 목록이어서 모든 파일을 표시한다. Markdown 확장자 숨기기는 `editor.hideMarkdownExtension`에 저장하며 기본 꺼짐이다. 켜면 TreeView에서 `.md` 또는 `.markdown`을 이름에서 감춘다. 숨김 규칙과 이름 표시는 TreeView에만 적용하며 빠른 열기와 파일 내용 검색 결과는 바꾸지 않는다.
 
 `Cmd+,`는 Editor pane이 focus된 경우에만 Editor 설정창을 연다. 다른 pane에서는 이 shortcut을 설정에 연결하지 않는다.
 

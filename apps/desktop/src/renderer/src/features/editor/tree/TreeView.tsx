@@ -92,10 +92,11 @@ export function classifyFile(name: string): 'code' | 'markdown' | 'viewer' {
 }
 
 /** Obsidian-style tree label: hide the `.md` suffix for markdown files. */
-export function treeEntryDisplayName(name: string): string {
+export function treeEntryDisplayName(name: string, hideMarkdownExtension = true): string {
   return editorTreeItemLabel(
     name,
-    classifyFile(name) === 'markdown' && /\.md$/i.test(name) ? 'markdown' : 'code'
+    classifyFile(name) === 'markdown' && /\.md$/i.test(name) ? 'markdown' : 'code',
+    { showMarkdownExtension: !hideMarkdownExtension }
   )
 }
 
@@ -533,7 +534,9 @@ export function TreeView({
         return {
           id: entry.editorItemId,
           path: entry.path,
-          name: editorTreeItemLabel(entry.name, detected, { showMarkdownExtension: true }),
+          name: editorTreeItemLabel(entry.name, detected, {
+            showMarkdownExtension: !workspaceEditorSettings.settings.hideMarkdownExtension
+          }),
           kind: detected,
           depth,
           expandable: entry.is_dir,

@@ -27,6 +27,10 @@ export function EditorSettingsDialog({ onClose, tabId, rootPath }: Props) {
   const [hiddenFileDraft, setHiddenFileDraft] = useState('')
 
   useEffect(() => {
+    if (snapshot.loaded) setHiddenFileDraft(snapshot.settings.hiddenFiles.join('\n'))
+  }, [snapshot.loaded, snapshot.settings.hiddenFiles])
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -193,66 +197,58 @@ export function EditorSettingsDialog({ onClose, tabId, rootPath }: Props) {
               <section className="editor-settings-group" aria-labelledby="visibility-title">
                 <div className="editor-settings-group-heading">
                   <h2 id="visibility-title">숨길 파일과 폴더</h2>
-                  <p>이름이나 패턴을 입력하고 Enter를 눌러 목록에 추가하세요.</p>
+                  <p>한 줄에 하나씩 입력하세요. Enter로 줄을 나눌 수 있습니다.</p>
                 </div>
                 <div className="editor-settings-option-copy editor-settings-hidden-files-copy">
                   <strong>제외 목록</strong>
                   <p>
                     <code>.git</code>, <code>*.log</code>처럼 이름 또는 별표 패턴을 입력할 수
-                    있습니다.
+                    있습니다. 기본적으로 모든 파일과 폴더를 표시합니다.
                   </p>
                 </div>
-                <form
-                  className="editor-settings-hidden-files-form"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    const additions = hiddenFileDraft
-                      .split(/[\n,]/)
-                      .map((item) => item.trim())
-                      .filter(Boolean)
-                    if (!additions.length) return
-                    updateSettings({
-                      hiddenFiles: [...new Set([...snapshot.settings.hiddenFiles, ...additions])]
-                    })
-                    setHiddenFileDraft('')
-                  }}
-                >
-                  <input
-                    type="text"
+                <div className="editor-settings-hidden-files-form">
+                  <textarea
                     value={hiddenFileDraft}
                     disabled={saving}
-                    placeholder="예: .git 또는 *.log"
-                    aria-label="숨길 파일 이름 또는 패턴"
+                    placeholder={'.git\n*.log\n.cache'}
+                    aria-label="숨길 파일과 폴더 목록"
                     onChange={(event) => setHiddenFileDraft(event.currentTarget.value)}
                   />
-                  <button type="submit" disabled={saving || !hiddenFileDraft.trim()}>
-                    추가
+                  <button
+                    type="button"
+                    disabled={
+                      saving || hiddenFileDraft === snapshot.settings.hiddenFiles.join('\n')
+                    }
+                    onClick={() => {
+                      const hiddenFiles = [
+                        ...new Set(
+                          hiddenFileDraft
+                            .split('\n')
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                        )
+                      ]
+                      updateSettings({ hiddenFiles })
+                      setHiddenFileDraft(hiddenFiles.join('\n'))
+                    }}
+                  >
+                    적용
                   </button>
-                </form>
-                <ul className="editor-settings-hidden-files-list" aria-label="숨길 파일 목록">
-                  {snapshot.settings.hiddenFiles.map((pattern) => (
-                    <li key={pattern}>
-                      <code>{pattern}</code>
-                      <button
-                        type="button"
-                        aria-label={`${pattern} 삭제`}
-                        disabled={saving}
-                        onClick={() =>
-                          updateSettings({
-                            hiddenFiles: snapshot.settings.hiddenFiles.filter(
-                              (item) => item !== pattern
-                            )
-                          })
-                        }
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                  {snapshot.settings.hiddenFiles.length === 0 && (
-                    <li className="editor-settings-hidden-files-empty">숨기는 항목이 없습니다.</li>
-                  )}
-                </ul>
+                </div>
+                <label className="editor-settings-toggle-row">
+                  <span className="editor-settings-option-copy">
+                    <strong>Markdown 확장자 숨기기</strong>
+                    <p>켜면 파일 이름에서 .md 확장자를 감춥니다. 예: note.md → note</p>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={snapshot.settings.hideMarkdownExtension}
+                    disabled={saving}
+                    onChange={(event) =>
+                      updateSettings({ hideMarkdownExtension: event.currentTarget.checked })
+                    }
+                  />
+                </label>
                 <div className="editor-settings-hint">
                   목록의 항목은 편집기 트리에서만 숨겨집니다. 빠른 열기와 파일 검색에는 영향을 주지
                   않습니다.
