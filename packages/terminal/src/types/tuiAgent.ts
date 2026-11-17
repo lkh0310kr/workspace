@@ -6,11 +6,9 @@ export type TuiAgent =
   | 'openclaude' // OpenClaude
   | 'codex' // OpenAI Codex
   | 'autohand' // Autohand Code CLI
-  | 'opencode' // OpenCode
   | 'mimo-code'
   | 'pi' // Pi (pi.dev)
   | 'omp' // OMP (omp.sh)
-  | 'gemini' // Gemini CLI
   | 'antigravity' // Google Antigravity CLI
   | 'aider' // Aider
   | 'goose' // Goose
@@ -23,7 +21,6 @@ export type TuiAgent =
   | 'codebuff' // Codebuff
   | 'command-code' // Command Code
   | 'continue' // Continue
-  | 'cursor' // Cursor
   | 'droid' // Factory Droid
   | 'kimi' // Kimi
   | 'mistral-vibe' // Mistral Vibe

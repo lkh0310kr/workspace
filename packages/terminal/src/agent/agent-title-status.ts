@@ -2,12 +2,7 @@ import {
   AGY_AGENT_NAME_RE,
   BRAILLE_SPINNER_RE,
   CLAUDE_IDLE,
-  CURSOR_NATIVE_TITLE_LOWER,
   DROID_AGENT_NAME_RE,
-  GEMINI_IDLE,
-  GEMINI_PERMISSION,
-  GEMINI_SILENT_WORKING,
-  GEMINI_WORKING,
   HERMES_AGENT_NAME_RE,
   QUARTER_CIRCLE_SPINNER_RE,
   STRONG_IDLE_KEYWORDS_RE,
@@ -19,12 +14,10 @@ import {
   containsQuarterCircleSpinner,
   containsLegacyAgentName,
   isClaudeManagementTitle,
-  isGeminiTerminalTitle,
   isPiAgentTitle,
   isPiTerminalTitle
 } from './agent-title-core'
 import type { AgentStatus } from './agent-title-core'
-import { isOpenCodeNativeTitle } from './opencode-terminal-title'
 import {
   getPiCompatibleTitleSeparatorStatus,
   getPiCompatibleSyntheticAgentStatus
@@ -38,8 +31,6 @@ import { isGrokRotatingWorkingTitle } from './terminal-title-agent-type'
 export function clearWorkingIndicators(title: string): string {
   let cleaned = title
 
-  cleaned = cleaned.replace(GEMINI_WORKING, '')
-  cleaned = cleaned.replace(GEMINI_SILENT_WORKING, '')
   cleaned = cleaned.replace(BRAILLE_SPINNER_RE, '')
   cleaned = cleaned.replace(QUARTER_CIRCLE_SPINNER_RE, '')
   if (cleaned.startsWith('. ')) {
@@ -123,19 +114,6 @@ export function normalizeTerminalTitle(title: string): string {
     return title
   }
 
-  if (isGeminiTerminalTitle(title)) {
-    const status = detectAgentStatusFromTitle(title)
-    if (status === 'permission') {
-      return `${GEMINI_PERMISSION} Gemini CLI`
-    }
-    if (status === 'working') {
-      return `${GEMINI_WORKING} Gemini CLI`
-    }
-    if (status === 'idle') {
-      return `${GEMINI_IDLE} Gemini CLI`
-    }
-  }
-
   // Why: Pi/OMP animate a braille frame every 80ms, so the frame is the churn — but the rest of
   // the title is the session name and cwd the agent chose. Canonicalize the frame in place
   // (it leads in `⠋ π - session - cwd` and sits medially in `π ⠋ label`) and keep everything
@@ -172,24 +150,6 @@ export function detectAgentStatusFromTitle(title: string): AgentStatus | null {
   if (!title || isClaudeManagementTitle(title)) {
     return null
   }
-  if (title.trim().toLowerCase() === CURSOR_NATIVE_TITLE_LOWER) {
-    return null
-  }
-
-  if (isOpenCodeNativeTitle(title)) {
-    return containsAgentSpinnerGlyph(title) ? 'working' : 'idle'
-  }
-
-  if (title.includes(GEMINI_PERMISSION)) {
-    return 'permission'
-  }
-  if (title.includes(GEMINI_WORKING) || title.includes(GEMINI_SILENT_WORKING)) {
-    return 'working'
-  }
-  if (title.includes(GEMINI_IDLE)) {
-    return 'idle'
-  }
-
   // Why: resolve synthetic Pi/OMP permission/idle labels before the broader
   // Pi and braille-spinner checks below.
   const piCompatibleSyntheticAgentStatus = getPiCompatibleSyntheticAgentStatus(title)

@@ -1,4 +1,4 @@
-export const USAGE_PROVIDER_IDS = ['claude', 'cursor', 'codex', 'gemini', 'opencode'] as const
+export const USAGE_PROVIDER_IDS = ['claude', 'codex'] as const
 export type UsageProviderId = (typeof USAGE_PROVIDER_IDS)[number]
 
 export type UsageMeterSettings = {
@@ -6,15 +6,12 @@ export type UsageMeterSettings = {
 }
 
 export const DEFAULT_USAGE_METER_SETTINGS: UsageMeterSettings = {
-  enabled: ['claude', 'cursor']
+  enabled: ['claude']
 }
 
 export const USAGE_PROVIDER_LABELS: Record<UsageProviderId, string> = {
   claude: 'Claude Code',
-  cursor: 'Cursor',
-  codex: 'Codex',
-  gemini: 'Gemini CLI',
-  opencode: 'OpenCode'
+  codex: 'Codex'
 }
 
 export function normalizeUsageMeterSettings(raw: unknown): UsageMeterSettings {

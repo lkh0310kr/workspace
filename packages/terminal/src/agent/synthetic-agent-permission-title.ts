@@ -1,10 +1,7 @@
 const SYNTHETIC_PERMISSION_TITLES = new Set(
   [
     'codex - action required',
-    'cursor - action required',
-    'opencode - action required',
     'claude - action required',
-    'gemini - action required'
   ].map((t) => t.toLowerCase())
 )
 

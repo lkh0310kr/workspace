@@ -3,13 +3,12 @@ import {
   resolveTerminalTabAgentStatus,
   rollupWorkspaceTabAgentIndicator
 } from './workspace-tab-agent-rollup'
-import { GEMINI_PERMISSION, GEMINI_WORKING } from './agent-title-core'
 
 describe('resolveTerminalTabAgentStatus', () => {
   it('prefers live title over persisted status', () => {
     expect(
       resolveTerminalTabAgentStatus({
-        title: `${GEMINI_PERMISSION} Gemini`,
+        title: 'Codex - action required',
         terminalAgentStatus: 'idle'
       })
     ).toBe('permission')
@@ -24,8 +23,8 @@ describe('rollupWorkspaceTabAgentIndicator', () => {
   it('picks permission over working and idle', () => {
     expect(
       rollupWorkspaceTabAgentIndicator([
-        { title: `Codex ${GEMINI_WORKING}` },
-        { title: `${GEMINI_PERMISSION} Gemini` },
+        { title: 'Codex working', terminalAgentStatus: 'working' },
+        { title: 'Codex - action required', terminalAgentStatus: 'permission' },
         { terminalAgent: 'claude', title: '✳ ready' }
       ])
     ).toBe('permission')

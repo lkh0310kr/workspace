@@ -7,7 +7,7 @@ import { saveClipboardImageBufferAsTempFile } from '../clipboard/clipboardImageT
 import { appendAppLog, appendConsoleLog, appendNdjsonLog, getLogsDir } from '../../diagnostics/logging/debugLogSink'
 import { appendLayoutLog } from '../../workspace/layoutDebugLog'
 import { appendTerminalLog } from '../../terminal/terminalDebugLog'
-import { claudeRateLimitStatus, cursorUsageStatus, codexRateLimitStatus } from '../../agent/usage/usage'
+import { claudeRateLimitStatus, codexRateLimitStatus } from '../../agent/usage/usage'
 import { loadUsageMeterSettings, saveUsageMeterSettings } from '../../agent/usage/usageMeterConfig'
 import { pickDirectory, pickMediaFile } from '../dialogs/nativeDialogs'
 import { isWsl } from '../wslPaths'
@@ -106,7 +106,6 @@ export function registerSystemCapabilityIpc(getMainWindow: () => BrowserWindow |
   })
   ipcMain.handle('shell:reveal-item-in-dir', (_event, path: string) => shell.showItemInFolder(path))
   ipcMain.handle('usage:claude-rate-limit-status', () => claudeRateLimitStatus())
-  ipcMain.handle('usage:cursor-usage-status', () => cursorUsageStatus())
   ipcMain.handle('usage:codex-rate-limit-status', () => codexRateLimitStatus())
   ipcMain.handle('usage:meter-settings-get', () => loadUsageMeterSettings())
   ipcMain.handle('usage:meter-settings-save', (_event, settings: unknown) =>

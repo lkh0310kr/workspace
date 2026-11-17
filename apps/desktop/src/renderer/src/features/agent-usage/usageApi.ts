@@ -13,13 +13,6 @@ export interface ClaudeRateLimitStatus {
   seven_day: ClaudeRateLimitWindow | null
 }
 
-export interface CursorUsageStatus {
-  auto_percent_used: number | null
-  api_percent_used: number | null
-  total_percent_used: number | null
-  billing_cycle_end_ms: number | null
-}
-
 export interface CodexRateLimitWindow {
   used_percent: number
   resets_at: number | null
@@ -44,16 +37,6 @@ export async function claudeRateLimitStatus(): Promise<ClaudeRateLimitStatus> {
   return {
     five_hour: toRateLimitWindow(status.fiveHour),
     seven_day: toRateLimitWindow(status.sevenDay)
-  }
-}
-
-export async function cursorUsageStatus(): Promise<CursorUsageStatus> {
-  const status = await window.api.usage.cursorUsageStatus()
-  return {
-    auto_percent_used: status.autoPercentUsed,
-    api_percent_used: status.apiPercentUsed,
-    total_percent_used: status.totalPercentUsed,
-    billing_cycle_end_ms: status.billingCycleEndMs
   }
 }
 

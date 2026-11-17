@@ -3,7 +3,7 @@
  *
  * Why a dedicated module: agent names must be matched as whole tokens, never as
  * substrings. Substring matching mis-fired on worktree/cwd titles like
- * "opencode-blinker" (⊃ "opencode") or "openclaude" (⊃ "claude"), painting a
+ * "openclaude" (⊃ "claude"), painting a
  * Codex/OpenClaude tab as the wrong agent whenever the title fell back to the
  * bare directory name. The boundary guard `(?<![\w./\\-])…(?![\w./\\-])` rejects
  * path separators (POSIX and Windows) and hyphenated compounds on both sides.
@@ -18,10 +18,7 @@ export const AGENT_NAMES = [
   'openclaude',
   'codex',
   'copilot',
-  'cursor',
-  'gemini',
   'antigravity',
-  'opencode',
   'mimo',
   'openclaw',
   'aider',

@@ -1,6 +1,6 @@
 /* Design system: Discord Onyx-inspired black/graphite surfaces and restrained color. */
 
-/* PUA / Powerline / Nerd Font glyphs for agent TUIs (Codex, Claude Code, Cursor CLI). */
+/* PUA / Powerline / Nerd Font glyphs for agent TUIs (Codex, Claude Code). */
 @font-face {
   font-family: 'Workspace Nerd Font Symbols';
   src: url('./fonts/SymbolsNerdFontMono-Regular.woff2') format('woff2');

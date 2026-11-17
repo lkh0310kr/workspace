@@ -3,7 +3,6 @@ import {
   getAgentLabel as getSharedAgentLabel,
   isClaudeAgent as isSharedClaudeAgent
 } from './agent-title-identity'
-import { isOpenCodeNativeTitle } from './opencode-terminal-title'
 import {
   getAgentLabel,
   isClaudeAgent,
@@ -45,7 +44,6 @@ describe('resolveExplicitTerminalTitleAgentType', () => {
   it('maps explicit product-name titles to their TuiAgent id', () => {
     expect(resolveExplicitTerminalTitleAgentType('✳ Claude Code')).toBe('claude')
     expect(resolveExplicitTerminalTitleAgentType('⠋ Codex')).toBe('codex')
-    expect(resolveExplicitTerminalTitleAgentType('✦ Gemini CLI')).toBe('gemini')
     expect(resolveExplicitTerminalTitleAgentType('MiMo Code')).toBe('mimo-code')
     expect(resolveExplicitTerminalTitleAgentType('⠋ OpenClaude')).toBe('openclaude')
     expect(resolveExplicitTerminalTitleAgentType('OMP')).toBe('omp')
@@ -54,45 +52,18 @@ describe('resolveExplicitTerminalTitleAgentType', () => {
   it('treats Claude generic status prefixes as activity-only, not identity', () => {
     expect(resolveExplicitTerminalTitleAgentType('✳ investigating startup')).toBeNull()
     expect(resolveExplicitTerminalTitleAgentType('⠸ investigating startup')).toBeNull()
-    expect(resolveExplicitTerminalTitleAgentType('. Compare Opencode Vs Orca')).toBeNull()
+    expect(resolveExplicitTerminalTitleAgentType('. Compare toolchains')).toBeNull()
     expect(resolveExplicitTerminalTitleAgentType('* Review Codex behavior')).toBeNull()
   })
 
-  it('resolves OpenCode native abbreviated session titles before task-text identities', () => {
-    expect(resolveExplicitTerminalTitleAgentType('OC | Understand about the plugin')).toBe(
-      'opencode'
-    )
-    expect(resolveExplicitTerminalTitleAgentType('OC | Compare Codex and Claude')).toBe('opencode')
-    // Why: Gemini glyphs inside OpenCode session text must not rebrand the tab.
-    expect(resolveExplicitTerminalTitleAgentType('OC | ✦ Gemini CLI')).toBe('opencode')
-    expect(getSharedAgentLabel('OC | Compare Codex and Claude')).toBe('OpenCode')
-    expect(getSharedAgentLabel('OC | ✦ Gemini CLI')).toBe('OpenCode')
-    expect(resolveExplicitTerminalTitleAgentType('tmux | OC | ses_123')).toBe('opencode')
-    expect(resolveExplicitTerminalTitleAgentType('OC|compact-session')).toBeNull()
-    expect(resolveExplicitTerminalTitleAgentType('oc | Understand about the plugin')).toBeNull()
-  })
-
-  it('does not find an OpenCode marker inside another agent task title', () => {
-    expect(isOpenCodeNativeTitle('⠋ Fix foo | OC | bar')).toBe(false)
-    expect(resolveExplicitTerminalTitleAgentType('⠋ Fix foo | OC | bar')).toBeNull()
-  })
-
-  // Why: adversarial coverage — native OC must not steal Claude/Codex/Cursor/
-  // Gemini/Pi identity, and those agents must keep resolving when titled normally.
-  it('keeps other agents classified correctly alongside OpenCode native titles', () => {
+  it('keeps supported agents classified correctly', () => {
     expect(resolveExplicitTerminalTitleAgentType('✳ Claude Code')).toBe('claude')
     expect(resolveExplicitTerminalTitleAgentType('⠋ Codex')).toBe('codex')
-    expect(resolveExplicitTerminalTitleAgentType('✦ Gemini CLI')).toBe('gemini')
-    expect(resolveExplicitTerminalTitleAgentType('Cursor Agent')).toBe('cursor')
     expect(resolveExplicitTerminalTitleAgentType('Pi ready')).toBe('pi')
-    expect(resolveExplicitTerminalTitleAgentType('OpenCode ready')).toBe('opencode')
-    expect(resolveTerminalTitleAgentType('OC | ⠋ implementing the feature')).toBe('opencode')
-    expect(isClaudeAgent('OC | ⠋ implementing the feature')).toBe(false)
-    expect(isClaudeAgent('OC | Understand about the plugin')).toBe(false)
   })
 
   it('still resolves Claude when the title explicitly names Claude', () => {
-    expect(resolveExplicitTerminalTitleAgentType('. Claude Code compare Opencode')).toBe('claude')
+    expect(resolveExplicitTerminalTitleAgentType('. Claude Code compare toolchains')).toBe('claude')
   })
 
   // Why (#8940): only a title that PRESENTS Claude may take a pane from its known owner —
@@ -114,11 +85,11 @@ describe('resolveExplicitTerminalTitleAgentType', () => {
     }
     for (const title of [
       '⠋ use Claude Sonnet',
-      'OC | ⠋ ask claude about this',
+      'task | ⠋ ask claude about this',
       '⠋ port the claude prompt',
       '. ship it with claude',
       '⠋ claude 스타일로 리팩터',
-      '. Claude Code compare Opencode',
+      '. Claude Code compare tooling',
       '✳ investigating startup',
       '✳'
     ]) {
@@ -131,33 +102,17 @@ describe('resolveExplicitTerminalTitleAgentType', () => {
     expect(resolveExplicitTerminalTitleAgentType('zsh')).toBeNull()
   })
 
-  // Why: `cursor` is ordinary editor vocabulary, so a name token is not identity.
-  // A Claude/Codex tab working on cursor code must not commit to Cursor identity.
-  it('resolves Cursor by its identity titles, never a bare cursor token', () => {
-    expect(resolveExplicitTerminalTitleAgentType('Cursor Agent')).toBe('cursor')
-    expect(resolveExplicitTerminalTitleAgentType('⠋ Cursor Agent')).toBe('cursor')
-    expect(resolveExplicitTerminalTitleAgentType('Cursor ready')).toBe('cursor')
-    expect(resolveExplicitTerminalTitleAgentType('Cursor - action required')).toBe('cursor')
-    // A Claude tab whose task text mentions a text cursor is not Cursor identity.
-    expect(
-      resolveExplicitTerminalTitleAgentType('⠋ preserve cursor visibility across replays')
-    ).toBeNull()
-    expect(resolveExplicitTerminalTitleAgentType('~/cursor-rules')).toBeNull()
+  it('does not identify removed CLI titles as agents', () => {
+    expect(resolveExplicitTerminalTitleAgentType('removed CLI session')).toBeNull()
   })
 })
 
 describe('resolveTerminalTitleAgentType', () => {
-  // Why: the activity facet keeps Claude's braille prefix as Claude — but only when
-  // the "cursor" it mentions is task text, not Cursor's own identity title.
-  it('labels cursor-mentioning agent tabs by their true agent, real Cursor as cursor', () => {
-    expect(resolveTerminalTitleAgentType('⠋ Cursor Agent')).toBe('cursor')
-    expect(resolveTerminalTitleAgentType('Cursor Agent')).toBe('cursor')
-    expect(resolveTerminalTitleAgentType('Cursor ready')).toBe('cursor')
-    expect(resolveTerminalTitleAgentType('Cursor - action required')).toBe('cursor')
-    expect(resolveTerminalTitleAgentType('⠋ preserve cursor visibility across replays')).toBe(
+  it('labels agent tabs by their title identity', () => {
+    expect(resolveTerminalTitleAgentType('⠋ preserve caret visibility across replays')).toBe(
       'claude'
     )
-    expect(resolveTerminalTitleAgentType('⠋ Codex: fix cursor offsets')).toBe('codex')
+    expect(resolveTerminalTitleAgentType('⠋ Codex: fix caret offsets')).toBe('codex')
   })
 })
 
@@ -167,10 +122,8 @@ describe('isClaudeAgent', () => {
     expect(isClaudeAgent).toBe(isSharedClaudeAgent)
   })
 
-  it('excludes real Cursor identity titles, keeps cursor-mentioning Claude braille titles', () => {
-    expect(isClaudeAgent('⠋ Cursor Agent')).toBe(false)
-    expect(isClaudeAgent('Cursor ready')).toBe(false)
-    expect(isClaudeAgent('⠋ preserve cursor visibility across replays')).toBe(true)
+  it('keeps Claude titles distinct from OpenClaude', () => {
+    expect(isClaudeAgent('⠋ preserve caret visibility across replays')).toBe(true)
     expect(isClaudeAgent('⠋ OpenClaude')).toBe(false)
   })
 })

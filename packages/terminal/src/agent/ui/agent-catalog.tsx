@@ -7,7 +7,6 @@ import {
   CopilotIcon,
   KiloIcon,
   OmpIcon,
-  OpenCodeIcon,
   PiIcon
 } from './agent-icon-glyphs'
 import { AGENT_FAVICON_ASSETS } from './agent-favicon-assets'
@@ -26,14 +25,12 @@ export const AGENT_CATALOG: AgentCatalogEntry[] = [
   { id: 'codex', label: 'Codex' },
   { id: 'grok', label: 'Grok', faviconDomain: 'x.ai' },
   { id: 'copilot', label: 'GitHub Copilot' },
-  { id: 'opencode', label: 'OpenCode' },
   { id: 'mimo-code', label: 'MiMo Code', faviconDomain: 'mimo.xiaomi.com' },
   { id: 'ante', label: 'Ante', faviconDomain: 'antigma.ai' },
   { id: 'trae', label: 'Trae', faviconDomain: 'www.trae.cn' },
   { id: 'pi', label: 'Pi' },
   { id: 'omp', label: 'OMP' },
   { id: 'prime-agent', label: 'Prime Agent', faviconDomain: 'primeintellect.ai' },
-  { id: 'gemini', label: 'Gemini', faviconDomain: 'gemini.google.com' },
   { id: 'antigravity', label: 'Antigravity', faviconDomain: 'antigravity.google' },
   { id: 'aider', label: 'Aider' },
   { id: 'goose', label: 'Goose', faviconDomain: 'goose-docs.ai' },
@@ -47,7 +44,6 @@ export const AGENT_CATALOG: AgentCatalogEntry[] = [
   { id: 'codebuff', label: 'Codebuff', faviconDomain: 'codebuff.com' },
   { id: 'command-code', label: 'Command Code', faviconDomain: 'commandcode.ai' },
   { id: 'continue', label: 'Continue', faviconDomain: 'continue.dev' },
-  { id: 'cursor', label: 'Cursor', faviconDomain: 'cursor.com' },
   { id: 'droid', label: 'Droid' },
   { id: 'kimi', label: 'Kimi', faviconDomain: 'moonshot.cn' },
   { id: 'mistral-vibe', label: 'Mistral Vibe', faviconDomain: 'mistral.ai' },
@@ -95,9 +91,6 @@ export function AgentIcon({
   }
   if (agent === 'copilot') {
     return <CopilotIcon size={size} />
-  }
-  if (agent === 'opencode') {
-    return <OpenCodeIcon size={size} />
   }
   const catalogEntry = AGENT_CATALOG.find((a) => a.id === agent)
   const bundledFaviconUrl = AGENT_FAVICON_ASSETS[agent]

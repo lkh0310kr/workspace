@@ -3,10 +3,8 @@ import { Popover } from '@renderer/adapters/ui'
 import {
   claudeRateLimitStatus,
   codexRateLimitStatus,
-  cursorUsageStatus,
   type ClaudeRateLimitStatus,
-  type CodexRateLimitStatus,
-  type CursorUsageStatus
+  type CodexRateLimitStatus
 } from './usageApi'
 import {
   USAGE_PROVIDER_LABELS,
@@ -92,7 +90,6 @@ export function AgentUsageStatusBar({
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const [rateLimit, setRateLimit] = useState<ClaudeRateLimitStatus | null>(null)
-  const [cursorUsage, setCursorUsage] = useState<CursorUsageStatus | null>(null)
   const [codexUsage, setCodexUsage] = useState<CodexRateLimitStatus | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -105,13 +102,6 @@ export function AgentUsageStatusBar({
         .catch(() => {})
     } else {
       setRateLimit(null)
-    }
-    if (enabled.includes('cursor')) {
-      cursorUsageStatus()
-        .then((u) => setCursorUsage(u))
-        .catch(() => {})
-    } else {
-      setCursorUsage(null)
     }
     if (enabled.includes('codex')) {
       codexRateLimitStatus()
@@ -145,14 +135,8 @@ export function AgentUsageStatusBar({
   const claudeReset =
     window5h?.resets_at != null ? formatResetCountdown(window5h.resets_at * 1000, now) : null
   const hasClaudeRateLimit = enabled.includes('claude') && window5h != null
-  const cursorPercent = cursorUsage?.total_percent_used ?? null
-  const hasCursorUsage = enabled.includes('cursor') && cursorPercent != null
   const codexPrimary = codexUsage?.session ?? codexUsage?.weekly ?? null
   const hasCodexUsage = enabled.includes('codex') && codexPrimary != null
-  const cursorReset =
-    cursorUsage?.billing_cycle_end_ms != null
-      ? formatResetCountdown(cursorUsage.billing_cycle_end_ms, now)
-      : null
 
   if (enabled.length === 0) return null
 
@@ -168,9 +152,7 @@ export function AgentUsageStatusBar({
     if (set.has(id)) set.delete(id)
     else set.add(id)
     const next: UsageMeterSettings = {
-      enabled: (['claude', 'cursor', 'codex', 'gemini', 'opencode'] as UsageProviderId[]).filter(
-        (p) => set.has(p)
-      )
+      enabled: (['claude', 'codex'] as UsageProviderId[]).filter((p) => set.has(p))
     }
     onMeterSettingsChange(next)
   }
@@ -205,19 +187,13 @@ export function AgentUsageStatusBar({
             {formatUsagePercent(window5h.used_percent)} used{claudeReset ? ` · ${claudeReset}` : ''}
           </span>
         )}
-        {hasCursorUsage && cursorPercent != null && (
-          <span className="status-bar-item" style={{ marginRight: 12 }}>
-            Cursor <RateLimitBar usedPercent={cursorPercent} />
-            {formatUsagePercent(cursorPercent)} used{cursorReset ? ` · ${cursorReset}` : ''}
-          </span>
-        )}
         {hasCodexUsage && codexPrimary && (
           <span className="status-bar-item">
             Codex <RateLimitBar usedPercent={codexPrimary.used_percent} />
             {formatUsagePercent(codexPrimary.used_percent)} used
           </span>
         )}
-        {!hasClaudeRateLimit && !hasCursorUsage && !hasCodexUsage && (
+        {!hasClaudeRateLimit && !hasCodexUsage && (
           <span className="status-bar-item">AI usage - click for details</span>
         )}
       </div>
@@ -248,25 +224,6 @@ export function AgentUsageStatusBar({
                 />
               </section>
             )}
-            {enabled.includes('cursor') && (
-              <section className="usage-details-section">
-                <div className="usage-details-provider">{USAGE_PROVIDER_LABELS.cursor}</div>
-                <DetailRow label="Total (billing cycle)" usedPercent={cursorPercent} now={now} />
-                <DetailRow
-                  label="Auto"
-                  usedPercent={cursorUsage?.auto_percent_used ?? null}
-                  now={now}
-                />
-                <DetailRow
-                  label="API"
-                  usedPercent={cursorUsage?.api_percent_used ?? null}
-                  now={now}
-                />
-                {cursorReset && (
-                  <div className="usage-details-hint">Cycle resets in {cursorReset}</div>
-                )}
-              </section>
-            )}
             {enabled.includes('codex') && (
               <section className="usage-details-section">
                 <div className="usage-details-provider">
@@ -295,33 +252,18 @@ export function AgentUsageStatusBar({
                 />
               </section>
             )}
-            {(enabled.includes('gemini') || enabled.includes('opencode')) && (
-              <section className="usage-details-section">
-                {enabled.includes('gemini') && (
-                  <div className="usage-details-provider">{USAGE_PROVIDER_LABELS.gemini}</div>
-                )}
-                {enabled.includes('opencode') && (
-                  <div className="usage-details-provider">{USAGE_PROVIDER_LABELS.opencode}</div>
-                )}
-                <div className="usage-details-hint">
-                  Usage tracking for this provider is not available yet.
-                </div>
-              </section>
-            )}
             <div className="usage-details-section usage-details-toggles">
               <div className="usage-details-provider">Show in status bar</div>
-              {(['claude', 'cursor', 'codex', 'gemini', 'opencode'] as UsageProviderId[]).map(
-                (id) => (
-                  <label key={id} className="usage-details-toggle">
-                    <input
-                      type="checkbox"
-                      checked={enabled.includes(id)}
-                      onChange={() => void toggleProvider(id)}
-                    />
-                    {USAGE_PROVIDER_LABELS[id]}
-                  </label>
-                )
-              )}
+              {(['claude', 'codex'] as UsageProviderId[]).map((id) => (
+                <label key={id} className="usage-details-toggle">
+                  <input
+                    type="checkbox"
+                    checked={enabled.includes(id)}
+                    onChange={() => void toggleProvider(id)}
+                  />
+                  {USAGE_PROVIDER_LABELS[id]}
+                </label>
+              ))}
             </div>
             <div className="usage-details-footer">
               <button

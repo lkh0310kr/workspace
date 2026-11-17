@@ -5,12 +5,9 @@ import {
   HERMES_AGENT_NAME_RE,
   containsAgentSpinnerGlyph,
   isClaudeManagementTitle,
-  isCursorAgentTitle,
-  isGeminiTerminalTitle,
   isPiAgentTitle,
   titleHasAgentName
 } from './agent-title-core'
-import { isOpenCodeNativeTitle } from './opencode-terminal-title'
 import { getPiCompatibleSyntheticAgentLabel } from './pi-compatible-synthetic-title'
 
 /**
@@ -18,7 +15,7 @@ import { getPiCompatibleSyntheticAgentLabel } from './pi-compatible-synthetic-ti
  * Used to scope prompt-cache-timer behavior to Claude sessions only.
  */
 export function isClaudeAgent(title: string): boolean {
-  if (!title || isClaudeManagementTitle(title) || isOpenCodeNativeTitle(title)) {
+  if (!title || isClaudeManagementTitle(title)) {
     return false
   }
   const lower = title.toLowerCase()
@@ -32,9 +29,7 @@ export function isClaudeAgent(title: string): boolean {
     return true
   }
   if (containsAgentSpinnerGlyph(title)) {
-    // Why: named non-Claude agents carry braille spinners too. Gate Cursor by its
-    // identity title, not the token, so a Claude title mentioning a cursor stays Claude.
-    return !isCursorAgentTitle(title) && !lower.includes('openclaude')
+    return !lower.includes('openclaude')
   }
 
   const trimmedTitle = title.trimStart()
@@ -47,11 +42,6 @@ export function getAgentLabel(title: string): string | null {
   if (isClaudeManagementTitle(title)) {
     return null
   }
-  // Why: the native marker owns the whole title; its session text may name or
-  // include status glyphs from other agents without changing OpenCode identity.
-  if (isOpenCodeNativeTitle(title)) {
-    return 'OpenCode'
-  }
   // Why: Claude task titles can mention another CLI; the prefix is the identity
   // signal, not arbitrary task text.
   if (
@@ -61,9 +51,6 @@ export function getAgentLabel(title: string): string | null {
     title.startsWith('* ')
   ) {
     return 'Claude Code'
-  }
-  if (isGeminiTerminalTitle(title)) {
-    return 'Gemini CLI'
   }
   // Why: Pi-compatible synthetic titles can carry braille spinners, which the
   // generic agent-title heuristics would otherwise claim first.
@@ -93,19 +80,11 @@ export function getAgentLabel(title: string): string | null {
   if (titleHasAgentName(title, 'antigravity') || AGY_AGENT_NAME_RE.test(title)) {
     return 'Antigravity'
   }
-  if (titleHasAgentName(title, 'opencode')) {
-    return 'OpenCode'
-  }
   if (titleHasAgentName(title, 'mimo')) {
     return 'MiMo Code'
   }
   if (titleHasAgentName(title, 'aider')) {
     return 'Aider'
-  }
-  // Why: `cursor` is ordinary editor vocabulary, not identity. Match Cursor's closed
-  // title set (mirrors @cursor routing), before `isClaudeAgent` claims the braille frame.
-  if (isCursorAgentTitle(title)) {
-    return 'Cursor'
   }
   if (DROID_AGENT_NAME_RE.test(title)) {
     return 'Droid'

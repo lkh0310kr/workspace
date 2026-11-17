@@ -85,12 +85,6 @@ export interface WorkspaceApi {
       fiveHour: { usedPercent: number; resetsAt: number | null } | null
       sevenDay: { usedPercent: number; resetsAt: number | null } | null
     }>
-    cursorUsageStatus: () => Promise<{
-      autoPercentUsed: number | null
-      apiPercentUsed: number | null
-      totalPercentUsed: number | null
-      billingCycleEndMs: number | null
-    }>
     codexRateLimitStatus: () => Promise<{
       planType: string | null
       session: { usedPercent: number; resetsAt: number | null; windowMinutes: number | null } | null

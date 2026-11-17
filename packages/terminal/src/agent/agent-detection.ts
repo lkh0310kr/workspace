@@ -11,15 +11,10 @@
 export type { AgentStatus } from './agent-title-core'
 export {
   isClaudeManagementTitle,
-  isCursorAgentTitle,
-  isCursorNativeAgentTitle,
-  isGeminiTerminalTitle,
   isPiTerminalTitle,
-  shouldSuppressCursorNativeTitle,
   STRONG_IDLE_KEYWORDS_RE,
   STRONG_WORKING_KEYWORDS_RE
 } from './agent-title-core'
-export { isOpenCodeNativeTitle, isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 export { getAgentLabel, isClaudeAgent } from './agent-title-identity'
 export {
   clearWorkingIndicators,

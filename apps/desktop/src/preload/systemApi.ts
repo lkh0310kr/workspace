@@ -55,7 +55,6 @@ export const systemApi: Pick<
   },
   usage: {
     claudeRateLimitStatus: () => ipcRenderer.invoke('usage:claude-rate-limit-status'),
-    cursorUsageStatus: () => ipcRenderer.invoke('usage:cursor-usage-status'),
     codexRateLimitStatus: () => ipcRenderer.invoke('usage:codex-rate-limit-status'),
     meterSettingsGet: () => ipcRenderer.invoke('usage:meter-settings-get'),
     meterSettingsSave: (settings) => ipcRenderer.invoke('usage:meter-settings-save', settings)

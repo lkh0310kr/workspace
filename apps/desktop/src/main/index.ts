@@ -32,6 +32,7 @@ import { shouldIgnoreWatcherPath } from './workspace/filesystemWatcherIgnore'
 import { revealWslWindow, installWslWindowLifecycle } from './platform/window/wslWindow'
 import { exportLayoutFiles } from '../shared/layoutExport'
 import { installClaudeStatuslineHook } from './agent/usage/usage'
+import { installAgentStatusHooks } from './agent/agentHooks'
 import { setupBrowserSession } from './browser/browserSession'
 import { setupBrowserDownloads } from './browser/browserDownloads'
 import { registerBrowserNavIpc } from './browser/browserNav'
@@ -47,7 +48,6 @@ import {
   notifyTerminalPtySpawned,
   setTerminalOscTitleBroadcastTarget
 } from './terminal/terminalOscTitleBroadcast'
-import { installAgentStatusHooks } from './agent/agentHooks'
 import {
   setWorkspaceAgentHookBroadcastTarget,
   startWorkspaceAgentHookServer
