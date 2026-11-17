@@ -5,7 +5,7 @@ import { onNewWorkspaceTabShortcut } from '../workspace/runtime/workspaceShortcu
 import { addTab } from '../workspace'
 
 export type WorkspaceSettingsTarget = { tabId: number; anchorRect: DOMRect }
-export type EditorSettingsTarget = { tabId: number; rootPath: string; anchorRect: DOMRect }
+export type EditorSettingsTarget = { tabId: number; rootPath: string }
 
 export function useAppShellState() {
   const [settingsTarget, setSettingsTarget] = useState<WorkspaceSettingsTarget | null>(null)

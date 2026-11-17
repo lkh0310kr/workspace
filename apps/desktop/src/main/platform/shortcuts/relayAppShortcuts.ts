@@ -69,6 +69,8 @@ function isModifierPress(input: Input): boolean {
 type SharedRelayOptions = {
   /** When true, Cmd+R stays with the focused terminal (readline/vim redo). */
   gateBrowserReload: boolean
+  /** Editor-only settings shortcut; never relayed while another surface is focused. */
+  editorPaneActive?: boolean
 }
 
 function relaySharedRendererShortcuts(
@@ -84,6 +86,11 @@ function relaySharedRendererShortcuts(
   if (input.code === 'KeyW' && (input.control || input.meta) && !input.shift) {
     event.preventDefault()
     send('shortcut:close-pane-tab')
+  }
+  if (options.editorPaneActive && isEditorSettingsInput(input)) {
+    event.preventDefault()
+    send('shortcut:editor-settings')
+    return
   }
   if (isHomeKey(input) && (input.control || input.meta) && !input.shift && !input.alt) {
     event.preventDefault()
@@ -121,7 +128,8 @@ export function relayHostAppShortcuts(
   }
 
   relaySharedRendererShortcuts(event, input, options.send, {
-    gateBrowserReload: options.terminalOwnsAppShortcuts
+    gateBrowserReload: options.terminalOwnsAppShortcuts,
+    editorPaneActive: options.editorPaneActive
   })
 
   // A focused terminal owns editor shortcuts too. Suppress them here because
@@ -173,13 +181,17 @@ function isQuickOpenInput(input: Input): boolean {
 }
 
 function isEditorSidebarShortcutInput(input: Input): boolean {
-  const isEditorTreeToggle =
-    !input.shift && (input.code === 'Backslash' || input.key === '\\')
+  const isEditorTreeToggle = !input.shift && (input.code === 'Backslash' || input.key === '\\')
   const isFindInFiles = input.shift && input.code === 'KeyF'
+  return (input.meta || input.control) && !input.alt && (isEditorTreeToggle || isFindInFiles)
+}
+
+function isEditorSettingsInput(input: Input): boolean {
   return (
     (input.meta || input.control) &&
     !input.alt &&
-    (isEditorTreeToggle || isFindInFiles)
+    !input.shift &&
+    (input.code === 'Comma' || input.key === ',')
   )
 }
 
@@ -214,7 +226,6 @@ export function relayGuestWebviewShortcuts(
   }
 
   relaySharedRendererShortcuts(event, input, send, { gateBrowserReload: false })
-
 
   if (isWorkspaceTabIndexInput(input)) {
     event.preventDefault()

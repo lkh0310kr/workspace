@@ -1,7 +1,7 @@
 import { AppSettingsDialog, AppTitlebar, LoadingWorkspace } from './features/app-shell'
 import { AgentUsageStatusBar } from './features/agent-usage'
 import { loadUsageMeterSettings, saveUsageMeterSettings } from './features/agent-usage/usageApi'
-import { onHomeShortcut } from './features/app-shell/shellShortcuts'
+import { onEditorSettingsShortcut, onHomeShortcut } from './features/app-shell/shellShortcuts'
 import { onQuickOpenShortcut } from './features/editor/input/editorShortcuts'
 import {
   DEFAULT_USAGE_METER_SETTINGS,
@@ -37,7 +37,10 @@ import { useWorkspaceScope } from './features/workspace/useWorkspaceScope'
 import { switchToHome } from '@renderer/features/workspace/navigationApi'
 import { applyThemePreference, setStoredThemePreference } from './theme'
 import type { Model, TabNode, TabSetNode } from 'flexlayout-react'
-import { readPaneGroupConfig, resolveActivePaneTab } from './features/pane-system/layout/layoutSession'
+import {
+  readPaneGroupConfig,
+  resolveActivePaneTab
+} from './features/pane-system/layout/layoutSession'
 import { openEditorFileInPaneGroup } from './features/editor'
 import { setActiveTabInGroup } from './features/pane-system/layout/layoutActions'
 import { useEffect, useCallback, useState } from 'react'
@@ -81,7 +84,6 @@ async function openFileInActivePane(
   setActiveTabInGroup(model, nodeId, id)
   bumpLayout(workspaceTabId)
 }
-
 
 export default function App() {
   const workspace = useWorkspace()
@@ -149,6 +151,18 @@ export default function App() {
     visibleWorkspaceTabId
   ])
   useEffect(() => window.api.shortcuts.setEditorPaneActive(editorPaneActive), [editorPaneActive])
+  const openEditorSettings = useCallback(() => {
+    if (!editorPaneActive || !visibleWorkspaceRootPath) return
+    setAppSettingsAnchor(null)
+    setEditorSettingsTarget({ tabId: visibleWorkspaceTabId, rootPath: visibleWorkspaceRootPath })
+  }, [
+    editorPaneActive,
+    setAppSettingsAnchor,
+    setEditorSettingsTarget,
+    visibleWorkspaceRootPath,
+    visibleWorkspaceTabId
+  ])
+  useEffect(() => onEditorSettingsShortcut(openEditorSettings), [openEditorSettings])
   const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const openQuickOpenForFocusedPane = useCallback(() => {
     if (homeActive || !editorPaneActive) return
@@ -228,22 +242,9 @@ export default function App() {
   return (
     <div className={`app-root${htmlFullscreen ? ' html-fullscreen' : ''}`}>
       <AppTitlebar
-        settingsOpen={appSettingsAnchor !== null || editorSettingsTarget !== null}
+        appSettingsOpen={appSettingsAnchor !== null}
         settingsButtonRef={settingsButtonRef}
-        onToggleSettings={(anchor) => {
-          if (editorPaneActive) {
-            setAppSettingsAnchor(null)
-            setEditorSettingsTarget((current) =>
-              current
-                ? null
-                : {
-                    tabId: visibleWorkspaceTabId,
-                    rootPath: visibleWorkspaceRootPath,
-                    anchorRect: anchor
-                  }
-            )
-            return
-          }
+        onToggleAppSettings={(anchor) => {
           setEditorSettingsTarget(null)
           toggleAppSettings(anchor)
         }}
@@ -284,7 +285,6 @@ export default function App() {
         )}
         {editorSettingsTarget && (
           <EditorSettingsDialog
-            anchorRect={editorSettingsTarget.anchorRect}
             onClose={() => setEditorSettingsTarget(null)}
             tabId={editorSettingsTarget.tabId}
             rootPath={editorSettingsTarget.rootPath}

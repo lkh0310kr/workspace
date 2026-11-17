@@ -135,6 +135,7 @@ export interface WorkspaceApi {
   shortcuts: {
     onHome: (cb: () => void) => () => void
     onQuickOpen: (cb: () => void) => () => void
+    onEditorSettings: (cb: () => void) => () => void
     setEditorPaneActive: (active: boolean) => void
     onBrowserReload: (cb: (payload: { hard: boolean }) => void) => () => void
     onBrowserZoom: (

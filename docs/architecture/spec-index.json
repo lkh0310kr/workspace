@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "d358675ecbec87e06c32f1f947e81b4685af891147f39d3fb3e09222b21dbf0b"
+          "sha256": "6c5bd32699fdbd59a8297cb44be3b859fd4ed94890fd0897df26412140bc7818"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -558,12 +558,12 @@
           "sha256": "9d9e0a60fccac4c1dee26f2e24348bfe29f9bf10dba80e5af3f1e1db3caba827"
         },
         {
-          "path": "apps/desktop/src/renderer/src/features/editor/settings/EditorSettingsSection.tsx",
-          "sha256": "89928ec0753de59a36dd96af67eeb49741ffa2ef43d27cd653b2fe396a236be7"
+          "path": "apps/desktop/src/renderer/src/features/editor/settings/EditorSettingsDialog.tsx",
+          "sha256": "420b473e4c7425780031b4505510fec319977927617b11d9126b334e7bc47008"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "d358675ecbec87e06c32f1f947e81b4685af891147f39d3fb3e09222b21dbf0b"
+          "sha256": "6c5bd32699fdbd59a8297cb44be3b859fd4ed94890fd0897df26412140bc7818"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
@@ -742,11 +742,11 @@
         },
         {
           "path": "apps/desktop/src/main/platform/shortcuts/relayAppShortcuts.ts",
-          "sha256": "5d87c7136026d93150b559e517acbfc30965d5d07594348567e8385b448301b8"
+          "sha256": "fdbc85e7912ee99d273c0a8e72d32797f1f349f26d2c6d587d876a971ed61fa9"
         },
         {
           "path": "apps/desktop/src/preload/browserApi.ts",
-          "sha256": "e57ebac40f69f2ac205105684ee0d0f35bf0fd4e2cd552bad5380d44170e4b12"
+          "sha256": "4406fe58a0b72eaddb8157c8b1f52cc1f31d8e641885e02e05d73b2c465d68bf"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/browser/host/runtime/browserEmbedSupport.ts",
@@ -949,7 +949,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "2f4714e85c7918cb29688b1b0ddb4592e3282b161638d05c457e8d197e6211b1"
+          "sha256": "8db2e6a4660112ad3b3bfb3bb3d9d8dccf3b3fc2659edf22c40b8166868efb17"
         },
         {
           "path": "apps/desktop/src/preload/index.ts",
@@ -985,7 +985,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/shellShortcuts.ts",
-          "sha256": "85b72925bf43bfd0ea588540d19b79b15c66d3c189eb24ccf2771aefd26ba428"
+          "sha256": "a81ba32b1d4dfadd96e0d1bf1633a9865adbf069aebc00ea2020ea24059825b9"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/shortcuts/shortcutRegistry.test.ts",
@@ -1257,11 +1257,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
-          "sha256": "a531a09ce1f170d9e8fa61b32fdf842c606e9c3a154d3ceacc5fd07c2a485431"
+          "sha256": "f8dda6f65e85ad5182af6e5a1c6609369801530cb7515ad8af466c748d9fd9fe"
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "881e908fa05a946d2254d2df1a3594816e2ee2dea2c530eaa709bb210b223fca"
+          "sha256": "10db836f9880ead4389dfb444f0cc91d1e9e98a55d219a9c4be204e6050d4dbd"
         },
         {
           "path": "apps/desktop/electron.vite.config.ts",
@@ -1443,7 +1443,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "2f4714e85c7918cb29688b1b0ddb4592e3282b161638d05c457e8d197e6211b1"
+          "sha256": "8db2e6a4660112ad3b3bfb3bb3d9d8dccf3b3fc2659edf22c40b8166868efb17"
         },
         {
           "path": "apps/desktop/src/preload/systemApi.ts",
@@ -1451,7 +1451,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
-          "sha256": "881e908fa05a946d2254d2df1a3594816e2ee2dea2c530eaa709bb210b223fca"
+          "sha256": "10db836f9880ead4389dfb444f0cc91d1e9e98a55d219a9c4be204e6050d4dbd"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/AppSettingsDialog.tsx",

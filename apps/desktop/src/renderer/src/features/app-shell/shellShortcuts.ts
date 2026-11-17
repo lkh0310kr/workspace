@@ -7,3 +7,8 @@ export function onHomeShortcut(handler: () => void): () => void {
 export function onClosePaneTabShortcut(handler: () => void): () => void {
   return window.api.shortcuts.onClosePaneTab(handler)
 }
+
+/** Cmd+, opens settings scoped to the focused Editor pane. */
+export function onEditorSettingsShortcut(handler: () => void): () => void {
+  return window.api.shortcuts.onEditorSettings(handler)
+}

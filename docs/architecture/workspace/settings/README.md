@@ -8,16 +8,16 @@ App scope는 설정 저장·적용 범위와 Main usage adapter다. 공통 edito
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | theme preference      | renderer workspace.theme, light/dark/system; 미설정/잘못된 값은 system                        |
 | resolved theme        | DOM data-theme와 flexlayout class, system media-query subscription; cleanup에서 listener 해제 |
-| autosave              | workspace root `.workspace/settings.json`; default는 기존 localStorage 값 또는 false           |
+| autosave              | workspace root `.workspace/settings.json`; default는 기존 localStorage 값 또는 false          |
 | pane zoom             | PaneGroupConfig.zoom, pane의 text 크기와 kind별 host 적용                                     |
 | browser guest zoom    | item.zoomFactor, browserZoom helper의 guest factor; pane zoom과 별도                          |
 | usage 선택            | Main config usageMeters.enabled, 기본 claude; normalizer가 허용 ID와 고정 순서로 정리         |
 | Editor tree layout    | pane별 open/width/mode, root별 tree 확장/scroll                                               |
 | Editor workspace 설정 | 프로젝트 root의 `.workspace/settings.json`; 자동 저장과 숨김 파일 표시 여부                   |
 
-[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. autosave 선택과 실제 debounce는 별도 책임이다. 앱 설정은 전역 theme와 usage 선택을 소유하고, Editor 설정은 Editor pane이 focus된 상태에서 열리는 설정창이 소유한다. Editor 설정 파일은 workspace root의 `.workspace/settings.json`이며 형식은 `{ "editor": { "autoSave": false, "showHiddenFiles": true } }`다. 설정 파일이 없으면 기존 동작을 유지하도록 autosave는 false(기존 localStorage 값이 있으면 초기값으로 사용), 숨김 파일 표시는 true로 시작한다. TreeView에서 숨김 파일 필터를 적용하며 Quick Open과 파일 내용 검색 결과는 바꾸지 않는다.
+[theme](../../../../apps/desktop/src/renderer/src/theme.ts)는 system preference일 때만 OS 변경을 구독하고 xterm처럼 CSS로 바뀌지 않는 소비자에게 resolved theme를 알린다. 앱 오른쪽의 기어 버튼은 전역 theme·usage 설정을 연다. Editor pane이 focus된 상태에서 `Cmd+,`를 누르면 왼쪽 탐색 메뉴가 있는 Editor 설정창을 연다. 메뉴에서 텍스트 편집기와 파일 및 폴더를 선택하고 폼 입력으로 값을 바꾸면 workspace root의 `.workspace/settings.json`에 저장한다. 숨길 파일·폴더는 이름 또는 `*` 패턴 목록으로 설정한다. 기존 `showHiddenFiles: false` 값은 `hiddenFiles: [".*"]`로 변환해 동작을 유지한다. TreeView에서만 이 목록을 적용하며 빠른 열기와 파일 내용 검색 결과는 바꾸지 않는다.
 
-톱바 설정 버튼은 창 오른쪽에 둔다. Editor pane에 focus가 있을 때 해당 workspace의 Editor 설정을 열고, 다른 pane에서는 전역 설정을 연다. `Cmd+,`는 설정 동작에 연결하지 않는다.
+`Cmd+,`는 Editor pane이 focus된 경우에만 Editor 설정창을 연다. 다른 pane에서는 이 shortcut을 설정에 연결하지 않는다.
 
 Workspace 탭의 root 폴더 선택은 [workspaceRootPicker](../../../../apps/desktop/src/renderer/src/features/workspace/runtime/workspaceRootPicker.ts)가 native dialog IPC에 연결한다.
 

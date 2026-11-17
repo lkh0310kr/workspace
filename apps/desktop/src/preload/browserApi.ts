@@ -70,6 +70,11 @@ export const browserApi = {
       ipcRenderer.on('shortcut:quick-open', listener)
       return () => ipcRenderer.removeListener('shortcut:quick-open', listener)
     },
+    onEditorSettings: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('shortcut:editor-settings', listener)
+      return () => ipcRenderer.removeListener('shortcut:editor-settings', listener)
+    },
     setEditorPaneActive: (active: boolean): void => {
       ipcRenderer.send('shortcut:editor-pane-active', active)
     },

@@ -4,9 +4,9 @@ import type { TabInfo } from '../workspace'
 import { WorkspaceTabRail } from '../workspace/WorkspaceTabRail'
 
 type Props = {
-  settingsOpen: boolean
+  appSettingsOpen: boolean
   settingsButtonRef: RefObject<HTMLButtonElement | null>
-  onToggleSettings: (anchor: DOMRect) => void
+  onToggleAppSettings: (anchor: DOMRect) => void
   workspaceTabs: TabInfo[]
   activeWorkspaceTabId: number
   homeActive: boolean
@@ -18,9 +18,9 @@ type Props = {
 const showDrawnWindowControls = typeof window !== 'undefined' && window.api?.platform !== 'darwin'
 
 export function AppTitlebar({
-  settingsOpen,
+  appSettingsOpen,
   settingsButtonRef,
-  onToggleSettings,
+  onToggleAppSettings,
   workspaceTabs,
   activeWorkspaceTabId,
   homeActive,
@@ -44,12 +44,12 @@ export function AppTitlebar({
       <button
         ref={settingsButtonRef}
         type="button"
-        className={`titlebar-settings-button${settingsOpen ? ' active' : ''}`}
+        className={`titlebar-settings-button${appSettingsOpen ? ' active' : ''}`}
         title="Settings"
         aria-label="Settings"
         aria-haspopup="dialog"
-        aria-expanded={settingsOpen}
-        onClick={(event) => onToggleSettings(event.currentTarget.getBoundingClientRect())}
+        aria-expanded={appSettingsOpen}
+        onClick={(event) => onToggleAppSettings(event.currentTarget.getBoundingClientRect())}
       >
         <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
           <path

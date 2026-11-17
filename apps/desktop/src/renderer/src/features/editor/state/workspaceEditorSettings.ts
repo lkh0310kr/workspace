@@ -3,7 +3,7 @@ import { getStoredAutoSave } from './autosave'
 
 export interface WorkspaceEditorSettings {
   autoSave: boolean
-  showHiddenFiles: boolean
+  hiddenFiles: string[]
 }
 
 interface Snapshot {
@@ -15,7 +15,7 @@ interface Snapshot {
 const SETTINGS_PATH = '.workspace/settings.json'
 const DEFAULT_SETTINGS: WorkspaceEditorSettings = {
   autoSave: false,
-  showHiddenFiles: true
+  hiddenFiles: []
 }
 const snapshots = new Map<string, Snapshot>()
 const listeners = new Map<string, Set<() => void>>()
@@ -70,12 +70,14 @@ function parseSettings(
     const editor = (value as { editor?: unknown }).editor
     if (!editor || typeof editor !== 'object') return { ...DEFAULT_SETTINGS }
     const record = editor as Record<string, unknown>
+    const hiddenFiles = Array.isArray(record.hiddenFiles)
+      ? record.hiddenFiles.filter((item): item is string => typeof item === 'string')
+      : record.showHiddenFiles === false
+        ? ['.*']
+        : []
     return {
       autoSave: typeof record.autoSave === 'boolean' ? record.autoSave : fallback.autoSave,
-      showHiddenFiles:
-        typeof record.showHiddenFiles === 'boolean'
-          ? record.showHiddenFiles
-          : DEFAULT_SETTINGS.showHiddenFiles
+      hiddenFiles
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -123,7 +125,7 @@ export async function saveWorkspaceEditorSettings(
 ): Promise<void> {
   const normalized = {
     autoSave: settings.autoSave === true,
-    showHiddenFiles: settings.showHiddenFiles !== false
+    hiddenFiles: [...new Set(settings.hiddenFiles.map((pattern) => pattern.trim()).filter(Boolean))]
   }
   const content = `${JSON.stringify({ editor: normalized }, null, 2)}\n`
   await window.api.fs.writeFile(tabId, SETTINGS_PATH, content, rootPath)

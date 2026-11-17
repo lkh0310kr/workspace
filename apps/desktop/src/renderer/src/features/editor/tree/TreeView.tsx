@@ -113,8 +113,18 @@ function joinPath(dir: string, name: string): string {
   return dir ? `${dir}/${name}` : name
 }
 
-function isHiddenPath(path: string): boolean {
-  return path.split('/').some((part) => part.startsWith('.'))
+function matchesHiddenPattern(name: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => {
+    const expression = pattern
+      .split('*')
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.*')
+    return new RegExp(`^${expression}$`, 'i').test(name)
+  })
+}
+
+function isHiddenPath(path: string, patterns: string[]): boolean {
+  return path.split('/').some((part) => matchesHiddenPattern(part, patterns))
 }
 
 function rowAnchor(entry: DirEntry, treeEl: HTMLElement | null): AnchorRect {
@@ -195,10 +205,14 @@ export function TreeView({
   const previousAnchorScopeRef = useRef(`${editorTreeStateKey}:${tabId}:${rootPath}`)
   const treeExpanded = useMemo(
     () =>
-      workspaceEditorSettings.settings.showHiddenFiles
+      workspaceEditorSettings.settings.hiddenFiles.length === 0
         ? expanded
-        : new Set([...expanded].filter((path) => !isHiddenPath(path))),
-    [expanded, workspaceEditorSettings.settings.showHiddenFiles]
+        : new Set(
+            [...expanded].filter(
+              (path) => !isHiddenPath(path, workspaceEditorSettings.settings.hiddenFiles)
+            )
+          ),
+    [expanded, workspaceEditorSettings.settings.hiddenFiles]
   )
 
   useLayoutEffect(() => {
@@ -388,7 +402,7 @@ export function TreeView({
           state.entries
             .filter(
               (entry) =>
-                workspaceEditorSettings.settings.showHiddenFiles || !entry.name.startsWith('.')
+                !matchesHiddenPattern(entry.name, workspaceEditorSettings.settings.hiddenFiles)
             )
             .map((entry) => ({
               ...entry,
@@ -399,7 +413,7 @@ export function TreeView({
       ),
       treeExpanded
     ).map(({ item, depth }) => ({ entry: item, depth }))
-  }, [dirs, treeExpanded, workspaceEditorSettings.settings.showHiddenFiles])
+  }, [dirs, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
 
   useEffect(() => {
     const pending = pendingScrollRestoreRef.current
