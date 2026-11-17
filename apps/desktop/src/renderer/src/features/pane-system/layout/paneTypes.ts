@@ -40,7 +40,7 @@ export interface PaneTabItem {
   zoomFactor?: number
   /** Live display title (browser page title, editor filename, terminal OSC title). */
   title?: string
-  /** kind === "terminal" — detected AI agent (Cursor CLI, Claude Code, etc.). */
+  /** kind === "terminal" — detected AI agent (Claude Code, Codex, etc.). */
   terminalAgent?: TuiAgent
   /** kind === "terminal" — last title-derived agent state for workspace chip rollup. */
   terminalAgentStatus?: AgentStatus
