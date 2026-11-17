@@ -22,6 +22,14 @@ Desktop runtime adapter의 [ptyTransport](../../../../apps/desktop/src/renderer/
 
 connect 반환은 id/snapshot/snapshotCols/snapshotRows/lastSeq/isReattach다. Main은 기존 daemon session의 snapshot 또는 local replay를 사용하고 native dimensions를 보존한다. disconnect는 subscription/input queue·live buffer를 비우고 Main attach를 해제한다. renderer 숨김/해제만으로 shell process를 kill하지 않는다. layout에서 마지막 terminal 참조가 사라지는 경로가 destroy한다.
 
+## PTY host attach timeout and retry
+
+Requests to the detached PTY host must not remain pending indefinitely. Each request has a
+10 second deadline. A timed-out request closes its socket and rejects; an attach failure
+clears the cached attach promise and `PtySession` retries the attach once over a fresh
+socket after 250 ms. A retry failure reaches the renderer's existing connection error
+handler.
+
 ## ACK·backpressure·scheduler
 
 Main은 renderer에 전송한 seq별 byte 수를 추적한다. 미해제 credit가 512KiB 이상이면 host output pause, ACK 처리 후 128KiB 이하이면 resume한다. 중복/알 수 없는 seq ACK는 무시하고 disconnect/reset 시 pending credit를 해제한다.

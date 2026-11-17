@@ -1302,7 +1302,7 @@
         },
         {
           "path": "apps/desktop/src/main/terminal/ptySession.ts",
-          "sha256": "44b3f0a8656bf78ab30a52f8bed7dc4c27393b2f2f2a73e444dd5ef82698d81e"
+          "sha256": "d943c81d5c6a15062f8c4e671a626ab1990da681cf6dd28e32e6ac23a883f71a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/terminal/host/paneKind.tsx",

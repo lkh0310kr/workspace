@@ -144,7 +144,15 @@ export class PtySession {
       this.attachedWebContents = null
       this.resetOutputBackpressure()
     }
-    const attachment = await this.pty.attach()
+    let attachment: Awaited<ReturnType<Pty['attach']>>
+    try {
+      attachment = await this.pty.attach()
+    } catch {
+      // The detached host can briefly stop answering while Windows starts a
+      // shell. Pty clears a timed-out attach so the retry uses a fresh socket.
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      attachment = await this.pty.attach()
+    }
     if (
       attachment.existed &&
       this.replay.snapshot().replay.length === 0 &&

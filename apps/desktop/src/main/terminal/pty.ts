@@ -16,7 +16,13 @@ export interface PtyOptions {
 }
 
 type AttachResult = { snapshot: Buffer; existed: boolean }
-type PendingRequest = { resolve: (value: any) => void; reject: (error: Error) => void }
+type PendingRequest = {
+  resolve: (value: any) => void
+  reject: (error: Error) => void
+  timeout: ReturnType<typeof setTimeout>
+}
+
+const PTY_HOST_REQUEST_TIMEOUT_MS = 10_000
 
 const HOST_ID = crypto
   .createHash('sha256')
@@ -168,14 +174,17 @@ export class Pty {
         const pending = this.pendingRequests.get(message.id)
         if (!pending) continue
         this.pendingRequests.delete(message.id)
+        clearTimeout(pending.timeout)
         if (message.error) pending.reject(new Error(message.error))
         else pending.resolve(message.result)
       }
     })
     socket.on('close', () => {
       if (this.socket === socket) this.socket = null
-      for (const pending of this.pendingRequests.values())
+      for (const pending of this.pendingRequests.values()) {
+        clearTimeout(pending.timeout)
         pending.reject(new Error('PTY host disconnected'))
+      }
       this.pendingRequests.clear()
     })
   }
@@ -183,19 +192,35 @@ export class Pty {
   private async request(op: string, fields: Record<string, unknown> = {}): Promise<any> {
     const socket = await this.ensureSocket()
     const id = requestId++
-    const result = new Promise((resolve, reject) =>
-      this.pendingRequests.set(id, { resolve, reject })
-    )
-    socket.write(
-      `${JSON.stringify({ id, token: this.token, op, terminalId: this.options.id, ...fields })}\n`
-    )
+    const result = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const pending = this.pendingRequests.get(id)
+        if (!pending) return
+        this.pendingRequests.delete(id)
+        socket.destroy()
+        reject(new Error(`PTY host request timed out: ${op} (${PTY_HOST_REQUEST_TIMEOUT_MS}ms)`))
+      }, PTY_HOST_REQUEST_TIMEOUT_MS)
+      this.pendingRequests.set(id, { resolve, reject, timeout })
+    })
+    try {
+      socket.write(
+        `${JSON.stringify({ id, token: this.token, op, terminalId: this.options.id, ...fields })}\n`
+      )
+    } catch (error) {
+      const pending = this.pendingRequests.get(id)
+      if (pending) {
+        this.pendingRequests.delete(id)
+        clearTimeout(pending.timeout)
+        pending.reject(error instanceof Error ? error : new Error(String(error)))
+      }
+    }
     return result
   }
 
   attach(): Promise<AttachResult> {
     if (!this.attachPromise) {
       const env = createTerminalEnvironment(process.env, this.options.extraEnv)
-      this.attachPromise = this.request('attach', {
+      const attaching = this.request('attach', {
         cwd: this.options.cwd,
         cols: this.cols,
         rows: this.rows,
@@ -204,6 +229,10 @@ export class Pty {
         snapshot: Buffer.from(result.snapshot, 'base64'),
         existed: result.existed
       }))
+      this.attachPromise = attaching.catch((error) => {
+        this.attachPromise = null
+        throw error
+      })
     }
     return this.attachPromise
   }
