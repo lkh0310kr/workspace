@@ -6,9 +6,12 @@ import {
   type InteractionSnapshot
 } from '../../interaction/portals/InteractionCoordinator'
 import { fullInteractionDiagnostic, getDebugRing } from './interactionDebugLog'
-import { collectBrowserWebviews } from '@renderer/features/browser/host/runtime/browserInteractionDiagnostics'
 
-function InteractionDebugPanelInner() {
+type Props = {
+  collectBrowserWebviews?: () => Array<Record<string, unknown>>
+}
+
+function InteractionDebugPanelInner({ collectBrowserWebviews }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [snapshot, setSnapshot] = useState<InteractionSnapshot>(() =>
     interactionCoordinator.getSnapshot()
@@ -30,7 +33,10 @@ function InteractionDebugPanelInner() {
     const payload = {
       snapshot,
       ring: getDebugRing(),
-      diagnostic: { ...fullInteractionDiagnostic(), webviews: collectBrowserWebviews() }
+      diagnostic: {
+        ...fullInteractionDiagnostic(),
+        webviews: collectBrowserWebviews?.() ?? []
+      }
     }
     console.log('[IC dump]', payload)
     try {
@@ -100,7 +106,7 @@ function InteractionDebugPanelInner() {
   )
 }
 
-export function InteractionDebugPanel() {
+export function InteractionDebugPanel(props: Props) {
   if (!isDevInstrumentation) return null
-  return <InteractionDebugPanelInner />
+  return <InteractionDebugPanelInner {...props} />
 }

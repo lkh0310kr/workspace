@@ -8,6 +8,7 @@ import {
   type UsageMeterSettings
 } from '../../shared/usage-meter-settings'
 import { ErrorLogPanel, InteractionDebugPanel } from './features/diagnostics'
+import { collectBrowserWebviews } from './features/browser/host/runtime/browserInteractionDiagnostics'
 import { EditorToastViewport, QuickOpen } from './features/editor'
 import { LayoutTabDropOverlay, WorkspaceLayoutHost } from './features/pane-system'
 import { SettingsDialog } from './features/workspace'
@@ -273,7 +274,7 @@ export default function App() {
       />
       <LayoutTabDropOverlay />
       <ErrorLogPanel />
-      <InteractionDebugPanel />
+      <InteractionDebugPanel collectBrowserWebviews={collectBrowserWebviews} />
       <EditorToastViewport />
     </div>
   )
