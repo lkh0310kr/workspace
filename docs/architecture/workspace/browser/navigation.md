@@ -72,7 +72,7 @@ main startup에서 guest 탐색 전 `session.fromPartition('persist:browser')`�
 
 download phase는 started/updated/done, state는 progressing/interrupted/completed/cancelled다. main은 새 window 요청을 deny하고 host guest ID와 URL을 new-tab 이벤트로 전달한다. download bar는 해당 guest ID의 이벤트를 표시한다. preload event subscription은 각각 해제 함수를 반환한다.
 
-이미지 위에서 guest context menu를 열면 `Save Image` 항목을 제공한다. 선택 시 해당 guest의 `downloadURL(srcURL)`을 호출하므로 일반 브라우저 다운로드 이벤트와 Browser downloads bar 경로를 사용한다.
+이미지 위에서 guest context menu를 열면 `Open Image in New Tab`, `Save Image`, `Copy Image`, `Copy Image Address` 항목을 제공한다. `Open Image in New Tab`은 http/https/file URL에만 표시하고, `Copy Image`는 이미지 내용이 있을 때 활성화한다. 저장은 해당 guest의 `downloadURL(srcURL)`로 시작해 일반 브라우저 다운로드 이벤트와 Browser downloads bar 경로를 사용한다. 이미지 복사는 guest의 `copyImageAt(x,y)`, 주소 복사는 시스템 clipboard를 사용한다.
 
 history 명령은 webContents가 없으면 false/null, 있으면 Electron navigationHistory에 위임한다. goToIndex 범위 검사를 이 API에서 추가 제공하지 않는다. focus는 host window를 focus한 뒤 guest wc.focus하며 renderer sender를 다시 focus하지 않는다. blur는 renderer event.sender.focus를 호출한다. 현재 handler의 ID 조회를 sender 소유권 검증까지 구현된 것으로 해석하지 않는다.
 

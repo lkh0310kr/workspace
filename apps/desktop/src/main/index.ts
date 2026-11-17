@@ -35,6 +35,7 @@ import { installClaudeStatuslineHook } from './agent/usage/usage'
 import { installAgentStatusHooks } from './agent/agentHooks'
 import { setupBrowserSession } from './browser/browserSession'
 import { setupBrowserDownloads } from './browser/browserDownloads'
+import { buildBrowserImageContextMenu } from './browser/browserImageContextMenu'
 import { registerBrowserNavIpc } from './browser/browserNav'
 import { registerWorkspaceIpc } from './workspace/ipc/workspace'
 import { registerTerminalIpc } from './terminal/ipc/terminal'
@@ -588,16 +589,23 @@ app.whenReady().then(async () => {
       return { action: 'deny' }
     })
     contents.on('context-menu', (event, params) => {
-      if (params.mediaType !== 'image' || !params.srcURL) return
+      const items = buildBrowserImageContextMenu(params, {
+        openImageInNewTab: (url) =>
+          sendToMainWindow('browser:open-new-tab', {
+            hostWebContentsId: contents.id,
+            url
+          }),
+        saveImage: (url) => {
+          if (!contents.isDestroyed()) contents.downloadURL(url)
+        },
+        copyImage: (x, y) => {
+          if (!contents.isDestroyed()) contents.copyImageAt(x, y)
+        },
+        copyImageAddress: (url) => clipboard.writeText(url)
+      })
+      if (!items) return
       event.preventDefault()
-      const menu = Menu.buildFromTemplate([
-        {
-          label: 'Save Image',
-          click: () => {
-            if (!contents.isDestroyed()) contents.downloadURL(params.srcURL)
-          }
-        }
-      ])
+      const menu = Menu.buildFromTemplate(items)
       const window = mainWindowRef
       menu.popup({ window: window && !window.isDestroyed() ? window : undefined })
     })

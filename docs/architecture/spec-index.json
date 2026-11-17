@@ -705,6 +705,14 @@
           "sha256": "dc9d5cbdb99af91ec0d5819a6548a563e1fafbcb0f45f596c82dc766caee3a3b"
         },
         {
+          "path": "apps/desktop/src/main/browser/browserImageContextMenu.test.ts",
+          "sha256": "7aa31d302968e0f784ea6a9a9671ebe55914f875eaa31066b03a268cdf300a48"
+        },
+        {
+          "path": "apps/desktop/src/main/browser/browserImageContextMenu.ts",
+          "sha256": "5c31b57a7f7b2df37ea5a5f0504d5d7c68dc795f2ddd3f23dec1266cb4a8214f"
+        },
+        {
           "path": "apps/desktop/src/main/browser/browserGpuEnv.ts",
           "sha256": "dd4bf15bcdb66b813e4a08b84d352bd5b7a548967c42cefcfe7e6d3228f2abca"
         },
@@ -726,7 +734,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "1cb9fe760abd89e7ca56d6eef97906f7af367e9c5a27e2480fca233d013e1b43"
+          "sha256": "bda079ed8beb617a89eb82dc6062552daa78e7f7f3ecb439c44aa2db5a14b950"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -905,7 +913,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "1cb9fe760abd89e7ca56d6eef97906f7af367e9c5a27e2480fca233d013e1b43"
+          "sha256": "bda079ed8beb617a89eb82dc6062552daa78e7f7f3ecb439c44aa2db5a14b950"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
