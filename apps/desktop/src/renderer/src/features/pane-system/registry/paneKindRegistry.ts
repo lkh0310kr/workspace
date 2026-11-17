@@ -5,7 +5,7 @@ import type { PaneTabItem, TabKind } from '../layout/paneTypes'
 
 // The pane-kind plugin registry — collapses what used to be a hardcoded
 // `item.kind === "x"` switch repeated across PaneGroup.tsx (render),
-// PaneTabStrip.tsx (tab chip label), layoutActions.ts (factory), and
+// PaneTabStrip.tsx (tab chip label), layoutActionSupport.ts (factory), and
 // paneTypes.ts (label/icon/picker entries) into one PaneKindDefinition
 // object per kind, registered once in builtinPaneKinds.ts. Adding a new
 // pane kind now touches:
@@ -16,7 +16,7 @@ import type { PaneTabItem, TabKind } from '../layout/paneTypes'
 //      tab of a kind nothing can render.
 //   2. One feature-owned pane-kind adapter exporting a PaneKindDefinition.
 //   3. One line in builtinPaneKinds.ts registering it.
-// No more touching PaneGroup.tsx/PaneTabStrip.tsx/layoutActions.ts.
+// No more touching PaneGroup.tsx/PaneTabStrip.tsx/layoutActionSupport.ts.
 
 export interface PaneRenderContext {
   workspaceTabId: number
@@ -116,7 +116,7 @@ export interface PaneFileOpenContext {
 export interface PaneKindDefinition {
   kind: TabKind
   /** Pane-node title (flexlayout tab name) when this is the founding tab
-   * of a brand new pane — see layoutActions.ts's tabGroupNodeJson. */
+   * of a brand new pane — see layoutActionSupport.ts's tabGroupNodeJson. */
   label: string
   icon: string
   /** Tab chip content — rendered for EVERY tab in the group at once (not

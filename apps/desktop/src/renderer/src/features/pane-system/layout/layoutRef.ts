@@ -1,7 +1,7 @@
 import type { DragEvent } from 'react'
 import type { ILayoutApi, Model, TabNode } from 'flexlayout-react'
 import { Actions } from 'flexlayout-react'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
+import { usePaneSystemStore } from '../state/paneSystemStore'
 import { layoutLog } from './layoutDebugLog'
 import { getTabDrag } from './tabDrag'
 
@@ -124,7 +124,7 @@ export function getLayoutModel(workspaceTabId: number): Model | undefined {
 
 /** Orca focusGroup — Zustand dimming + flexlayout active tabset. */
 export function focusPaneGroupTabSet(workspaceTabId: number, tabSetId: string): void {
-  useWorkspaceStore.getState().setFocusedPaneGroupTabSet(workspaceTabId, tabSetId)
+  usePaneSystemStore.getState().setFocusedPaneGroupTabSet(workspaceTabId, tabSetId)
   const model = getLayoutModel(workspaceTabId)
   if (model) {
     model.doAction(Actions.setActiveTabset(tabSetId))

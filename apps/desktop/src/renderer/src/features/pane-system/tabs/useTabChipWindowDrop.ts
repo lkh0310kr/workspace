@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { executeTabChipWindowDrop } from '../layout/layoutChipWindowDrop'
 import { endTabDrag, getTabDrag } from '../layout/tabDrag'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
+import { usePaneSystemStore } from '../state/paneSystemStore'
 
 export function useTabChipWindowDrop(activeTabId: number): void {
-  const bumpLayout = useWorkspaceStore((s) => s.persistLayout)
-  const getModel = useWorkspaceStore((s) => s.getModel)
+  const bumpLayout = usePaneSystemStore((s) => s.persistLayout)
+  const getModel = usePaneSystemStore((s) => s.getModel)
 
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {

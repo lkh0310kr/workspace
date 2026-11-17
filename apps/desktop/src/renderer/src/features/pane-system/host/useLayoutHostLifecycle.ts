@@ -3,7 +3,7 @@ import type { Model } from 'flexlayout-react'
 import type { TabInfo } from '../../workspace'
 import { countLayoutTabs } from '../layout/layoutModelParse'
 import { setActiveLayoutTab, redrawAllLayouts } from '../layout/layoutRef'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
+import { usePaneSystemStore } from '../state/paneSystemStore'
 
 export function useLayoutHostLifecycle(activeTabId: number): void {
   useEffect(() => {
@@ -23,7 +23,7 @@ export function useEnsureDefaultTerminals(
   ensureTerminal: (tabId: number, model: Model, tabSetId: string) => Promise<void>
 ): void {
   useEffect(() => {
-    const store = useWorkspaceStore.getState()
+    const store = usePaneSystemStore.getState()
     for (const tab of tabs ?? []) {
       const model = store.getModel(tab.id)
       if (!model || countLayoutTabs(model) > 0) continue

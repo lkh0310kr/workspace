@@ -19,7 +19,7 @@ import {
 import { registerLayoutController, getLayoutRefCallback } from '../layout/layoutRef'
 import { restorePendingSplitScrollStates } from '../layout/layoutSplitScrollRestore'
 import { PaneGroup } from '../group/PaneGroup'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
+import { usePaneSystemStore } from '../state/paneSystemStore'
 
 const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([
   Actions.ADD_TAB,
@@ -29,12 +29,12 @@ const LAYOUT_STRUCTURE_ACTIONS = new Set<string>([
 ])
 
 export function useLayoutHostCallbacks() {
-  const persistLayout = useWorkspaceStore((s) => s.persistLayout)
-  const getModel = useWorkspaceStore((s) => s.getModel)
-  const setPendingRebalance = useWorkspaceStore((s) => s.setPendingRebalance)
-  const takePendingRebalance = useWorkspaceStore((s) => s.takePendingRebalance)
-  const markEnsureInflight = useWorkspaceStore((s) => s.markEnsureInflight)
-  const clearEnsureInflight = useWorkspaceStore((s) => s.clearEnsureInflight)
+  const persistLayout = usePaneSystemStore((s) => s.persistLayout)
+  const getModel = usePaneSystemStore((s) => s.getModel)
+  const setPendingRebalance = usePaneSystemStore((s) => s.setPendingRebalance)
+  const takePendingRebalance = usePaneSystemStore((s) => s.takePendingRebalance)
+  const markEnsureInflight = usePaneSystemStore((s) => s.markEnsureInflight)
+  const clearEnsureInflight = usePaneSystemStore((s) => s.clearEnsureInflight)
 
   const bumpLayout = useCallback(
     (tabId: number) => {
@@ -79,7 +79,7 @@ export function useLayoutHostCallbacks() {
   const makeOnAction = useCallback(
     (tabId: number) => (action: Action) => {
       if (action.type === Actions.SELECT_TAB || action.type === Actions.SET_ACTIVE_TABSET) {
-        useWorkspaceStore.getState().bumpLayoutRevision(tabId)
+        usePaneSystemStore.getState().bumpLayoutRevision(tabId)
         return action
       }
       if (action.type !== Actions.MOVE_NODE) return action
@@ -115,7 +115,7 @@ export function useLayoutHostCallbacks() {
       const model = getModel(tabId)
       if (!model) return
       if (LAYOUT_STRUCTURE_ACTIONS.has(action.type)) {
-        useWorkspaceStore.getState().bumpLayoutRevision(tabId)
+        usePaneSystemStore.getState().bumpLayoutRevision(tabId)
       }
       const before = summarizeBeforeModelChange(model)
       const draggedId = takePendingRebalance(tabId)

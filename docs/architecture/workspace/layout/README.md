@@ -1,16 +1,16 @@
 # Workspace와 pane layout 계약
 
 
-Pane System 내부에서 `host/`는 layout 수명주기와 callback을, `group/`은 pane group 구성과 표시를, `tabs/`는 pane tab strip/picker/drop을, `overlays/`는 drag/drop overlay를, `registry/`는 pane kind 계약과 기본 등록을 소유한다. `layout/`과 `interaction/`은 이 기능들이 공유하는 순수 layout·interaction 정책이다.
-범위는 제품 여정 J-01과 J-02의 shell 부분이다. workspace tab state는 Workspace feature의 [workspaceStore](../../../../apps/desktop/src/renderer/src/features/workspace/state/workspaceStore.ts)가 소유한다. live FlexLayout model과 layout-session 보조 상태는 PaneSystem의 [model registry](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/workspaceLayoutModels.ts)가 소유한다. 관련 source는 [layoutSession](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/features/pane-system/group/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [layoutActions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts)다.
+Pane System 내부에서 `host/`는 layout 수명주기와 callback을, `group/`은 pane group 구성과 표시를, `tabs/`는 pane tab strip/picker/drop을, `overlays/`는 drag/drop overlay를, `registry/`는 pane kind 계약과 기본 등록을 소유한다. `layout/` 안에서도 파일 열기·탭 mutation은 `paneTabActions.ts`, pane 추가·이동·split은 `paneMoveActions.ts`가 소유하며 `layoutActions.ts`는 기존 호출부를 위한 공개 진입점이다. layout·interaction 정책은 각각 별도 모듈에 둔다.
+범위는 제품 여정 J-01과 J-02의 shell 부분이다. workspace tab state는 Workspace feature의 [workspaceStore](../../../../apps/desktop/src/renderer/src/features/workspace/state/workspaceStore.ts)가 소유한다. live FlexLayout model과 layout-session 보조 상태는 PaneSystem의 [model registry](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/workspaceLayoutModels.ts)가 소유한다. 관련 source는 [layoutSession](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutSession.ts), [PaneGroup](../../../../apps/desktop/src/renderer/src/features/pane-system/group/PaneGroup.tsx), [pane system feature](../../../../apps/desktop/src/renderer/src/features/pane-system/index.ts), [tab actions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/paneTabActions.ts), [pane move actions](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/paneMoveActions.ts), [layoutActions compatibility entry](../../../../apps/desktop/src/renderer/src/features/pane-system/layout/layoutActions.ts)다.
 
 ## 상태 소유 책임
 
 | 상태                              | owner·읽기                                       | mutation                                      |
 | --------------------------------- | ------------------------------------------------ | --------------------------------------------- |
 | Main workspace 탭·root·saved JSON | Main Workspace                                   | workspace IPC → persist/broadcast             |
-| live flexlayout Model             | workspaceLayoutModels의 tabId→Model Map          | hydration의 setLayoutModel, layoutActions     |
-| 마지막 저장 요청 JSON             | 같은 module의 savedLayoutJson Map                | persistLayout 시 즉시 기록                    |
+| live flexlayout Model             | workspaceLayoutModels의 tabId→Model Map          | paneSystemStore hydration 동기화, layoutActions |
+| 마지막 저장 요청 JSON             | 같은 module의 savedLayoutJson Map                | Pane System persistLayout 시 즉시 기록         |
 | renderer workspace 목록·active ID | workspaceStore                                   | hydrateFromWorkspace                          |
 | 구조 render revision              | layoutRevisions[workspaceTabId]                  | model 교체/구조 mutation 때 bump              |
 | pane 활성 chip render revision    | paneTabSelectionRevisions[workspaceTabId:nodeId] | setActiveTabInGroup에서 즉시 bump             |
@@ -18,7 +18,7 @@ Pane System 내부에서 `host/`는 layout 수명주기와 callback을, `group/`
 | focused split                     | focusedPaneGroupTabSetByWorkspaceTab             | pane pointer/focus의 focusPaneGroupTabSet     |
 | Editor tree 폭·모드·확장·scroll | Editor feature의 pane별 상태                     | Editor sidebar slot                |
 
-App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다.
+App component의 modelsRef나 PaneGroup의 별도 localActiveId는 현재 owner가 아니다. UI는 layout mutation을 임의 zustand 복사본에 쓰지 않는다. workspaceLayoutModels는 model·saved JSON·ensure-inflight·pending rebalance를 각각 보관하며 workspace 제거 시 모두 정리한다. Pane System store가 이 비반응형 cache와 revision/focus 상태의 수명을 조정한다. Workspace runtime composition root가 `setTabLayout` capability를 주입한다.
 
 ## 식별자와 설정
 
@@ -28,9 +28,9 @@ readPaneGroupConfig는 config가 없으면 빈 tabs/active ID를 사용한다. a
 
 ## 복원과 저장
 
-hydrate는 tabs의 순서·ID·title·root·JSON 동등성을 비교한다. 같은 상태면 기존 tabs reference와 live model을 보존한다. JSON 문자열이 달라도 JSON parse/serialize 결과가 같으면 동등하다. 다른 saved layout, 없는 model, 비어 있는 model은 modelFromLayoutJson으로 재생성하고 layout revision을 올린다. 사라진 workspace의 model·focus를 제거한다.
+Workspace hydration은 tabs의 순서·ID·title·root·JSON 동등성을 비교한다. 같은 상태면 기존 tabs reference와 live model을 보존한다. layout JSON 문자열이 달라도 JSON parse/serialize 결과가 같으면 동등하다. layout이 바뀌면 Workspace runtime composition이 snapshot을 Pane System store에 전달한다. 다른 saved layout, 없는 model, 비어 있는 model은 modelFromLayoutJson으로 재생성하고 layout revision을 올린다. 사라진 workspace의 model·focus와 대기 저장 timer를 제거한다.
 
-persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱신한 뒤 workspace tab별 250ms timer로 setTabLayout IPC를 요청한다. 같은 workspace의 연속 예약은 최신 layout 하나로 합치며, 다른 workspace의 timer는 서로 취소하지 않는다. hydration에서 workspace가 사라지면 해당 workspace의 대기 timer를 취소한다. 앱 종료 전에 IPC가 완료되지 않는 경우까지 durable flush를 보장하지는 않는다.
+Pane System의 persistLayout은 model.toJson을 serialize하고 saved JSON cache를 즉시 갱신한 뒤 workspace tab별 250ms timer로 주입된 setTabLayout capability를 요청한다. 같은 workspace의 연속 예약은 최신 layout 하나로 합치며, 다른 workspace의 timer는 서로 취소하지 않는다. hydration에서 workspace가 사라지면 해당 workspace의 대기 timer를 취소한다. 앱 종료 전에 IPC가 완료되지 않는 경우까지 durable flush를 보장하지는 않는다.
 
 [host callbacks](../../../../apps/desktop/src/renderer/src/features/pane-system/host/useLayoutHostCallbacks.tsx)는 구조 action에서 revision을 올리고 move policy·pending rebalance·split scroll 복원을 적용한 뒤 persistLayout을 요청한다. SELECT_TAB/SET_ACTIVE_TABSET도 render revision에 반영한다. 임의 model.doAction 뒤 revision 갱신을 누락하지 않는다.
 
@@ -54,7 +54,7 @@ PaneGroup은 dirtyByTabId와 jump 요청을 UI 임시 상태로 소유한다. �
 | LAY-02 | 이동·split 후 item/terminal ID 보존        | layoutActions.mutations/split, layoutTabDrop 테스트                                            |
 | LAY-03 | preview 파일을 다시 열거나 pin             | PaneGroup source 대조, 실제 editor 통합 검증 필요                                              |
 | LAY-04 | dirty close 취소                           | layoutActions.closeTab와 editor registry; 이전 전체 suite에 실패가 있어 native 완료 주장 안 함 |
-| LAY-05 | 다른 workspace에 연속 persist              | `workspaceStore.persist.test.ts`: workspace별 timer 유지 및 같은 workspace 요청 coalescing     |
+| LAY-05 | 다른 workspace에 연속 persist              | `paneSystemStore.persist.test.ts`: workspace별 timer 유지 및 같은 workspace 요청 coalescing     |
 | LAY-06 | root 변경 후 이전 Editor tree 확장 복원 안 함 | editorTreeState.test.ts                                                                          |
 
 관련 구현은 `packages/editor/src/tree/` 및 Desktop layout adapter에 있다. source 대조와 자동 test 결과·installed app acceptance는 별도로 기록한다.

@@ -22,7 +22,7 @@ import {
   useLayoutRevision,
   usePaneTabSelectionRevision
 } from '../host/useLayoutRevision'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
+import { usePaneSystemStore } from '../state/paneSystemStore'
 import { countLayoutTabSets } from '../layout/layoutModelParse'
 import { focusPaneGroupTabSet } from '../layout/layoutRef'
 import { layoutLog } from '../layout/layoutDebugLog'
@@ -60,10 +60,10 @@ export function PaneGroup({ tabNode, workspaceTabId, rootPath, onNotifyChanged }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [model, layoutRevision]
   )
-  const focusedTabSetId = useWorkspaceStore(
+  const focusedTabSetId = usePaneSystemStore(
     (s) => s.focusedPaneGroupTabSetByWorkspaceTab[workspaceTabId]
   )
-  const setFocusedPaneGroupTabSet = useWorkspaceStore((s) => s.setFocusedPaneGroupTabSet)
+  const setFocusedPaneGroupTabSet = usePaneSystemStore((s) => s.setFocusedPaneGroupTabSet)
 
   useEffect(() => {
     if (focusedTabSetId || !tabSetId) return

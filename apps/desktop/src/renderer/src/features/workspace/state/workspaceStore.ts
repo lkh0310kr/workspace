@@ -1,22 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
-import type { Model } from 'flexlayout-react'
 import type { TabInfo, WorkspaceState } from '../runtime/workspaceApi'
-import { setTabLayout } from '../runtime/workspaceApi'
-import { countLayoutTabs, modelFromLayoutJson } from '../../pane-system/layout/layoutModelParse'
-import { layoutLog, layoutLogModel } from '../../pane-system/layout/layoutDebugLog'
-import {
-  clearEnsureInflight as clearLayoutEnsureInflight,
-  deleteLayoutModel,
-  getLayoutModel,
-  getSavedLayoutJson,
-  layoutModelTabIds,
-  markEnsureInflight as markLayoutEnsureInflight,
-  setLayoutModel,
-  setPendingRebalance as setLayoutPendingRebalance,
-  setSavedLayoutJson,
-  takePendingRebalance as takeLayoutPendingRebalance
-} from '../../pane-system/layout/workspaceLayoutModels'
 
 function tabsDataEqual(a: TabInfo[], b: TabInfo[]): boolean {
   if (a.length !== b.length) return false
@@ -41,34 +25,14 @@ function layoutJsonEquivalent(saved: string | undefined, incoming: string): bool
   }
 }
 
-const persistTimers = new Map<number, ReturnType<typeof setTimeout>>()
-
 export type WorkspaceStoreState = {
   hydrated: boolean
   tabs: TabInfo[]
   activeTabId: number
-  /** Per workspace-tab layout model revision — bumps when that tab's Model reloads or pane tab structure changes. */
-  layoutRevisions: Record<number, number>
-  /** Per pane active-tab selection revision; avoids waiting for debounced layout persistence. */
-  paneTabSelectionRevisions: Record<string, number>
-  /** flexlayout tabset id with UI focus when multiple pane groups are visible. */
-  focusedPaneGroupTabSetByWorkspaceTab: Record<number, string | undefined>
 }
 
 type WorkspaceStoreActions = {
-  hydrateFromWorkspace: (ws: WorkspaceState) => void
-  syncModelsFromWorkspace: (ws: WorkspaceState) => void
-  bumpLayoutRevision: (tabId: number) => void
-  bumpPaneTabSelectionRevision: (workspaceTabId: number, nodeId: string) => void
-  getLayoutRevision: (tabId: number) => number
-  getModel: (tabId: number) => Model | undefined
-  persistLayout: (tabId: number, model: Model) => void
-  setPendingRebalance: (tabId: number, nodeId: string | null) => void
-  takePendingRebalance: (tabId: number) => string | null | undefined
-  markEnsureInflight: (tabId: number) => boolean
-  clearEnsureInflight: (tabId: number) => void
-  clearWorkspaceTabFocus: (workspaceTabId: number) => void
-  setFocusedPaneGroupTabSet: (workspaceTabId: number, tabSetId: string) => void
+  hydrateFromWorkspace: (ws: WorkspaceState) => boolean
 }
 
 export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActions>()(
@@ -76,11 +40,8 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
     hydrated: false,
     tabs: [],
     activeTabId: 0,
-    layoutRevisions: {},
-    paneTabSelectionRevisions: {},
-    focusedPaneGroupTabSetByWorkspaceTab: {},
 
-    hydrateFromWorkspace(ws: WorkspaceState) {
+    hydrateFromWorkspace(ws: WorkspaceState): boolean {
       const prev = get()
       const tabsPreserved = prev.hydrated && tabsDataEqual(prev.tabs, ws.tabs)
       const nextTabs = tabsPreserved ? prev.tabs : ws.tabs
@@ -89,146 +50,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState & WorkspaceStoreActi
         tabs: nextTabs,
         activeTabId: ws.active_tab_id
       })
-      if (!tabsPreserved) {
-        get().syncModelsFromWorkspace({ ...ws, tabs: nextTabs })
-      }
-    },
-
-    syncModelsFromWorkspace(ws: WorkspaceState) {
-      const bumpedTabIds = new Set<number>()
-      const seen = new Set<number>()
-      for (const tab of ws.tabs) {
-        seen.add(tab.id)
-        const saved = getSavedLayoutJson(tab.id)
-        const existing = getLayoutModel(tab.id)
-        const emptyModel = existing !== undefined && countLayoutTabs(existing) === 0
-        if (layoutJsonEquivalent(saved, tab.layout_json) && existing && !emptyModel) {
-          continue
-        }
-        setLayoutModel(tab.id, modelFromLayoutJson(tab.layout_json))
-        bumpedTabIds.add(tab.id)
-        layoutLogModel(
-          'workspaceStore.syncModelsFromWorkspace',
-          'model loaded',
-          getLayoutModel(tab.id),
-          { tabId: tab.id },
-          tab.id
-        )
-        if (saved !== tab.layout_json) {
-          setSavedLayoutJson(tab.id, tab.layout_json)
-        }
-      }
-      for (const [tabId, timer] of persistTimers) {
-        if (seen.has(tabId)) continue
-        clearTimeout(timer)
-        persistTimers.delete(tabId)
-      }
-      for (const id of layoutModelTabIds()) {
-        if (!seen.has(id)) {
-          deleteLayoutModel(id)
-          get().clearWorkspaceTabFocus(id)
-          bumpedTabIds.add(id)
-        }
-      }
-      const nextFocused = { ...get().focusedPaneGroupTabSetByWorkspaceTab }
-      for (const id of Object.keys(nextFocused).map(Number)) {
-        if (!seen.has(id)) delete nextFocused[id]
-      }
-      if (bumpedTabIds.size === 0) {
-        set({ focusedPaneGroupTabSetByWorkspaceTab: nextFocused })
-        return
-      }
-      const nextRevisions = { ...get().layoutRevisions }
-      for (const tabId of bumpedTabIds) {
-        nextRevisions[tabId] = (nextRevisions[tabId] ?? 0) + 1
-      }
-      set({ layoutRevisions: nextRevisions, focusedPaneGroupTabSetByWorkspaceTab: nextFocused })
-    },
-
-    bumpLayoutRevision(tabId: number) {
-      set({
-        layoutRevisions: {
-          ...get().layoutRevisions,
-          [tabId]: (get().layoutRevisions[tabId] ?? 0) + 1
-        }
-      })
-    },
-
-    bumpPaneTabSelectionRevision(workspaceTabId: number, nodeId: string) {
-      const key = `${workspaceTabId}:${nodeId}`
-      set({
-        paneTabSelectionRevisions: {
-          ...get().paneTabSelectionRevisions,
-          [key]: (get().paneTabSelectionRevisions[key] ?? 0) + 1
-        }
-      })
-    },
-
-    getLayoutRevision(tabId: number) {
-      return get().layoutRevisions[tabId] ?? 0
-    },
-
-    getModel(tabId: number) {
-      return getLayoutModel(tabId)
-    },
-
-    persistLayout(tabId: number, model: Model) {
-      const json = JSON.stringify(model.toJson())
-      setSavedLayoutJson(tabId, json)
-      layoutLogModel(
-        'workspaceStore.persistLayout',
-        'persist scheduled',
-        model,
-        { jsonLength: json.length },
-        tabId
-      )
-      const previousTimer = persistTimers.get(tabId)
-      if (previousTimer !== undefined) clearTimeout(previousTimer)
-      const timer = setTimeout(() => {
-        if (persistTimers.get(tabId) !== timer) return
-        persistTimers.delete(tabId)
-        layoutLog(
-          'workspaceStore.persistLayout',
-          'persist flush',
-          { tabId, jsonLength: json.length },
-          tabId
-        )
-        setTabLayout(tabId, json).catch(console.error)
-      }, 250)
-      persistTimers.set(tabId, timer)
-    },
-
-    setPendingRebalance(tabId: number, nodeId: string | null) {
-      setLayoutPendingRebalance(tabId, nodeId)
-    },
-
-    takePendingRebalance(tabId: number) {
-      return takeLayoutPendingRebalance(tabId)
-    },
-
-    markEnsureInflight(tabId: number) {
-      return markLayoutEnsureInflight(tabId)
-    },
-
-    clearEnsureInflight(tabId: number) {
-      clearLayoutEnsureInflight(tabId)
-    },
-
-    clearWorkspaceTabFocus(workspaceTabId: number) {
-      const nextFocused = { ...get().focusedPaneGroupTabSetByWorkspaceTab }
-      delete nextFocused[workspaceTabId]
-      set({ focusedPaneGroupTabSetByWorkspaceTab: nextFocused })
-    },
-
-    setFocusedPaneGroupTabSet(workspaceTabId: number, tabSetId: string) {
-      const prev = get().focusedPaneGroupTabSetByWorkspaceTab[workspaceTabId]
-      if (prev === tabSetId) return
-      set({
-        focusedPaneGroupTabSetByWorkspaceTab: {
-          ...get().focusedPaneGroupTabSetByWorkspaceTab,
-          [workspaceTabId]: tabSetId
-        }
-      })
+      return !tabsPreserved
     }
   }))
 )

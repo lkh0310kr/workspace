@@ -28,13 +28,13 @@ import {
   useLayoutHostLifecycle,
   useSplitterDragOverlay,
   useTabChipWindowDrop,
-  useVisibleWorkspaceTab
+  useVisibleWorkspaceTab,
+  usePaneSystemStore
 } from './features/pane-system'
 import { useWorkspace, useWorkspaceTabHotkeys } from './features/workspace'
 import { useWorkspaceScope } from './features/workspace/useWorkspaceScope'
 import { switchToHome } from '@renderer/features/workspace/navigationApi'
 import { applyThemePreference, setStoredThemePreference } from './theme'
-import { useWorkspaceStore } from '@renderer/features/workspace/stateApi'
 import type { Model, TabNode, TabSetNode } from 'flexlayout-react'
 import { readPaneGroupConfig, resolveActivePaneTab } from './features/pane-system/layout/layoutSession'
 import { openEditorFileInPaneGroup } from './features/editor'
@@ -85,7 +85,7 @@ async function openFileInActivePane(
 export default function App() {
   const workspace = useWorkspace()
   const layoutRevisions = useLayoutRevisions()
-  const storeGetModel = useWorkspaceStore((s) => s.getModel)
+  const storeGetModel = usePaneSystemStore((s) => s.getModel)
   const layoutCallbacks = useLayoutHostCallbacks()
   const { bumpLayout, ensureTerminal } = layoutCallbacks
 
@@ -107,7 +107,7 @@ export default function App() {
   const visibleWorkspaceTabId = useVisibleWorkspaceTab()
   const activeModel = storeGetModel(activeTabId)
   const visibleModel = storeGetModel(visibleWorkspaceTabId)
-  const focusedPaneGroupId = useWorkspaceStore(
+  const focusedPaneGroupId = usePaneSystemStore(
     (s) => s.focusedPaneGroupTabSetByWorkspaceTab[visibleWorkspaceTabId]
   )
   const focusedPaneNode = focusedPaneGroupId

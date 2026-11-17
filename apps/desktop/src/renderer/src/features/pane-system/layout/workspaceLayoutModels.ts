@@ -2,7 +2,7 @@ import type { Model } from 'flexlayout-react'
 
 /**
  * flexlayout Model instances and layout-side ephemeral state.
- * Lives outside zustand reactive tree — use workspaceStore actions to mutate.
+ * Lives outside zustand reactive tree — use paneSystemStore actions to mutate.
  */
 const modelsByTabId = new Map<number, Model>()
 const savedLayoutJsonByTabId = new Map<number, string>()
