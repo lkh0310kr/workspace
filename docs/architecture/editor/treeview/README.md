@@ -20,6 +20,7 @@ Desktop Editor는 공유 `packages/editor`의 `@workspace/editor/tree` 기능 sl
 - 숨김 파일과 `.gitignore` 판정은 서로 다른 상태로 표시한다. 무시 파일도 Editor tree에서 탐색하고 열 수 있다.
 - 숨길 파일·폴더는 Editor pane에 focus한 뒤 `Cmd+,`로 연 설정창의 파일 및 폴더 메뉴에서 여러 줄 입력란에 한 줄씩 이름 또는 `*` 패턴을 적어 지정한다. workspace별 `.workspace/settings.json`의 `editor.hiddenFiles`에 저장한다. 기본 목록은 비어 있어 모든 파일과 폴더를 표시한다. 목록의 항목만 TreeView에서 숨기며 `.gitignore` 항목과 빠른 열기·파일 내용 검색에는 영향을 주지 않는다. 같은 메뉴의 Markdown 확장자 숨기기는 기본 꺼짐이며, 켜면 TreeView에서 `.md`와 `.markdown` 확장자를 감춘다.
 - Markdown 확장자 표시 설정은 TreeView에만 적용하며 문서 본문 제목 규칙과 분리한다.
+- 파일·폴더 우클릭 메뉴의 고정 동작은 해당 항목을 같은 폴더 목록의 맨 위로 올리고 이름 옆에 핀 아이콘을 표시한다. 고정 경로는 workspace별 `.workspace/settings.json`의 `editor.pinnedPaths`에 저장하며, 이름 변경·이동 시 경로를 갱신하고 삭제 시 해당 항목과 하위 경로를 제거한다.
 
 ## 수락 시나리오
 
@@ -32,5 +33,6 @@ Desktop Editor는 공유 `packages/editor`의 `@workspace/editor/tree` 기능 sl
 | TREE-05 | 파일 rename 또는 move                                   | 실제 filesystem 변경 뒤 tree path와 열린 문서 identity가 갱신된다.                                                                                                                                                       |
 | TREE-06 | `.gitignore` 대상과 무시되지 않는 항목 표시             | 무시 여부만 muted style로 구분하고 탐색 기능은 유지한다.                                                                                                                                                                 |
 | TREE-07 | Editor 설정에서 파일 필터와 Markdown 확장자 표시를 관리 | 모든 파일과 폴더를 기본 표시하고, 사용자가 지정한 패턴만 TreeView에서 숨긴다. Markdown 확장자 표시는 설정에 따라 바뀌며 다른 목록과 검색은 변하지 않는다. 설정은 해당 workspace의 `.workspace/settings.json`에 저장된다. |
+| TREE-08 | 파일 또는 폴더를 우클릭해 고정하거나 고정 해제          | 고정 항목이 같은 폴더의 맨 위로 이동하고 이름 옆에 핀 아이콘이 표시된다. 재시작 후에도 유지되며 이름 변경·이동·삭제에 맞춰 경로가 정리된다.                                                                              |
 
 근거는 `TreeView.test.ts`, `editorTreeProjection.test.ts`, `editorTreeReload.test.ts`, `TreeView.scroll.test.ts`, `EditorSidebar.shortcut.test.ts`와 `scripts/check-editor-tree-contract.mjs`다. 실제 Electron drag/drop과 OS별 focus 동작은 별도 수동 확인 대상이다.

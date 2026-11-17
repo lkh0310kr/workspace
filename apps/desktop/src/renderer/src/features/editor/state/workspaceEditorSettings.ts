@@ -5,6 +5,7 @@ export interface WorkspaceEditorSettings {
   autoSave: boolean
   hiddenFiles: string[]
   hideMarkdownExtension: boolean
+  pinnedPaths: string[]
 }
 
 interface Snapshot {
@@ -17,7 +18,8 @@ const SETTINGS_PATH = '.workspace/settings.json'
 const DEFAULT_SETTINGS: WorkspaceEditorSettings = {
   autoSave: false,
   hiddenFiles: [],
-  hideMarkdownExtension: false
+  hideMarkdownExtension: false,
+  pinnedPaths: []
 }
 const snapshots = new Map<string, Snapshot>()
 const listeners = new Map<string, Set<() => void>>()
@@ -75,13 +77,17 @@ function parseSettings(
     const hiddenFiles = Array.isArray(record.hiddenFiles)
       ? record.hiddenFiles.filter((item): item is string => typeof item === 'string')
       : []
+    const pinnedPaths = Array.isArray(record.pinnedPaths)
+      ? record.pinnedPaths.filter((item): item is string => typeof item === 'string')
+      : []
     return {
       autoSave: typeof record.autoSave === 'boolean' ? record.autoSave : fallback.autoSave,
       hiddenFiles,
       hideMarkdownExtension:
         typeof record.hideMarkdownExtension === 'boolean'
           ? record.hideMarkdownExtension
-          : DEFAULT_SETTINGS.hideMarkdownExtension
+          : DEFAULT_SETTINGS.hideMarkdownExtension,
+      pinnedPaths
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -132,7 +138,8 @@ export async function saveWorkspaceEditorSettings(
     hiddenFiles: [
       ...new Set(settings.hiddenFiles.map((pattern) => pattern.trim()).filter(Boolean))
     ],
-    hideMarkdownExtension: settings.hideMarkdownExtension === true
+    hideMarkdownExtension: settings.hideMarkdownExtension === true,
+    pinnedPaths: [...new Set(settings.pinnedPaths.map((path) => path.trim()).filter(Boolean))]
   }
   const content = `${JSON.stringify({ editor: normalized }, null, 2)}\n`
   await window.api.fs.writeFile(tabId, SETTINGS_PATH, content, rootPath)

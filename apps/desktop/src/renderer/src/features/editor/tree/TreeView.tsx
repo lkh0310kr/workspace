@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type ReactNode,
   type RefObject
 } from 'react'
 import { revealItemInDir } from '../../../adapters/platform/nativeShell'
@@ -51,7 +52,10 @@ import {
   type EditorTreeViewItem
 } from '@workspace/editor'
 import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
-import { useWorkspaceEditorSettings } from '../state/workspaceEditorSettings'
+import {
+  saveWorkspaceEditorSettings,
+  useWorkspaceEditorSettings
+} from '../state/workspaceEditorSettings'
 
 interface Props {
   tabId: number
@@ -168,6 +172,8 @@ export function TreeView({
   )
   const editorProvider = editorProviderLease.provider
   const workspaceEditorSettings = useWorkspaceEditorSettings(tabId, rootPath)
+  const pinnedPaths = workspaceEditorSettings.settings.pinnedPaths
+  const pinnedPathSet = useMemo(() => new Set(pinnedPaths), [pinnedPaths])
   const canCreateFile = editorSupportsOperation(editorProvider, 'createFile')
   const canCreateDirectory = editorSupportsOperation(editorProvider, 'createDirectory')
   const canRename = editorSupportsOperation(editorProvider, 'rename')
@@ -381,6 +387,38 @@ export function TreeView({
     [onOpenFile, revealAncestors]
   )
 
+  const savePinnedPaths = (nextPinnedPaths: string[]) => {
+    void saveWorkspaceEditorSettings(tabId, rootPath, {
+      ...workspaceEditorSettings.settings,
+      pinnedPaths: nextPinnedPaths
+    }).catch((error: unknown) => window.alert(`고정 상태를 저장하지 못했습니다: ${String(error)}`))
+  }
+
+  const togglePinned = (entry: DirEntry) => {
+    setMenu(null)
+    const wasPinned = pinnedPathSet.has(entry.path)
+    const nextPinnedPaths = wasPinned
+      ? pinnedPaths.filter((path) => path !== entry.path)
+      : [...pinnedPaths, entry.path]
+    savePinnedPaths(nextPinnedPaths)
+    if (!wasPinned) {
+      setScrollTop(0)
+      if (scrollContainerRef?.current) scrollContainerRef.current.scrollTop = 0
+    }
+  }
+
+  const updatePinnedPaths = (transform: (path: string) => string | null) => {
+    const nextPinnedPaths = [
+      ...new Set(pinnedPaths.map(transform).filter((path): path is string => path !== null))
+    ]
+    if (
+      nextPinnedPaths.length !== pinnedPaths.length ||
+      nextPinnedPaths.some((path, index) => path !== pinnedPaths[index])
+    ) {
+      savePinnedPaths(nextPinnedPaths)
+    }
+  }
+
   useEffect(() => {
     const dismissOverlayUi = () => {
       setMenu(null)
@@ -405,6 +443,7 @@ export function TreeView({
               (entry) =>
                 !matchesHiddenPattern(entry.name, workspaceEditorSettings.settings.hiddenFiles)
             )
+            .sort((a, b) => Number(pinnedPathSet.has(b.path)) - Number(pinnedPathSet.has(a.path)))
             .map((entry) => ({
               ...entry,
               name: entry.name,
@@ -414,7 +453,7 @@ export function TreeView({
       ),
       treeExpanded
     ).map(({ item, depth }) => ({ entry: item, depth }))
-  }, [dirs, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
+  }, [dirs, pinnedPathSet, treeExpanded, workspaceEditorSettings.settings.hiddenFiles])
 
   useEffect(() => {
     const pending = pendingScrollRestoreRef.current
@@ -531,12 +570,27 @@ export function TreeView({
             : classifyFile(entry.name) === 'code'
               ? 'code'
               : 'asset'
+        const pinned = pinnedPathSet.has(entry.path)
+        const trailingStatus: ReactNode = pinned ? (
+          <svg data-editor-pin="" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <path
+              d="m9.7 1.8 4.5 4.5-2 .6-1.4 2.6-2.4-2.4-4.1 5.8-.8-.8 5.8-4.1-2.4-2.4 2.6-1.4.2-1.8Z"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.2"
+            />
+          </svg>
+        ) : undefined
         return {
           id: entry.editorItemId,
           path: entry.path,
           name: editorTreeItemLabel(entry.name, detected, {
             showMarkdownExtension: !workspaceEditorSettings.settings.hideMarkdownExtension
           }),
+          trailingStatus,
+          trailingStatusLabel: pinned ? '고정됨' : undefined,
           kind: detected,
           depth,
           expandable: entry.is_dir,
@@ -710,7 +764,13 @@ export function TreeView({
           if (!editorSupportsOperation(editorProvider, 'rename'))
             throw new Error('Renaming is not supported by this provider')
           await editorProvider.rename!(ref, name)
-          onPathRenamed?.(edit.entry.path, joinPath(dirOf(edit.entry.path), name))
+          const renamedPath = joinPath(dirOf(edit.entry.path), name)
+          updatePinnedPaths((path) =>
+            path === edit.entry.path || path.startsWith(`${edit.entry.path}/`)
+              ? `${renamedPath}${path.slice(edit.entry.path.length)}`
+              : path
+          )
+          onPathRenamed?.(edit.entry.path, renamedPath)
           refresh(dirOf(edit.entry.path))
         } catch (error) {
           window.alert(String(error))
@@ -769,6 +829,11 @@ export function TreeView({
       }
     }
     if (deleted.length === 0) return
+    updatePinnedPaths((path) =>
+      deleted.some((deletedPath) => path === deletedPath || path.startsWith(`${deletedPath}/`))
+        ? null
+        : path
+    )
     for (const d of new Set(deleted.map(dirOf))) refresh(d)
     const remaining = paths.filter((path) => !deleted.includes(path))
     setSelected(new Set(remaining))
@@ -809,6 +874,7 @@ export function TreeView({
     if (!canMove) return
     paths = selectionRootPaths(paths)
     const moved: string[] = []
+    const movedPaths = new Map<string, string>()
     for (const p of paths) {
       if (dirOf(p) === targetDir) continue
       if (targetDir === p || targetDir.startsWith(`${p}/`)) continue
@@ -829,9 +895,16 @@ export function TreeView({
         continue
       }
       moved.push(p)
+      movedPaths.set(p, to)
       onPathRenamed?.(p, to)
     }
     if (moved.length === 0) return
+    updatePinnedPaths((path) => {
+      for (const [from, to] of movedPaths) {
+        if (path === from || path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`
+      }
+      return path
+    })
     for (const d of new Set([...moved.map(dirOf), targetDir])) refresh(d)
     setSelected((prev) => new Set([...prev].filter((path) => !moved.includes(path))))
   }
@@ -940,6 +1013,16 @@ export function TreeView({
     if (!menu.entry) return items
 
     items.push({ type: 'separator' })
+    items.push({
+      type: 'button',
+      label: !workspaceEditorSettings.loaded
+        ? '설정을 불러오는 중…'
+        : pinnedPathSet.has(menu.entry.path)
+          ? '고정 해제'
+          : '고정',
+      disabled: !workspaceEditorSettings.loaded,
+      onClick: () => togglePinned(menu.entry!)
+    })
     if (canRename && selected.size <= 1) {
       items.push({
         type: 'button',
@@ -982,6 +1065,9 @@ export function TreeView({
     canCreateDirectory,
     canRename,
     canDelete,
+    pinnedPathSet,
+    workspaceEditorSettings.loaded,
+    togglePinned,
     beginInlineCreate,
     beginInlineRename
   ])

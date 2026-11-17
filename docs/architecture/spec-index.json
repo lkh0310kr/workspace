@@ -55,7 +55,7 @@
       "sources": [
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "6350057ae473e99e36ea8cc146b25bc2a481d0cc5f61eb87f5dea654caaeb63e"
+          "sha256": "d83bedd67bb69171c09b9ab3f61c3c852e77b09188bfd7a9a9363e4b76972c64"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.tsx",
@@ -563,7 +563,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.tsx",
-          "sha256": "6350057ae473e99e36ea8cc146b25bc2a481d0cc5f61eb87f5dea654caaeb63e"
+          "sha256": "d83bedd67bb69171c09b9ab3f61c3c852e77b09188bfd7a9a9363e4b76972c64"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/usePaneGroupEditorSidebarState.ts",
@@ -1257,7 +1257,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/app-shell/appShell.css",
-          "sha256": "e60f53f61d607c76b79b81b5d48cc29101e2fc7fc4ab860d07bdeeaaab339dcf"
+          "sha256": "27cee974dc6ec2b47314252187fc3c5c15175889a8181c3b7bba354e244bff2c"
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
