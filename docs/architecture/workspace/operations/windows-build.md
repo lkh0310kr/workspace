@@ -27,3 +27,9 @@ npm run promote:stable
 ```
 
 결과물은 `apps/desktop/dist/`에 생성됩니다.
+
+`promote:stable` runs `build:win:dir`, installs `dist/win-unpacked` under
+`%LOCALAPPDATA%\Programs\Workspace`, and relaunches the installed app. If the
+build cannot start, the command reports the underlying spawn error; if the
+build fails, it reports the exit code. On Windows the script invokes `npm.cmd`
+so it works when the interactive shell resolves `npm` to `npm.ps1`.

@@ -515,12 +515,28 @@ function promoteWindows() {
   const builtDir = path.join(root, 'dist', 'win-unpacked')
   const builtExe = path.join(builtDir, 'electron.exe')
   console.log('[promote-stable] building Electron app…')
-  const build = spawnSync('npm', ['run', 'build:win:dir'], { cwd: root, stdio: 'inherit' })
-  if (build.status !== 0) process.exit(build.status ?? 1)
+  // PowerShell resolves `npm` to npm.ps1, and Windows cannot spawn .cmd files
+  // directly. Invoke the npm command shim through cmd.exe instead.
+  const buildCommand = process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : 'npm'
+  const buildArgs =
+    process.platform === 'win32'
+      ? ['/d', '/s', '/c', 'npm.cmd run build:win:dir']
+      : ['run', 'build:win:dir']
+  const build = spawnSync(buildCommand, buildArgs, {
+    cwd: root,
+    stdio: 'inherit',
+    windowsHide: true
+  })
+  if (build.error) {
+    throw new Error(`could not start build command: ${build.error.message}`)
+  }
+  if (build.status !== 0) {
+    const reason = build.signal ? `signal ${build.signal}` : `exit code ${build.status}`
+    throw new Error(`Windows build failed (${reason})`)
+  }
 
   if (!existsSync(builtExe)) {
-    console.error(`[promote-stable] expected build output missing: ${builtExe}`)
-    process.exit(1)
+    throw new Error(`expected build output missing: ${builtExe}`)
   }
 
   console.log('[promote-stable] quitting the running stable app, if any…')
