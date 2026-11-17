@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { openModelPreview } from '../../../runtime/editorIpc'
-import { onFileChanged, readFileBinaryPreview } from '../../../runtime/localFileSystem'
+import { openModelPreview } from '../../host/editorIpc'
+import { onFileChanged, readFileBinaryPreview } from '../../../provider/local/localFileSystem'
 import type { SceneManifest as Manifest } from '../../../../../../../shared/model3d/types'
 import { logModel3d } from '../model3dLog'
 import { shouldReloadModelPreview, withModelCacheBust } from './modelPreviewWatch'

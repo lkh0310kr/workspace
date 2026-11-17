@@ -9,7 +9,7 @@ import {
   type RefObject
 } from 'react'
 import { revealItemInDir } from '../../../adapters/platform/nativeShell'
-import type { DirEntry } from '../runtime/localFileSystem'
+import type { DirEntry } from '../provider/local/localFileSystem'
 import { interactionCoordinator } from '../../../interaction/portals/InteractionCoordinator'
 import { returnRendererFocusBeforeSurfaceHidden } from '../../../interaction/focus/embeddedSurfaceFocus'
 import { finishPaneDrag } from '../../pane-system/layout/layoutRef'
@@ -50,7 +50,7 @@ import {
   type EditorTreeProjection,
   type EditorTreeViewItem
 } from '@workspace/editor'
-import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 
 interface Props {
   tabId: number

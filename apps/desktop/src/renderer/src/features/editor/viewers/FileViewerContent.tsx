@@ -1,5 +1,5 @@
 import { EditorFileViewer, type EditorFileViewerProps } from '@workspace/editor/viewers'
-import { desktopEditorViewerHost } from '../runtime/desktopEditorViewerHost'
+import { desktopEditorViewerHost } from './host/desktopEditorViewerHost'
 
 type Props = Omit<EditorFileViewerProps, 'host'>
 

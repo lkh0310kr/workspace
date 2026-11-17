@@ -1,2 +1,2 @@
 export { getStoredAutoSave, setStoredAutoSave, subscribeAutoSave } from './state/autosave'
-export { pastePlainTextInFocusedEditor } from './runtime/activeEditorView'
+export { pastePlainTextInFocusedEditor } from './input/activeEditorView'

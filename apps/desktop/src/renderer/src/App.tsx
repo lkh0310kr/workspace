@@ -2,7 +2,7 @@ import { AppSettingsDialog, AppTitlebar, LoadingWorkspace } from './features/app
 import { AgentUsageStatusBar } from './features/agent-usage'
 import { loadUsageMeterSettings, saveUsageMeterSettings } from './features/agent-usage/usageApi'
 import { onHomeShortcut } from './features/app-shell/shellShortcuts'
-import { onQuickOpenShortcut } from './features/editor/runtime/editorShortcuts'
+import { onQuickOpenShortcut } from './features/editor/input/editorShortcuts'
 import {
   DEFAULT_USAGE_METER_SETTINGS,
   type UsageMeterSettings

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { EditorSearchPanel } from '@workspace/editor/search'
-import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 
 interface Props {
   tabId: number

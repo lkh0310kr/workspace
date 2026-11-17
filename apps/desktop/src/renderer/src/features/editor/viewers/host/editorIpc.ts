@@ -1,5 +1,5 @@
-import type { CadViewerOpenResult } from '../../../../../shared/cadViewer'
-import type { SceneManifest } from '../../../../../shared/model3d/types'
+import type { CadViewerOpenResult } from '../../../../../../shared/cadViewer'
+import type { SceneManifest } from '../../../../../../shared/model3d/types'
 
 export async function getMediaUrl(
   tabId: number,
@@ -54,7 +54,7 @@ export async function getEbookState(
   tabId: number | null,
   rel: string | null,
   absolutePath?: string
-): Promise<import('../../../../../shared/ebookState').EbookBookState> {
+): Promise<import('../../../../../../shared/ebookState').EbookBookState> {
   return window.api.epub.getState(tabId, rel, absolutePath)
 }
 
@@ -62,8 +62,8 @@ export async function saveEbookState(
   tabId: number | null,
   rel: string | null,
   absolutePath: string | undefined,
-  patch: Partial<import('../../../../../shared/ebookState').EbookBookState>
-): Promise<import('../../../../../shared/ebookState').EbookBookState> {
+  patch: Partial<import('../../../../../../shared/ebookState').EbookBookState>
+): Promise<import('../../../../../../shared/ebookState').EbookBookState> {
   return window.api.epub.saveState(tabId, rel, absolutePath, patch)
 }
 

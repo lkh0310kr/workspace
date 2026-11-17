@@ -34,7 +34,7 @@ Quick Open dialog는 document.body portal이며 열릴 때 input에 focus하고,
 
 ## Find in Files 패널과 Desktop provider
 
-패널과 query lifecycle 근거: [EditorSearchPanel.tsx](../../../packages/editor/src/search/EditorSearchPanel.tsx), [useEditorFileContentSearch.ts](../../../packages/editor/src/search/useEditorFileContentSearch.ts). Desktop provider 근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts).
+패널과 query lifecycle 근거: [EditorSearchPanel.tsx](../../../packages/editor/src/search/EditorSearchPanel.tsx), [useEditorFileContentSearch.ts](../../../packages/editor/src/search/useEditorFileContentSearch.ts). Desktop provider 근거: [localEditorProvider.ts](../../../apps/desktop/src/renderer/src/features/editor/provider/local/localEditorProvider.ts).
 
 EditorSearchPanel은 `EditorProvider` capability를 받고 파일 검색 결과 표시·교체 UI를 소유한다. Desktop `SearchPanel` adapter는 workspace tab/root로 local provider lease를 얻어 주입하고, 결과 선택을 기존 Editor pane navigation으로 전달한다. 입력 변경은 이전 작업을 취소하고 250ms debounce 후 최신 query만 실행한다. 이전 query 결과는 새 query 표시 전에 비우며 stream 결과는 animation frame 단위로 합친다. 검색 오류가 나도 이미 전달된 stream 결과는 유지한다.
 

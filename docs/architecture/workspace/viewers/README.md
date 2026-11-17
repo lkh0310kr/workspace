@@ -14,7 +14,7 @@ App scope의 J-05다. 공유 editor의 asset snapshot과 실제 renderer를 구�
 
 직접 file URL, app custom protocol, Blob URL, local viewer service URL은 서로 다르다. format 분류 정책은 [`@workspace/editor/assets`](../../../../packages/editor/src/assets/index.ts)와 [`@workspace/editor/viewers`](../../../../packages/editor/src/viewers/index.ts), UI dispatch는 [`EditorFileViewer`](../../../../packages/editor/src/viewers/EditorFileViewer.tsx)가 소유하고 [Desktop adapter](../../../../apps/desktop/src/renderer/src/features/editor/viewers/FileViewerContent.tsx)가 host 기능을 연결한다.
 
-Renderer의 media·model preview·CAD·EPUB IPC adapter는 [editorIpc](../../../../apps/desktop/src/renderer/src/features/editor/runtime/editorIpc.ts)에 둔다. [desktopEditorViewerHost](../../../../apps/desktop/src/renderer/src/features/editor/runtime/desktopEditorViewerHost.tsx)가 IPC/file APIs와 Desktop viewer component를 package UI에 주입한다. Editor package는 Main API를 직접 호출하지 않는다.
+Renderer의 media·model preview·CAD·EPUB IPC adapter는 [editorIpc](../../../../apps/desktop/src/renderer/src/features/editor/viewers/host/editorIpc.ts)에 둔다. [desktopEditorViewerHost](../../../../apps/desktop/src/renderer/src/features/editor/viewers/host/desktopEditorViewerHost.tsx)가 IPC/file APIs와 Desktop viewer component를 package UI에 주입한다. Editor package는 Main API를 직접 호출하지 않는다.
 
 ## 3D import 계약
 

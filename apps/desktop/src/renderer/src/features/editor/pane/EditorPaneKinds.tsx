@@ -6,8 +6,8 @@ import {
   confirmEditorPaneItemClose,
   releaseEditorPaneItem,
   updateEditorPaneDirty
-} from '../runtime/editorPaneLifecycle'
-import { openEditorFileInGroup } from '../runtime/editorPaneActions'
+} from './editorPaneLifecycle'
+import { openEditorFileInGroup } from './editorPaneActions'
 
 function fileTabLabel(item: { filePath?: string | null }): string {
   const path = item.filePath

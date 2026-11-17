@@ -4,7 +4,7 @@
 
 ## Workspace provider identity와 수명
 
-근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/features/editor/runtime/localEditorProvider.ts), [localFileSystem.ts](../../../../apps/desktop/src/renderer/src/features/editor/runtime/localFileSystem.ts).
+근거: [localEditorProvider.ts](../../../../apps/desktop/src/renderer/src/features/editor/provider/local/localEditorProvider.ts), [localFileSystem.ts](../../../../apps/desktop/src/renderer/src/features/editor/provider/local/localFileSystem.ts).
 
 로컬 filesystem IPC adapter는 Editor runtime 내부에 두고, `@workspace/editor`는 provider 계약만 소유한다. OS 파일 관리자에서 경로를 여는 동작은 Editor와 Browser가 함께 쓰는 [nativeShell](../../../../apps/desktop/src/renderer/src/adapters/platform/nativeShell.ts) capability를 사용한다.
 

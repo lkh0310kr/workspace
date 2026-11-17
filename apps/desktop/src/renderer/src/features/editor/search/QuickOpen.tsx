@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 import {
   editorSupportsSearch,
   EditorQuickOpenDialog,

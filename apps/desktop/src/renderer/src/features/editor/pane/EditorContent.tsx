@@ -33,16 +33,16 @@ import {
   type EditorDocumentSession
 } from '@workspace/editor'
 import '@workspace/editor/editor-pane-chrome.css'
-import { acquireLocalEditorProvider } from '../runtime/localEditorProvider'
+import { acquireLocalEditorProvider } from '../provider/local/localEditorProvider'
 import { LanguageDescription, indentUnit } from '@codemirror/language'
 import { languages as languageData } from '@codemirror/language-data'
 import { getStoredAutoSave, subscribeAutoSave } from '../state/autosave'
-import { pastePlainTextCommand } from '../runtime/editorPlainPaste'
+import { pastePlainTextCommand } from '../input/editorPlainPaste'
 import {
   clearFocusedEditorView,
   getFocusedEditorView,
   setFocusedEditorView
-} from '../runtime/activeEditorView'
+} from '../input/activeEditorView'
 import type { TabKind } from '../../pane-system/layout/paneTypes'
 
 // The per-file content half of what used to be ui/EditorPane.tsx — tab strip,
