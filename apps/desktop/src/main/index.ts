@@ -581,14 +581,6 @@ app.whenReady().then(async () => {
   app.on('web-contents-created', (_event, contents) => {
     if (contents.getType() !== 'webview') return
     contents.setWindowOpenHandler((details) => {
-      // Sites such as ChatGPT can materialize an image as a same-origin blob
-      // and open it in a new window to trigger a download. A blob URL cannot
-      // be loaded by a different guest, so hand it to this guest's download
-      // manager instead of relaying it as a new Browser tab.
-      if (details.url.startsWith('blob:https://') || details.url.startsWith('blob:http://')) {
-        contents.downloadURL(details.url)
-        return { action: 'deny' }
-      }
       sendToMainWindow('browser:open-new-tab', {
         hostWebContentsId: contents.id,
         url: details.url

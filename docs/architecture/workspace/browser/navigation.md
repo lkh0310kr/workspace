@@ -70,7 +70,7 @@ main startup에서 guest 탐색 전 `session.fromPartition('persist:browser')`�
 | browser:go-to-index              | invoke webContentsId,index → boolean                                                        |
 | browser:focus-guest / blur-guest | invoke webContentsId → boolean                                                              |
 
-download phase는 started/updated/done, state는 progressing/interrupted/completed/cancelled다. main은 일반 새 window 요청을 deny하고 host guest ID와 URL을 new-tab 이벤트로 전달한다. 단, guest가 여는 `blob:http(s)` URL은 새 guest에서 사용할 수 없으므로 같은 guest의 다운로드로 시작한다. download bar는 해당 guest ID의 이벤트를 표시한다. preload event subscription은 각각 해제 함수를 반환한다.
+download phase는 started/updated/done, state는 progressing/interrupted/completed/cancelled다. main은 새 window 요청을 deny하고 host guest ID와 URL을 new-tab 이벤트로 전달한다. download bar는 해당 guest ID의 이벤트를 표시한다. preload event subscription은 각각 해제 함수를 반환한다.
 
 history 명령은 webContents가 없으면 false/null, 있으면 Electron navigationHistory에 위임한다. goToIndex 범위 검사를 이 API에서 추가 제공하지 않는다. focus는 host window를 focus한 뒤 guest wc.focus하며 renderer sender를 다시 focus하지 않는다. blur는 renderer event.sender.focus를 호출한다. 현재 handler의 ID 조회를 sender 소유권 검증까지 구현된 것으로 해석하지 않는다.
 
