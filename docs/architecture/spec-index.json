@@ -307,11 +307,11 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/sidebar/EditorSidebar.shortcut.test.ts",
-          "sha256": "36cb0af9a745d4bbe4387b7394aefec817093a3c48e2a6e1ad44a51a8adcf8b6"
+          "sha256": "bb615c0aeade8a679ff390a123b96db15e7feec3e1a1c596836135a5b248fc90"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/tree/TreeView.scroll.test.ts",
-          "sha256": "d3df78e99373c01c6bdfaf351a8fb0517163f2312131167aab5b6ff2d511601a"
+          "sha256": "c4a1129c158bd398e70014207c357fe7a8e2dbb879ba5704ca7df10359a9f610"
         },
         {
           "path": "packages/editor/src/tree/EditorTreePane.tsx",
@@ -595,7 +595,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/EpubReaderContent.path-change.test.ts",
-          "sha256": "90451090b8efbc357f502432a898941ae7a18cdc4cf86f1bba3510cb0e795c9f"
+          "sha256": "2e6d8b26351801d619cc8b7c4f12e153b4e947d37102b50ada41ad58cdae6423"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/editor/viewers/foliate-js.d.ts",
@@ -726,7 +726,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "a26e61571fb3a852fc6cff3f34d0f602e7528f363a760faaf6a994350a7ad73f"
+          "sha256": "acdb97ed870f991f73fe73ce6a715c10fc79a6ab7804d79a8a10774c06fb676c"
         },
         {
           "path": "apps/desktop/src/main/workspace/search.test.ts",
@@ -905,7 +905,7 @@
         },
         {
           "path": "apps/desktop/src/main/index.ts",
-          "sha256": "a26e61571fb3a852fc6cff3f34d0f602e7528f363a760faaf6a994350a7ad73f"
+          "sha256": "acdb97ed870f991f73fe73ce6a715c10fc79a6ab7804d79a8a10774c06fb676c"
         },
         {
           "path": "apps/desktop/src/main/terminal/ipc/terminalSessionBuffers.ts",
@@ -949,7 +949,7 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "e3cb2894020b7b9e329feb13e3be4b538630dda2fb8dcdec99a6d2d880b6ad2c"
+          "sha256": "e93ed76b3eebca4ca3fea6f4f41256247866b4856a3aced0270f19ac34fe62a7"
         },
         {
           "path": "apps/desktop/src/preload/index.ts",
@@ -1121,7 +1121,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/paneTypes.ts",
-          "sha256": "bffe175dd00a3f3491fc381dfafc755c8a71edf31790de30ac776fb54abdf236"
+          "sha256": "5380d4e61e1ad60d336803ef78b8d17637161529e6d2ab48df9ad506f21a5d16"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/layout/tabDrag.ts",
@@ -1153,7 +1153,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/host/useLayoutHostCallbacks.tsx",
-          "sha256": "a9e60174afb13ced2d787120da68db68c6298c0be3b5bd4341caa4464ffd3591"
+          "sha256": "9e3b4cc962f2bc3909b97e8a3a5f1cf4536bfe32aa7eaa0967e6185545fa871a"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/group/usePaneVisibility.ts",
@@ -1241,7 +1241,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/assets/styles.css",
-          "sha256": "b7bf0973f56b783161ec01d6797c2834ae7f3b9b5f4fc18d6261042f9d8bfecb"
+          "sha256": "52c599f7714cd36ed6a6f2ab9cc70651b415f53b3e3b094cd5bc98a057c8dd8e"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/pane-system/host/WorkspaceLayoutHost.tsx",
@@ -1423,7 +1423,7 @@
         },
         {
           "path": "apps/desktop/src/main/agent/usage/usage.ts",
-          "sha256": "96360cf94599cfae41103fa8ab910734f51ef99c4dfe449d030be448330b7f63"
+          "sha256": "42c1587b37bef9862b32746dba781ffd4847cf5f413cbdb1b7996aa9b478cbad"
         },
         {
           "path": "apps/desktop/src/main/workspace/workspace.agent-hook.test.ts",
@@ -1443,11 +1443,11 @@
         },
         {
           "path": "apps/desktop/src/preload/index.d.ts",
-          "sha256": "e3cb2894020b7b9e329feb13e3be4b538630dda2fb8dcdec99a6d2d880b6ad2c"
+          "sha256": "e93ed76b3eebca4ca3fea6f4f41256247866b4856a3aced0270f19ac34fe62a7"
         },
         {
           "path": "apps/desktop/src/preload/systemApi.ts",
-          "sha256": "2e56bee91f6e2cb4012dbc21672fba436defcfef30e12d357b62eec155f970eb"
+          "sha256": "7af6693c48a14315e731c3bd8a3a36e10acfccb4c1455ab7cfda7fbd5a02ef10"
         },
         {
           "path": "apps/desktop/src/renderer/src/App.tsx",
@@ -1459,7 +1459,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/AgentUsageStatusBar.tsx",
-          "sha256": "414d31c91cb8d858dd14bd85bb4e8049e9c510d37ed8fd479f3ff372ea20e9ea"
+          "sha256": "1bbfbccdb00dbc5bc8db425af45edc990af93da4ae4a539c1dd4da03a64f9378"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/settings/UsageMeterSettingsSection.tsx",
@@ -1467,7 +1467,7 @@
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/usageApi.ts",
-          "sha256": "07fa3126f8c72aaf0f6d7fa53a64f878344aaa789b2b4bcc4f3c0d8c4c15f48c"
+          "sha256": "9da17851b7838f38ece215871ef9d711b3fafce759fb0e0d81f616448fa20040"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/agent-usage/usageStatusFormatting.ts",
@@ -1535,7 +1535,7 @@
         },
         {
           "path": "apps/desktop/src/shared/usage-meter-settings.ts",
-          "sha256": "101ac26364ccc452da051f627c794dbfa87814da3cbe942e2cda1a58cff06733"
+          "sha256": "db427d4f56c114bf88e79449caf5d5890ea3bb0f2ad6598a9ea00b66f0a693b6"
         },
         {
           "path": "apps/desktop/src/renderer/src/features/diagnostics/useDiagnosticsBootstrap.ts",
@@ -1587,32 +1587,8 @@
       ],
       "sources": [
         {
-          "path": "apps/server/src/auth/auth.ts",
-          "sha256": "4f4072b17cd258de213392da80e1a1c4f85ec6c894f858bd8e874cc535623b31"
-        },
-        {
-          "path": "apps/server/src/security/crypto.ts",
-          "sha256": "b62e98c203ea96d6d5f1a212c5519a01dd14012cb2592fa53c229b72d80c63c6"
-        },
-        {
           "path": "apps/server/src/index.ts",
-          "sha256": "d79e742beaae90217149d5ee7167c87a8ee0fc4cc4ce512f70b28d128fc9ea40"
-        },
-        {
-          "path": "apps/server/src/auth/oauthLogin.ts",
-          "sha256": "489c9ec5ccfb5e344346c2413b6cd2422be33ffa79eaa31450810e6f4268865a"
-        },
-        {
-          "path": "apps/server/src/services/serviceIntegrations.ts",
-          "sha256": "637d22c041ee5d4c15d10dd0e7e749813dcb6f2ef24537cb68349bb14d1a18f6"
-        },
-        {
-          "path": "apps/server/src/services/serviceRoute.ts",
-          "sha256": "ba9fa41d24e5a39385ba423e446b0a318938fe774a6609ac0bd0919371cce173"
-        },
-        {
-          "path": "apps/server/src/storage/store.ts",
-          "sha256": "28726db9b0b383b2354d23ba6cc2e48857adac67b9b4b4464675dec6a7c01aa0"
+          "sha256": "075bafc739738ab45cae46c22907b4fa05b8d134295b5562d205391ac4f248b2"
         }
       ]
     },
@@ -1817,7 +1793,7 @@
         },
         {
           "path": "packages/terminal/src/agent/agent-detection.ts",
-          "sha256": "b1d519786b07515e6518f8ab9e8bf826fb6879ac4d8866fb54f59918d3098651"
+          "sha256": "b8817ab3e16b62119242da3711f1cef19397bdc23307f4f9ef223cda9552e369"
         },
         {
           "path": "packages/terminal/src/agent/agent-main-agent-verdict.ts",
@@ -1825,7 +1801,7 @@
         },
         {
           "path": "packages/terminal/src/agent/agent-name-token-match.ts",
-          "sha256": "27062a92d08e38aa140496d026e3e355cf5ad19f6ccdc18f1c06f4bbb9fef6f8"
+          "sha256": "d504156bfb75862739db13baabb860e5bc0fe1ddd1118555a62efecf6cad3781"
         },
         {
           "path": "packages/terminal/src/agent/agent-status-freshness.ts",
@@ -1845,19 +1821,19 @@
         },
         {
           "path": "packages/terminal/src/agent/agent-title-core.ts",
-          "sha256": "f51f82d7d3ebfe6856e1ba5aad34bcfc9c01c2b199d9217ae1792eae47cfbcc9"
+          "sha256": "d0e04508038adfc8bccfcf735ea1b5f17581992e8ffafca981656802337b6c59"
         },
         {
           "path": "packages/terminal/src/agent/agent-title-decoration.ts",
-          "sha256": "85cbebb6ca78a7d0a93f247f85da1efbce5584d5ade9154acb4a2b168c782b41"
+          "sha256": "751978764ffb85566ecc8bff566c8764d4dcd0213b3e1335251f261fdda43254"
         },
         {
           "path": "packages/terminal/src/agent/agent-title-identity.ts",
-          "sha256": "fa93c3fbb67e02b6b4ad3c6d8deb3ddac86b7c9f0ece27767b36fa19629598d2"
+          "sha256": "cf4851fd3af14c0a54adbbb08899995c7a16c13b686ea226cddf24f206df1ffc"
         },
         {
           "path": "packages/terminal/src/agent/agent-title-status.ts",
-          "sha256": "4caa4e20f52186cd4c51af69f64b910c0af7983b79dca0951483e7c82abcc422"
+          "sha256": "a27bd3f26b6439fec6026fdf2ef0d6cae257065d75bbe9073ae89962f06b69f0"
         },
         {
           "path": "packages/terminal/src/agent/agent-turn-outcome.ts",
@@ -1880,10 +1856,6 @@
           "sha256": "b961ffd888174437cc3f10cd9ccfe01d59d1729a7df2d40554ab6a7da06fcaa6"
         },
         {
-          "path": "packages/terminal/src/agent/opencode-terminal-title.ts",
-          "sha256": "2af51932ca77ae4d4b6edcc1d25ab181b3fdf392056f75c9defb6a14a93cc5ec"
-        },
-        {
           "path": "packages/terminal/src/agent/osc-title-extraction.ts",
           "sha256": "862f2e9f5d05e3b588143e18752dbffe9b7635174abc31893ba0da4f04c9230a"
         },
@@ -1893,7 +1865,7 @@
         },
         {
           "path": "packages/terminal/src/agent/pty-output-title-observer.ts",
-          "sha256": "a44df24860ca1db7268f456986f9f8fdb7eedcb657f110c96dea89c4bd2cd3b8"
+          "sha256": "4dd27c08b716160e76715ce5358ff020050f28f480094144983bf287c108712f"
         },
         {
           "path": "packages/terminal/src/agent/shell-process-detection.ts",
@@ -1901,7 +1873,7 @@
         },
         {
           "path": "packages/terminal/src/agent/synthetic-agent-permission-title.ts",
-          "sha256": "65fce80baa14d3db40980033e5e2b3341c91fab7ff3d80b5f0f6552567b8b7ff"
+          "sha256": "5908970cf8a9443fa9221645975279c4611dcc7e3d2a6a71f250d1c6d2bff072"
         },
         {
           "path": "packages/terminal/src/agent/terminal-agent-pane-registry.ts",
@@ -1909,11 +1881,11 @@
         },
         {
           "path": "packages/terminal/src/agent/terminal-title-agent-type.test.ts",
-          "sha256": "525c715c8f99eaedf62ad0f98ca797c0c7f0da9491fb714c58a53103b80bf5f5"
+          "sha256": "12a32f19aa92769bf86e41209f03801c0d5fa17f07d4d56703caaf12485a2161"
         },
         {
           "path": "packages/terminal/src/agent/terminal-title-agent-type.ts",
-          "sha256": "acc8936265f7bf1e4f53c45f27a558269b342f588e5071c72f6a78ed823d575d"
+          "sha256": "03546b2ec36ae65a41a4945ae80a69195d27741712a5398e6901465547d5400a"
         },
         {
           "path": "packages/terminal/src/agent/terminal-title-wrapper-segments.ts",
@@ -1925,7 +1897,7 @@
         },
         {
           "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.test.ts",
-          "sha256": "ee2fb73eb8e39738fff9eda3a64ad9a1af1cda54a285ef57718dda48d32f88a4"
+          "sha256": "e28e7eccb0d45d7d53ecabc797a9f2d3a54e3cac64b7eac74c47dbffe4f08fb5"
         },
         {
           "path": "packages/terminal/src/agent/workspace-tab-agent-rollup.ts",
@@ -2200,12 +2172,8 @@
           "sha256": "66e6e3862923a36e9b87af74f9f70a6255676ad6269453604c5912b163e85b50"
         },
         {
-          "path": "packages/terminal/src/pane-manager/terminal-ime-anchor.ts",
-          "sha256": "a249f8a35087318a681173f8fe099b749d60a2d4001f2119cc425b1a33375ff8"
-        },
-        {
           "path": "packages/terminal/src/pane-manager/terminal-ime-candidate-anchor.ts",
-          "sha256": "bbcd23888e593fed900a137a54e94c124d4e18266fd2231bfa66056cdb885c62"
+          "sha256": "e820eb33dbdf36aa56e4e1cf7ccd9ad6688bf6328535fd121fd440698fee9453"
         },
         {
           "path": "packages/terminal/src/pane-manager/terminal-keyboard-protocol.test.ts",
@@ -2513,7 +2481,7 @@
         },
         {
           "path": "packages/terminal/src/types/tuiAgent.ts",
-          "sha256": "7c470c858ddc10988ea2b7e230d127a8d9bc70acf03e8dc8226d799749ce023b"
+          "sha256": "0b63fa24f447aa6d4cc54ce6b4a59b2467ada7d9ee31cfe403ea8267d3f07ebf"
         },
         {
           "path": "packages/terminal/src/input/xterm-clipboard-bypass-policy.test.ts",

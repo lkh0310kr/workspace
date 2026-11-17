@@ -7,7 +7,7 @@
 | 영역 | 기준 문서 | 남은 확인 |
 | --- | --- | --- |
 | Desktop 로컬 파일·Editor | [Workspace](../architecture/workspace/README.md), [Editor](../architecture/editor/README.md) | 실제 UI 저장·충돌·검색 acceptance |
-| Server API | [Server](../architecture/server/README.md) | identity 설정·OAuth callback·D1 운영 |
+| Server API | [Server](../architecture/server/README.md) | health endpoint 배포 상태 |
 | 전체 시스템 | [개요](../architecture/01-overview.md), [module 경계](../architecture/08-monorepo-module-boundaries.md) | CI 및 package lockfile과의 일치 |
 
 ## 점검 원칙

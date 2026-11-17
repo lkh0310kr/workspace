@@ -9,7 +9,7 @@
 | 1 | Desktop·Server·package 경계와 문서 index 정리 | 활성 모듈과 source links가 현재 저장소 구조를 가리킨다. |
 | 2 | Editor와 파일 탐색 acceptance 정리 | 저장·외부 변경·검색·rename 결과에 테스트나 수동 evidence가 연결된다. |
 | 3 | Terminal·Browser lifecycle 스펙 보완 | focus·재시작·취소·복구 결과를 각 owner 문서가 설명한다. |
-| 4 | Server 인증·OAuth·저장 계약 확인 | 미설정 인증, provider 실패, callback state와 secret 보관을 검증한다. |
+| 4 | Server health endpoint 확인 | 배포된 Server가 상태 확인 요청에 응답하는지 검증한다. |
 | 5 | CI 영향 경로와 검증 명령 유지 | 변경된 module에 필요한 검사만 실행하고 실패 exit를 전달한다. |
 
 ## 문서 소유

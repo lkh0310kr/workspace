@@ -1,11 +1,14 @@
 # 기능·검증 상태
 
-| 영역 | 상태 | 남은 확인 | 기준 |
-| --- | --- | --- | --- |
-| Desktop 로컬 Editor | 구현 | 선택 폴더에서 파일 저장·외부 변경·충돌을 실제 UI에서 확인 | [Editor 문서](../architecture/editor/README.md) |
-| Workspace shell | 구현 | 기존 layout에서 제거된 pane kind가 안전하게 복구되는지 테스트 | [layout 문서](../architecture/workspace/layout/README.md) |
-| 기기 정보 Home | 구현 | OS별 CPU·저장 공간 측정값 확인 | [Home 문서](../architecture/workspace/home/README.md) |
-| Server API | 구현 | 배포 identity 설정, OAuth callback과 D1 운영 검증 | [Server 문서](../architecture/server/README.md) |
-| 공유 Editor | 구현 | 주요 Markdown·tree acceptance와 공개 export 확인 | [Editor 스펙](../architecture/editor/README.md) |
+구현 여부와 실제 사용자 환경에서의 확인은 별도로 기록한다. 타입 검사나 단위 테스트만으로 UI acceptance 또는 배포 상태를 완료 처리하지 않는다.
 
-기능 구현, 자동 검사, 실제 UI acceptance와 운영 설정은 별도 상태로 기록한다. 소스 코드나 타입 검사만으로 운영 준비가 완료됐다고 판단하지 않는다.
+| 영역 | 구현 상태 | 남은 확인 | 기준 |
+| --- | --- | --- | --- |
+| Desktop 로컬 Editor | 구현 | 폴더 내 저장, 외부 변경, 충돌 처리의 실제 UI 동작 | [Editor 문서](../architecture/editor/README.md) |
+| Home·Browser·Terminal | 기능 패키지와 Desktop host로 구성 | 각 기능의 기존 동작과 lifecycle을 실제 사용 흐름에서 확인 | [Desktop 기능 문서](../architecture/workspace/README.md) |
+| 기능 패키지 경계 | Home·Browser·Terminal·Editor·UI 패키지 존재 | host 의존성, 공개 API, 기존 pane 동작이 문서와 일치하는지 확인 | [패키지 경계](../architecture/08-monorepo-module-boundaries.md) |
+| Home 시스템 요약 | 구현 | 지원 OS에서 CPU·저장 공간 표시값 확인 | [Home 문서](../architecture/workspace/home/README.md) |
+| Server health | `GET /api/health` 구현 | 배포된 Worker 응답과 배포 workflow 확인 | [Server 문서](../architecture/server/README.md) |
+| Editor 검색·Markdown | 구현 | Quick Open, 파일 내용 검색, 문서 전환, 주요 Markdown 결과 acceptance | [Editor 스펙](../architecture/editor/README.md) |
+
+제품의 현재 범위는 [집중 범위 문서](../product/platform-focus.md), 착수할 검증 작업은 [백로그](./backlog.md)를 따른다.

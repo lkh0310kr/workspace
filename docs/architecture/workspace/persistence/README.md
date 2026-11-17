@@ -6,7 +6,7 @@ Main 파일, Renderer storage, Chromium 저장과 외부 process의 저장 책�
 
 [persistence.ts](../../../../apps/desktop/src/main/workspace/persistence.ts)의 `appSupportDir`는 앱 설정·Workspace layout·terminal buffer 같은 app 상태를 보관한다. Electron `userData`, 로컬 파일 root, Renderer `localStorage`는 별도 저장 위치다. 경로를 같은 상수로 간주하지 않는다.
 
-Dev profile과 packaged profile은 Workspace snapshot, Chromium storage와 userData를 분리한다. 이 경계는 개발 UI가 사용 중인 상태를 덮지 않게 한다. Google Drive 동기화 중인 폴더는 사용자 파일 경로이며 Desktop이 별도 queue나 cursor를 만들지 않는다.
+Dev profile과 packaged profile은 Workspace snapshot, Chromium storage와 userData를 분리한다. 이 경계는 개발 UI가 사용 중인 상태를 덮지 않게 한다. 외부 도구가 동기화하는 폴더는 사용자 파일 경로이며 Desktop이 별도 동기화 queue를 만들지 않는다.
 
 | 데이터 | 위치/owner | writer·복구 |
 | --- | --- | --- |
